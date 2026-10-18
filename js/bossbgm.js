@@ -287,6 +287,6 @@ function finish(){
 
 let loopOn=true;
 function volume(){return .7*.7*.85;}
-const startAt=SONG.findIndex(b=>b.s==='戦闘テーマ');
+const startAt=0;   // イントロ（静寂）の頭から
 return { start: function () { start(startAt); }, stop: function () { if (bus) finish(); }, get playing() { return !!bus; } };
 };
