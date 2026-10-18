@@ -98,6 +98,8 @@ var G = window.G = window.G || {};
       } else if (e.k === 'boom') {
         burst(e.x, e.y, 14, ['#ffb347', '#ffe08a', '#ff6b3a', '#5a5048'], 50, 40, 0.5);
         rings.push({ x: sx(e.x), y: sy(e.y), r: 2, max: e.r * TW, col: '#ffcf6a', life: 0.3, ml: 0.3 });
+      } else if (e.k === 'spawn') { // 洞穴から出てきた時の土ぼこり
+        burst(e.x, e.y, 8, ['#8a7a68', '#b0a08a', '#5a5048'], 18, -10, 0.45);
       } else if (e.k === 'zap') {
         burst(e.x, e.y, 6, ['#c79bff', '#ffffff', '#9be7ff'], 30, 0, 0.35);
       } else if (e.k === 'leak') {
@@ -150,17 +152,15 @@ var G = window.G = window.G || {};
     b.drawImage(bg, 0, 0);
 
     // 置ける場所の表示（カード選択中）
-    if (ui.selType && (s.phase === 'prep' || s.phase === 'attack')) {
-      var blink = 0.55 + 0.45 * Math.sin(t * 6);
+    if (ui.selType && !ui.pending && (s.phase === 'prep' || s.phase === 'attack')) {
+      b.globalAlpha = 0.45 + 0.25 * Math.sin(t * 6);
       for (var ty = 0; ty < G.MAP.rowsN; ty++) for (var tx = 0; tx < G.MAP.cols; tx++) {
         if (!G.Battle.canPlaceAt(s, tx, ty)) continue;
-        b.globalAlpha = 0.28 * blink + 0.12;
-        b.fillStyle = '#fff3b0'; b.fillRect(tx * TW + 1, sy(ty) + 1, TW - 2, TH - 2);
-        b.globalAlpha = 1;
         b.fillStyle = '#fff3b0';
         b.fillRect(tx * TW + 1, sy(ty) + 1, 2, 1); b.fillRect(tx * TW + TW - 3, sy(ty) + 1, 2, 1);
         b.fillRect(tx * TW + 1, sy(ty) + TH - 2, 2, 1); b.fillRect(tx * TW + TW - 3, sy(ty) + TH - 2, 2, 1);
       }
+      b.globalAlpha = 1;
     }
 
     // 次の攻撃で使われる入口に「！」（タップすると次の敵が見える）
@@ -199,7 +199,6 @@ var G = window.G = window.G || {};
       // 敵
       var E = G.ENEMIES[o.type], fr = Math.floor(o.walk) % 2, es = S[o.type][fr];
       var img = o.face < 0 ? es.l : es.r, ex = sx(o.x), ey = sy(o.y) + 3;
-      if (o.y < -0.1) continue; // まだ洞穴の中
       b.fillStyle = 'rgba(0,0,0,.35)'; b.fillRect(ex - 5, ey - 1, 10, 2);
       blitB(img, ex, ey);
       if (o.flash > 0) {
@@ -232,9 +231,20 @@ var G = window.G = window.G || {};
     if (ui.selType && ui.preview) {
       var pv = ui.preview, ok = G.Battle.canPlaceAt(s, pv.tx, pv.ty);
       var T = G.TOWERS[ui.selType];
+      // 射程の内側をうすく塗る
+      b.globalAlpha = 0.2; b.fillStyle = ok ? '#ffffff' : '#ff5a5a';
+      b.beginPath(); b.ellipse(sx(pv.tx + 0.5), sy(pv.ty + 0.5), T.range * TW, T.range * TH, 0, 0, Math.PI * 2); b.fill();
+      b.globalAlpha = 1;
       rangeEllipse(pv.tx + 0.5, pv.ty + 0.5, T.range, ok ? '#ffffff' : '#ff5a5a', t);
       var ps = S[ui.selType][0][0]; if (ui.selType === 'cannon') ps = ps.r;
-      b.globalAlpha = 0.6; blitB(ps, sx(pv.tx + 0.5), sy(pv.ty + 0.5) + 5); b.globalAlpha = 1;
+      b.globalAlpha = ui.pending ? 0.75 : 0.6; blitB(ps, sx(pv.tx + 0.5), sy(pv.ty + 0.5) + 5); b.globalAlpha = 1;
+      if (ui.pending && ok) { // 仮置き中：マスのかどを点滅させて「もう一度タップ」を示す
+        var on = Math.floor(t * 4) % 2 === 0, x0 = pv.tx * TW, y0 = sy(pv.ty);
+        b.fillStyle = on ? '#ffffff' : '#ffe14d';
+        [[0, 0, 1, 1], [TW - 3, 0, -1, 1], [0, TH - 1, 1, -1], [TW - 3, TH - 1, -1, -1]].forEach(function (c) {
+          b.fillRect(x0 + c[0], y0 + c[1], 3, 1); b.fillRect(x0 + (c[2] > 0 ? c[0] : c[0] + 2), y0 + c[1] + (c[3] > 0 ? 0 : -2), 1, 3);
+        });
+      }
     }
 
     // 効果

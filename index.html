@@ -44,14 +44,14 @@
   <div class="info" id="info"></div>
 
   <div class="actions">
-    <button type="button" id="btn-draw">+1枚 <small id="draw-cost">15</small></button>
+    <button type="button" id="btn-draw">ドロー <small>● <span id="draw-cost">15</span></small></button>
     <button type="button" id="btn-speed" aria-pressed="false">×1</button>
     <button type="button" id="btn-go" class="go">攻撃開始</button>
   </div>
 
   <div class="hand-bar">
     <span class="energy" title="エネルギー"><span class="en-label">エネルギー</span><span id="h-energy"></span></span>
-    <span class="piles"><span title="山札">山札 <b id="h-draw">0</b></span><span title="捨て札">捨て札 <b id="h-disc">0</b></span></span>
+    <span class="piles"><button type="button" class="pile-btn" id="btn-pile-draw" aria-label="山札の内訳"><svg class="pile-ico" viewBox="0 0 16 16" aria-hidden="true"><rect x="5" y="1.5" width="9" height="12" rx="1.5"/><rect x="2" y="3.5" width="9" height="12" rx="1.5"/></svg>山札 <b id="h-draw">0</b></button><button type="button" class="pile-btn disc" id="btn-pile-disc" aria-label="捨て札の内訳"><svg class="pile-ico" viewBox="0 0 16 16" aria-hidden="true"><rect x="5" y="1.5" width="9" height="12" rx="1.5"/><rect x="2" y="3.5" width="9" height="12" rx="1.5"/></svg>捨て札 <b id="h-disc">0</b></button></span>
   </div>
   <div class="hand" id="hand"></div>
 
@@ -74,6 +74,16 @@
     <p id="d-text"></p>
     <dl id="d-stats"></dl>
     <button type="button" id="d-close">閉じる</button>
+  </div>
+</div>
+
+<!-- 山札・捨て札の内訳 -->
+<div class="modal" id="pile" hidden>
+  <div class="modal-box">
+    <h2 id="p-title"></h2>
+    <ul class="pile-list" id="p-list"></ul>
+    <p id="p-note"></p>
+    <button type="button" id="p-close">閉じる</button>
   </div>
 </div>
 

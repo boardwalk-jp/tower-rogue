@@ -172,6 +172,7 @@ var G = window.G = window.G || {};
               off: (s.rand() - 0.5) * 0.3, x: 0, y: 0, face: 1, walk: s.rand() * 10, flash: 0, slow: 0 };
     place(e);
     s.enemies.push(e);
+    ev(s, { k: 'spawn', x: e.x, y: e.y });
   }
   function place(e) {
     var p = posOnPath(e.gate, e.d);

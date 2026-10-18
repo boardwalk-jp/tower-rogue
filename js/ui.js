@@ -6,7 +6,8 @@ var G = window.G = window.G || {};
   var $ = function (id) { return document.getElementById(id); };
   var SPR = G.buildSprites();
   var s = null;
-  var ui = { selIndex: -1, selType: null, selTower: null, preview: null, time: 0 };
+  // pending：1回目のタップで仮に置いた場所（もう一度タップで建設が確定）
+  var ui = { selIndex: -1, selType: null, selTower: null, preview: null, pending: null, time: 0 };
   var speed = 1;
   var cv = $('map'), ctx = cv.getContext('2d');
   var started = false;
@@ -134,15 +135,20 @@ var G = window.G = window.G || {};
   function selectCard(i) {
     if (ui.selIndex === i) { deselect(); return; }
     closeTowerSheet();
-    ui.selIndex = i; ui.selType = s.hand[i].type; ui.preview = null;
+    ui.selIndex = i; ui.selType = s.hand[i].type; ui.preview = null; ui.pending = null;
     var T = G.TOWERS[ui.selType];
     if (T.cost > s.energy) toast('エネルギーが足りません');
     else toast('置く場所をタップ');
     renderHand();
   }
   function deselect() {
-    ui.selIndex = -1; ui.selType = null; ui.preview = null;
+    ui.selIndex = -1; ui.selType = null; ui.preview = null; ui.pending = null;
     document.querySelectorAll('#hand .card.sel').forEach(function (d) { d.classList.remove('sel'); });
+  }
+  // 1回目：仮置き（射程が見える）。同じマスをもう一度タップで建設
+  function setPending(t) {
+    ui.pending = { tx: t.tx, ty: t.ty }; ui.preview = ui.pending;
+    toast('もう一度タップで建設');
   }
   function tryPlace(i, tx, ty) {
     var err = G.Battle.playCard(s, i, tx, ty);
@@ -166,7 +172,7 @@ var G = window.G = window.G || {};
       if (!st.drag && Math.hypot(dx, dy) > 10) {
         st.drag = true; clearTimeout(st.timer);
         closeTowerSheet();
-        ui.selIndex = i; ui.selType = s.hand[i].type;
+        ui.selIndex = i; ui.selType = s.hand[i].type; ui.pending = null;
         st.ghost = el.cloneNode(true); st.ghost.classList.add('ghost'); st.ghost.style.width = el.offsetWidth + 'px';
         document.body.appendChild(st.ghost);
       }
@@ -182,7 +188,9 @@ var G = window.G = window.G || {};
       if (st.ghost) st.ghost.remove();
       if (st.drag) {
         var t = cancel ? null : tileFromClient(e.clientX, e.clientY);
-        if (t) { if (!tryPlace(i, t.tx, t.ty)) { ui.preview = null; renderHand(); } }
+        // ドラッグで離した場所も仮置き。確定はタップで
+        if (t && G.Battle.canPlaceAt(s, t.tx, t.ty)) { renderHand(); setPending(t); }
+        else if (t) { ui.preview = null; renderHand(); toast('そこには置けません'); }
         else { deselect(); renderHand(); }
       } else if (!st.long && !cancel) selectCard(i);
       st = null;
@@ -203,12 +211,12 @@ var G = window.G = window.G || {};
   var mp = null;
   cv.addEventListener('pointerdown', function (e) {
     mp = { x: e.clientX, y: e.clientY };
-    if (ui.selType && e.pointerType !== 'mouse') ui.preview = tileFromClient(e.clientX, e.clientY);
   });
+  // マウスの時だけ、仮置き前はカーソルの場所に見本を出す
   cv.addEventListener('pointermove', function (e) {
-    if (ui.selType && (e.pointerType === 'mouse' || mp)) ui.preview = tileFromClient(e.clientX, e.clientY);
+    if (ui.selType && !ui.pending && e.pointerType === 'mouse') ui.preview = tileFromClient(e.clientX, e.clientY);
   });
-  cv.addEventListener('pointerleave', function (e) { if (e.pointerType === 'mouse') ui.preview = null; });
+  cv.addEventListener('pointerleave', function (e) { if (e.pointerType === 'mouse' && !ui.pending) ui.preview = null; });
   cv.addEventListener('pointerup', function (e) {
     if (!mp) return;
     var moved = Math.hypot(e.clientX - mp.x, e.clientY - mp.y) > 14; mp = null;
@@ -219,7 +227,11 @@ var G = window.G = window.G || {};
     closeGateInfo();
     if (ui.selType) {
       var t = tileFromClient(e.clientX, e.clientY);
-      if (t && G.Battle.canPlaceAt(s, t.tx, t.ty)) { tryPlace(ui.selIndex, t.tx, t.ty); return; }
+      if (t && G.Battle.canPlaceAt(s, t.tx, t.ty)) {
+        if (ui.pending && ui.pending.tx === t.tx && ui.pending.ty === t.ty) tryPlace(ui.selIndex, t.tx, t.ty);
+        else setPending(t);
+        return;
+      }
       var tw0 = G.Render.towerAt(s, e.clientX - r.left, e.clientY - r.top, r.width, r.height);
       if (tw0) { deselect(); renderHand(); openTowerSheet(tw0.id); return; }
       toast('そこには置けません');
@@ -305,6 +317,29 @@ var G = window.G = window.G || {};
     var err = G.Battle.extraDraw(s);
     if (err) toast(err); else { renderHand(); renderHud(true); }
   });
+  // ---- 山札・捨て札の内訳（山札は順番が分からないよう種類ごとの枚数だけ） ----
+  function showPile(which) {
+    var list = which === 'draw' ? s.draw : s.discard, count = {};
+    list.forEach(function (c) { count[c.type] = (count[c.type] || 0) + 1; });
+    $('p-title').textContent = (which === 'draw' ? '山札' : '捨て札') + '（' + list.length + '枚）';
+    $('p-note').textContent = which === 'draw' ? '引く順番は分かりません。山札がなくなると捨て札を混ぜて山札に戻します。' : '使ったカードと、ターンの終わりに残った手札が入ります。';
+    var ul = $('p-list'); ul.innerHTML = '';
+    var types = Object.keys(G.TOWERS).filter(function (k) { return count[k]; });
+    if (!types.length) ul.innerHTML = '<li class="none">カードはありません</li>';
+    types.forEach(function (k) {
+      var li = document.createElement('li');
+      li.appendChild(cardArt(k));
+      var nm = document.createElement('span'); nm.textContent = G.TOWERS[k].name; li.appendChild(nm);
+      var n = document.createElement('b'); n.textContent = '×' + count[k]; li.appendChild(n);
+      ul.appendChild(li);
+    });
+    $('pile').hidden = false;
+  }
+  $('btn-pile-draw').addEventListener('click', function () { showPile('draw'); });
+  $('btn-pile-disc').addEventListener('click', function () { showPile('discard'); });
+  $('p-close').addEventListener('click', function () { $('pile').hidden = true; });
+  $('pile').addEventListener('click', function (e) { if (e.target === this) this.hidden = true; });
+
   $('btn-speed').addEventListener('click', function () {
     speed = speed === 1 ? 2 : 1;
     this.textContent = '×' + speed; this.setAttribute('aria-pressed', String(speed === 2));
@@ -317,7 +352,7 @@ var G = window.G = window.G || {};
     G.Render.addEvents(evs);
     var info = false;
     evs.forEach(function (e) {
-      if (e.k === 'prep') { closeTowerSheetIfGone(); renderHand(); showBanner('準備ターン', 'prep'); info = true; }
+      if (e.k === 'prep') { closeTowerSheetIfGone(); deselect(); renderHand(); showBanner('準備ターン', 'prep'); info = true; }
       else if (e.k === 'attack') { showBanner('攻撃ターン', 'attack'); }
       else if (e.k === 'kill' || e.k === 'leak') info = true;
       else if (e.k === 'reshuffle') toast('捨て札を混ぜて山札に戻しました');
