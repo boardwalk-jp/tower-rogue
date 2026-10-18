@@ -11,9 +11,13 @@ var G = window.G = window.G || {};
   function saveCfg() { try { localStorage.setItem(KEY, JSON.stringify(cfg)); } catch (e) {} }
 
   // ---- 最初のタップで音の準備（iPhone の Safari はタップの中でないと音を始められない） ----
+  // 注意：iPhone では「指を置いた瞬間（pointerdown / touchstart）」は合図として認められない。
+  // 指を離した時（touchend）・クリック・キー入力の中で作る／再開する
   function unlock() {
     var C = window.AudioContext || window.webkitAudioContext;
     if (!C) return;
+    // iOS 17 以降：音楽アプリと同じ扱いにする（消音スイッチの影響を受けにくくする）
+    try { if (navigator.audioSession && navigator.audioSession.type !== 'playback') navigator.audioSession.type = 'playback'; } catch (e) {}
     if (!ac) {
       ac = new C();
       master = ac.createGain(); master.gain.value = 0.9; master.connect(ac.destination);
@@ -22,14 +26,18 @@ var G = window.G = window.G || {};
       noiseBuf = ac.createBuffer(1, ac.sampleRate * 0.6, ac.sampleRate);
       var d = noiseBuf.getChannelData(0); for (var i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
     }
-    if (ac.state === 'suspended') ac.resume();
+    if (ac.state !== 'running') {
+      try { ac.resume(); } catch (e) {}
+      // 無音を1回鳴らす（古い iPhone はこれで音が出るようになる）
+      try { var b = ac.createBuffer(1, 1, 22050), src = ac.createBufferSource(); src.buffer = b; src.connect(ac.destination); src.start(0); } catch (e) {}
+    }
     if (wantTrack && !playing) startTrack(wantTrack);
   }
-  ['touchend', 'pointerdown', 'click', 'keydown'].forEach(function (n) { document.addEventListener(n, unlock, { passive: true, capture: true }); });
-  // 別のアプリに切り替えたら止め、戻ったら再開
+  ['touchend', 'pointerup', 'click', 'keydown'].forEach(function (n) { document.addEventListener(n, unlock, { passive: true, capture: true }); });
+  // 別のアプリに切り替えたら止め、戻ったら次のタップで再開
   document.addEventListener('visibilitychange', function () {
     if (!ac) return;
-    if (document.hidden) ac.suspend(); else ac.resume();
+    if (document.hidden) ac.suspend(); else try { ac.resume(); } catch (e) {}
   });
   function ready() { return ac && ac.state === 'running'; }
 
@@ -164,5 +172,8 @@ var G = window.G = window.G || {};
     cfg[kind] = v; saveCfg();
     if (ac) { (kind === 'se' ? sfxBus : bgmBus).gain.value = v ? (kind === 'se' ? 0.32 : 0.12) : 0; }
   }
-  G.Sound = { play: play, music: music, set: set, get: function (k) { return cfg[k]; } };
+  // 音の状態（メニューの「音のテスト」で表示）
+  function state() { return !ac ? 'まだ準備していない（画面をタップすると準備）' : ac.state === 'running' ? '鳴らせる状態' : '止まっている（' + ac.state + '）'; }
+  function test() { unlock(); var was = cfg.se; cfg.se = true; play('upgrade'); cfg.se = was; }
+  G.Sound = { play: play, music: music, set: set, get: function (k) { return cfg[k]; }, state: state, test: test };
 })();

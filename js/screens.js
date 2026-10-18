@@ -135,6 +135,10 @@ var G = window.G = window.G || {};
   $('wm-se').addEventListener('click', function () { G.Sound.set('se', !G.Sound.get('se')); soundLabels(); });
   $('wm-bgm').addEventListener('click', function () { G.Sound.set('bgm', !G.Sound.get('bgm')); soundLabels(); });
   soundLabels();
+  $('wm-test').addEventListener('click', function () {
+    G.Sound.test();
+    setTimeout(function () { $('wm-sound-state').textContent = '音の状態：' + G.Sound.state() + '。鳴らない時はマナーモードと音量を確認してください。'; }, 200);
+  });
 
   function newRun(cmdId) {
     clearSave();
