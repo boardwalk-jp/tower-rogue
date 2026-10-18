@@ -180,18 +180,20 @@ var G = window.G = window.G || {};
     var set = kind === 'elite' || kind === 'boss' ? W[kind] : f < 4 ? W.early : W.mid;
     // 各層の最初の数回の通常戦闘は、その層の通常戦闘のひな形のうち弱い方から（同じひな形は続けない）
     if (kind === 'battle' && (run.actBattles || 0) < G.RULES.easyBattles) set = easyTemplates(run.act).filter(function (t) { return t !== run.lastTpl; });
-    var map = G.MAPS[mapId], gates = Object.keys(map.paths);
+    var map = G.MAPS[mapId], gates = Object.keys(map.paths), PL = B.pathLengths(map);
+    var longest = gates.slice().sort(function (a, b) { return PL[b] - PL[a]; })[0];
     var tpl = kind === 'boss' ? set[run.boss || 0] : pick(set, r), scale = (1 + f * G.RULES.floorScale) * A.hp;
     if (kind === 'battle') run.lastTpl = tpl;
     var waves = tpl.map(function (wave) {
       return wave.map(function (g) {
         var E = G.ENEMIES[g[0]];
-        var gate = E.boss && map.paths.C ? 'C' : pick(gates, r);
+        // ボスは一番長い道から来る（倒すまでの時間をかせげるように）
+        var gate = E.boss ? longest : pick(gates, r);
         return { gate: gate, type: g[0], n: g[1], gap: E.gap, delay: g[2] };
       });
     });
     return { map: mapId, theme: A.theme, waves: waves, hpMult: scale, deck: run.deck.slice(), life: run.life, maxLife: run.maxLife,
-             gold: run.gold, seed: Math.floor(r() * 1e9), kind: kind, relics: run.relics.slice(), cmd: run.cmd };
+             bossMult: A.hp * G.RULES.bossHp, gold: run.gold, seed: Math.floor(r() * 1e9), kind: kind, relics: run.relics.slice(), cmd: run.cmd };
   }
   // 戦闘の結果をランに戻す
   function finishBattle(run, s) {

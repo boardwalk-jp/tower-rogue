@@ -8,7 +8,7 @@ require('../js/run.js');
 var G = global.G, B = G.Battle;
 
 // 置ける場所のうち、射程（2.4マス）の中を通る道の長さが一番長い所を選ぶ（入口が多い道ほど重く数える）
-var coverCache = {}, LEAK = {};
+var coverCache = {}, LEAK = {}, BOSS = {}, bossNow = null;
 function coverage(s) {
   if (coverCache[s.map.id]) return coverCache[s.map.id];
   var pts = [];
@@ -74,6 +74,13 @@ function fight(opts) {
     if (s.phase === 'prep') { playTurn(s); B.startAttack(s); }
     B.update(s, 1 / 30);
     if (process.env.LEAKS) s.events.forEach(function (e) { if (e.k === 'leak') LEAK[e.type] = (LEAK[e.type] || 0) + e.life; });
+    // ボス本体：倒せたか・城に着いたか、着いた時に残っていた体力の割合
+    if (process.env.BOSS) s.events.forEach(function (e) {
+      if (e.k === 'spawn' && e.boss) bossNow = s.enemies[s.enemies.length - 1];
+      if (e.k === 'kill' && e.boss) (BOSS[e.type] = BOSS[e.type] || { kill: 0, leak: 0, left: [] }).kill++;
+      if (e.k === 'leak' && G.ENEMIES[e.type].boss) { var b = (BOSS[e.type] = BOSS[e.type] || { kill: 0, leak: 0, left: [] }); b.leak++; if (bossNow) b.left.push(Math.round(bossNow.lastHp / bossNow.max * 100)); }
+    });
+    if (bossNow && bossNow.hp > 0) bossNow.lastHp = bossNow.hp;
     s.events.length = 0;
   }
   return s;
@@ -139,3 +146,4 @@ Object.keys(G.COMMANDERS).filter(function (c) { return !only || c === only; }).f
 });
 console.log('合計 ' + totalWins + '/' + total);
 if (process.env.LEAKS) console.log(JSON.stringify(LEAK));
+if (process.env.BOSS) Object.keys(BOSS).forEach(function (k) { var b = BOSS[k]; console.log(G.ENEMIES[k].name + '：倒した ' + b.kill + '・城に着いた ' + b.leak + (b.left.length ? '（着いた時の残り体力 平均' + Math.round(b.left.reduce(function (a, c) { return a + c; }, 0) / b.left.length) + '%）' : '')); });

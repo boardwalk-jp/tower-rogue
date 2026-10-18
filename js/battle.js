@@ -79,7 +79,7 @@ var G = window.G = window.G || {};
       kind: opts.kind || 'battle',
       map: map, paths: pathsOf(map), fly: flyPathsOf(map), cmd: opts.cmd || null,
       waves: opts.waves || [[{ gate: Object.keys(map.paths)[0], type: 'slime', n: 5, gap: 1.2, delay: 0 }]],
-      hpMult: opts.hpMult || 1,
+      hpMult: opts.hpMult || 1, bossMult: opts.bossMult || opts.hpMult || 1,
       phase: 'prep', turn: 0,
       life: opts.life !== undefined ? opts.life : R.maxLife, maxLife: opts.maxLife || R.maxLife,
       energy: 0, gold: opts.gold !== undefined ? opts.gold : R.startGold,
@@ -316,7 +316,7 @@ var G = window.G = window.G || {};
   }
 
   function spawn(s, q) {
-    var E = G.ENEMIES[q.type], hp = Math.round(E.hp * s.hpMult);
+    var E = G.ENEMIES[q.type], hp = Math.round(E.hp * (E.boss ? s.bossMult : s.hpMult));
     var gate = E.fly && q.gate.slice(-1) !== '~' ? q.gate + '~' : q.gate;
     var e = { id: s.nextId++, type: q.type, gate: gate, hp: hp, fly: !!E.fly, sumT: 0, healT: 0, max: hp, d: q.d || 0,
               off: E.boss ? 0 : (s.rand() - 0.5) * (q.d ? 0.5 : 0.3), x: 0, y: 0, face: 1, walk: s.rand() * 10, flash: 0,
@@ -676,6 +676,6 @@ var G = window.G = window.G || {};
     create: create, update: update, startAttack: startAttack, playCard: playCard, skillBlocked: skillBlocked,
     canPlaceAt: canPlaceAt, upgrade: upgrade, upgradeCost: upgradeCost, towerStats: towerStats, nextStats: nextStats,
     baseStats: baseStats, extraDraw: extraDraw, nextWave: nextWave, findTower: findTower, tileAt: tileAt,
-    cardCost: cardCost, cardDef: cardDef, nearestPathPoint: nearestPathPoint, rng: rng, shuffle: shuffle, TARGET_MODES: TARGET_MODES, setTarget: setTarget, findTowerAt: findTowerAt
+    cardCost: cardCost, cardDef: cardDef, pathLengths: function (map) { var P = pathsOf(map), o = {}; Object.keys(P).forEach(function (k) { o[k] = P[k].len; }); return o; }, nearestPathPoint: nearestPathPoint, rng: rng, shuffle: shuffle, TARGET_MODES: TARGET_MODES, setTarget: setTarget, findTowerAt: findTowerAt
   };
 })();

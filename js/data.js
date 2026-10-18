@@ -362,13 +362,13 @@ G.ENEMIES = {
   wyvern:    { name: 'ワイバーン', hp: 380, speed: 0.48,  armor: 0.2, life: 3,  gold: 24,  gap: 4.0, fly: true, immune: ['burn'] },
   shaman:    { name: 'ゴブリン呪術師', hp: 150, speed: 0.8, armor: 0, life: 2, gold: 14, gap: 3.0, heal: { r: 1.4, amt: 15, every: 3 } },
   goblinlord: { name: 'ゴブリン将軍', hp: 1250, speed: 0.42, armor: 0.25, life: 10, gold: 100, gap: 1, boss: true, summon: { type: 'goblin', n: 3, every: 8 } },
-  lich:      { name: '死霊の王',   hp: 1400, speed: 0.4, armor: 0.2, magicResist: 0.2, life: 10, gold: 100, gap: 1, boss: true, summon: { type: 'skeleton', n: 2, every: 8 } },
-  demonlord: { name: '魔王',       hp: 2200, speed: 0.36, armor: 0.3, life: 15, gold: 0, gap: 1, boss: true, final: true, immune: ['burn'], summon: { type: 'bat', n: 3, every: 7 } },
+  lich:      { name: '死霊の王',   hp: 1150, speed: 0.4, armor: 0.2, magicResist: 0.2, life: 10, gold: 100, gap: 1, boss: true, summon: { type: 'skeleton', n: 2, every: 8 } },
+  demonlord: { name: '魔王',       hp: 1800, speed: 0.36, armor: 0.3, life: 15, gold: 0, gap: 1, boss: true, final: true, immune: ['burn'], summon: { type: 'bat', n: 3, every: 7 } },
   iceknight: { name: '氷の騎士',   hp: 300, speed: 0.55, armor: 0.5, life: 3,  gold: 22,  gap: 4.0, immune: ['slow'] },
   magma:     { name: '溶岩スライム', hp: 160, speed: 0.7, armor: 0,  life: 2,  gold: 9,   gap: 3.0, immune: ['burn'], split: { type: 'salamander', n: 2 } },
   demon:     { name: '炎の悪魔',   hp: 320, speed: 0.7,  armor: 0.3, life: 3,  gold: 24,  gap: 4.0, immune: ['burn'], magicResist: 0.3 },
   frostgiant: { name: '霜の巨人',  hp: 1700, speed: 0.4, armor: 0.3, life: 10, gold: 100, gap: 1, boss: true, immune: ['slow'] },
-  dragon:    { name: '火竜',       hp: 2600, speed: 0.35, armor: 0.35, life: 15, gold: 0, gap: 1, boss: true, final: true, immune: ['burn'], magicResist: 0.25 },
+  dragon:    { name: '火竜',       hp: 2000, speed: 0.35, armor: 0.3, life: 15, gold: 0, gap: 1, boss: true, final: true, immune: ['burn'], magicResist: 0.25 },
   ogre:   { name: 'オーガ王',   hp: 1500, speed: 0.4,  armor: 0.3, life: 10, gold: 100, gap: 1, boss: true }
 };
 
@@ -556,6 +556,7 @@ G.RULES = {
   floorScale: 0.04,   // 1階進むごとに敵の体力が4%ずつ増える（数はひな形どおり）
   battleGold: { battle: 10, elite: 30 },   // 戦闘に勝った時のおまけのお金
   restHeal: 12,
+  bossHp: 0.6,        // ボスの体力の倍率（階が進む分の倍率はボスにはかけず、層の倍率×これ）
   easyBattles: 3,     // 各層の最初の3回の通常戦闘は、その層で弱い方の攻撃のひな形から選ぶ
   easyPool: 3,        // 弱い順に何個のひな形から選ぶか
   captainGold: 8,     // 隊長：戦闘に勝つたびのお金
