@@ -128,6 +128,10 @@ h1 span{font-size:18px;color:var(--muted)}
 .rank-a{color:#ffd84a;border-color:#b8942a}
 .rank-b{color:#eef2ea;border-color:#8a9a8e}
 .rank-f,.rank-g{color:#8b948d;background:#1a201c;border-color:#3a443e}
+/* 強化でランクが変わる時（A以上に上がった時は金色のまま） */
+.rank.rank-up{color:var(--up);border-color:var(--up);background:rgba(255,91,74,.12)}
+.rank.rank-down{color:var(--down);border-color:var(--down);background:rgba(78,168,255,.12)}
+.rk-arrow{margin-left:3px;margin-right:-2px}
 .d-up{color:var(--up)} .d-down{color:var(--down)}
 .sheet p span span{white-space:nowrap}
 button.up{background:var(--up);color:#fff;border-color:var(--up);text-shadow:0 1px 0 rgba(0,0,0,.35)}

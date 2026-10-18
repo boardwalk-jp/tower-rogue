@@ -271,6 +271,16 @@ var G = window.G = window.G || {};
   function fmtSplash(v) { return v.toFixed(2).replace(/0$/, ''); }
   // ランクの小さな札（ランクがない数値は何も出さない）
   function rk(r) { return r ? '<i class="rank rank-' + r.toLowerCase() + '">' + r + '</i>' : ''; }
+  // 強化後のランク：上がれば赤の↑、下がれば青の↓を前に付け、札もその色にする。
+  // ただし新しいランクがA以上なら札は元の金色のまま（矢印だけ色付き）。変わらなければ普通の札
+  var RANK_ORDER = ['SSS', 'SS', 'S', 'A', 'B', 'C', 'D', 'E', 'F', 'G'];
+  function rkNext(before, after) {
+    if (!after || !before || before === after) return rk(after);
+    var up = RANK_ORDER.indexOf(after) < RANK_ORDER.indexOf(before), dir = up ? 'up' : 'down';
+    var high = RANK_ORDER.indexOf(after) <= RANK_ORDER.indexOf('A');
+    return '<b class="rk-arrow d-' + dir + '">' + (up ? '↑' : '↓') + '</b>' +
+      '<i class="rank rank-' + after.toLowerCase() + (high ? '' : ' rank-' + dir) + '">' + after + '</i>';
+  }
   function renderTowerSheet() {
     var tw = G.Battle.findTower(s, ui.selTower); if (!tw) { closeTowerSheet(); return; }
     var T = G.TOWERS[tw.type], st = G.Battle.towerStats(tw), c = G.Battle.upgradeCost(tw), R = G.Rank.ofStats(st);
@@ -290,10 +300,10 @@ var G = window.G = window.G || {};
         return '<b class="' + (good ? 'd-up' : 'd-down') + '">(' + (v > 0 ? '+' : '') + v + ')</b>';
       };
       var RN = G.Rank.ofStats(n);
-      txt += '<span class="next">強化 → ' + w('攻撃力 ' + n.dmg + rk(RN.dmg) + d(st.dmg, n.dmg, 0)) +
-        '・' + w('射程 ' + n.range.toFixed(1) + rk(RN.range) + d(st.range, n.range, 1)) +
-        '・' + w(perSec(n.rate) + '発/s' + rk(RN.speed) + d(+perSec(st.rate), +perSec(n.rate), 2)) +
-        (n.splash ? '・' + w('爆発 ' + fmtSplash(n.splash) + rk(RN.splash) + d(st.splash, n.splash, 2)) : '') + '</span>';
+      txt += '<span class="next">強化 → ' + w('攻撃力 ' + n.dmg + rkNext(R.dmg, RN.dmg) + d(st.dmg, n.dmg, 0)) +
+        '・' + w('射程 ' + n.range.toFixed(1) + rkNext(R.range, RN.range) + d(st.range, n.range, 1)) +
+        '・' + w(perSec(n.rate) + '発/s' + rkNext(R.speed, RN.speed) + d(+perSec(st.rate), +perSec(n.rate), 2)) +
+        (n.splash ? '・' + w('爆発 ' + fmtSplash(n.splash) + rkNext(R.splash, RN.splash) + d(st.splash, n.splash, 2)) : '') + '</span>';
     }
     $('ts-stats').innerHTML = txt;
     var up = $('ts-up');
