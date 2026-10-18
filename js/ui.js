@@ -54,6 +54,7 @@ var G = window.G = window.G || {};
   // ゲーム中は画面がスクロールしないように（細くなったアドレスバーを戻さないため）。.scroll-y の中だけはスクロールできる
   document.addEventListener('touchmove', function (e) {
     if (e.touches.length > 1 && zoomed()) return;   // 拡大中のピンチ（元に戻す操作）は止めない
+    if (e.target.closest && e.target.closest('input[type=range]')) return;   // 速度のつまみは動かせるように
     if (!G.started) return;
     if (e.target.closest && e.target.closest('.scroll-y')) return;
     e.preventDefault();
@@ -109,7 +110,7 @@ var G = window.G = window.G || {};
     if (!force && JSON.stringify(v) === JSON.stringify(last)) return;
     var energyChanged = force || v.energy !== last.energy, goldChanged = force || v.gold !== last.gold;
     last = v;
-    $('h-life').textContent = s.life;
+    $('h-life').textContent = s.life + '/' + s.maxLife;
     $('h-gold').textContent = s.gold;
     $('h-floor').textContent = info.label || '';
     $('h-turn').textContent = Math.min(s.turn + 1, s.totalTurns) + '/' + s.totalTurns;
@@ -440,8 +441,8 @@ var G = window.G = window.G || {};
   function detailStats(id) {
     var def = G.CARDS[id];
     var h = '<dt>エネルギー</dt><dd>' + def.cost + '</dd><dt>種類</dt><dd>' + (def.kind === 'tower' ? 'タワー' : 'スキル') + '</dd>';
-    if (def.plus && def.plusNote) h += '<dt>＋の効果</dt><dd class="plus-note">' + def.plusNote + '</dd>';
-    else if (def.plus) h += '<dt>＋の効果</dt><dd class="plus-note">鍛えて強くなったカード</dd>';
+    // 鍛えたカード：何がどう良くなったか（前 → 後）。後ろの値はアップの色
+    if (def.plus && def.plusNote) h += '<dt>鍛えた効果</dt><dd>' + def.plusNote[0] + '：' + def.plusNote[1] + ' → <b class="d-up">' + def.plusNote[2] + '</b></dd>';
     if (def.kind === 'tower' && G.TOWERS[def.tower].noAir) h += '<dt>空の敵</dt><dd>当たらない</dd>';
     if (def.kind === 'tower') {
       var T = G.TOWERS[def.tower], L0 = def.startLv || 0, st = B.baseStats(def.tower, L0), R = G.Rank.ofStats(st), UPS = T.up.slice(L0);
@@ -531,10 +532,8 @@ var G = window.G = window.G || {};
   $('p-close').addEventListener('click', function () { $('pile').hidden = true; });
   $('pile').addEventListener('click', function (e) { if (e.target === this) this.hidden = true; });
 
-  $('btn-speed').addEventListener('click', function () {
-    speed = speed === 1 ? 2 : speed === 2 ? 4 : 1;   // ×1 → ×2 → ×4 → ×1
-    this.textContent = '×' + speed; this.setAttribute('aria-pressed', String(speed > 1));
-  });
+  // 速度：つまみを横にずらすと1〜4倍
+  $('speed').addEventListener('input', function () { speed = +this.value; $('speed-val').textContent = '×' + speed; });
 
   // ---- 戦闘の出来事を画面に反映 ----
   function handleEvents() {

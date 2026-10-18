@@ -267,19 +267,20 @@ Object.keys(G.CARDS).forEach(function (id) {
 // タワー：強化できるタワーは Lv2 の状態で置かれる。強化のないタワーはエネルギー-1
 // スキル：下の表のとおりに数値が良くなる
 G.PLUS_SKILL = {
-  aim:      { mult: 2, text: 'タワー1つの攻撃力をこのターンだけ2倍。' },
-  supply:   { n: 3, text: 'カードを3枚引く。' },
-  whet:     { amount: 5, text: 'タワー1つの攻撃力を+5（この戦闘中ずっと）。' },
-  tax:      { gold: 32, text: 'お金+32。使い切り（この戦闘中は戻らない）。' },
-  forge:    { cost: 0, text: 'タワー1つをお金を使わずにLv+1（この戦闘中ずっと）。' },
-  warcry:   { mult: 1.8, text: 'すべてのタワーの攻撃速度をこのターンだけ1.8倍。' },
-  workshop: { cost: 1, text: '「弓兵の塔（エネルギー0・使い切り）」を2枚手札に加える。使い切り。' }
+  // plusNote：鍛える前 → 後（画面では「→」の後ろをアップの色で出す）
+  aim:      { mult: 2, text: 'タワー1つの攻撃力をこのターンだけ2倍。', plusNote: ['攻撃力の倍率', '1.5倍', '2倍'] },
+  supply:   { n: 3, text: 'カードを3枚引く。', plusNote: ['引く枚数', '2枚', '3枚'] },
+  whet:     { amount: 5, text: 'タワー1つの攻撃力を+5（この戦闘中ずっと）。', plusNote: ['攻撃力', '+3', '+5'] },
+  tax:      { gold: 32, text: 'お金+32。使い切り（この戦闘中は戻らない）。', plusNote: ['もらえるお金', '+20', '+32'] },
+  forge:    { cost: 0, text: 'タワー1つをお金を使わずにLv+1（この戦闘中ずっと）。', plusNote: ['エネルギー', '1', '0'] },
+  warcry:   { mult: 1.8, text: 'すべてのタワーの攻撃速度をこのターンだけ1.8倍。', plusNote: ['攻撃速度の倍率', '1.5倍', '1.8倍'] },
+  workshop: { cost: 1, text: '「弓兵の塔（エネルギー0・使い切り）」を2枚手札に加える。使い切り。', plusNote: ['エネルギー', '2', '1'] }
 };
 Object.keys(G.CARDS).forEach(function (id) {
   var c = G.CARDS[id], p = Object.assign({}, c, { id: id + '+', base: id, plus: true, name: c.name + '＋' });
   if (c.kind === 'tower') {
-    if (G.TOWERS[c.tower].up.length) { p.startLv = 1; p.plusNote = 'Lv2の状態で置かれる'; }
-    else { p.cost = Math.max(0, c.cost - 1); p.plusNote = 'エネルギー' + c.cost + '→' + p.cost; }
+    if (G.TOWERS[c.tower].up.length) { p.startLv = 1; p.plusNote = ['置いた時のレベル', 'Lv1', 'Lv2（強化1回分）']; }
+    else { p.cost = Math.max(0, c.cost - 1); p.plusNote = ['エネルギー', String(c.cost), String(p.cost)]; }
   } else Object.assign(p, G.PLUS_SKILL[id] || { cost: Math.max(0, c.cost - 1) });
   G.CARDS[id + '+'] = p;
 });

@@ -83,7 +83,13 @@ var G = window.G = window.G || {};
     coin:   function (t) { notes(t, [1319, 1760], { type: 'square', dur: 0.06, vol: 0.06, step: 0.05 }); },
     leak:   function (t) { tone(t, { f: 240, f2: 90, dur: 0.28, type: 'sawtooth', vol: 0.16 }); },
     build:  function (t) { noise(t, { dur: 0.08, vol: 0.18, f: 700 }); notes(t, [330, 440], { type: 'triangle', dur: 0.08, vol: 0.12, step: 0.06 }); },
-    upgrade: function (t) { notes(t, [523, 659, 784, 1047], { type: 'square', dur: 0.07, vol: 0.08, step: 0.05 }); },
+    // 強化：上がっていくきらきらの和音＋ふわっと広がる低い音
+    upgrade: function (t) {
+      notes(t, [523, 659, 784, 1047, 1319], { type: 'triangle', dur: 0.22, vol: 0.11, step: 0.055 });
+      notes(t, [1047, 1319, 1568, 2093, 2637], { type: 'sine', dur: 0.3, vol: 0.05, step: 0.055 });
+      tone(t, { f: 262, f2: 523, dur: 0.45, type: 'sine', vol: 0.09 });
+      noise(t, { dur: 0.4, vol: 0.05, f: 7000, hp: true, delay: 0.12 });
+    },
     skill:  function (t) { tone(t, { f: 660, f2: 1320, dur: 0.18, type: 'sine', vol: 0.12 }); tone(t, { f: 990, dur: 0.12, type: 'triangle', vol: 0.06, delay: 0.06 }); },
     card:   function (t) { tone(t, { f: 1200, dur: 0.03, type: 'square', vol: 0.04 }); },
     tap:    function (t) { tone(t, { f: 880, dur: 0.035, type: 'triangle', vol: 0.06 }); },

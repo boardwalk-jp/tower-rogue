@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap">
-<link rel="stylesheet" href="css/style.css?v=20261019003639">
+<link rel="stylesheet" href="css/style.css?v=20261019010330">
 </head>
 <body>
 
@@ -33,9 +33,9 @@
 <!-- ワールドマップ -->
 <section id="world" class="screen" data-screen hidden>
   <header class="runbar">
-    <span class="hud-life">♥ <b class="rb-life"></b></span>
+    <span class="hud-stats"><span class="hud-life">♥ <b class="rb-life"></b></span><span class="hud-gold">● <b class="rb-gold"></b></span></span>
     <span class="rb-title">第1層</span>
-    <span class="hud-gold">● <b class="rb-gold"></b></span>
+    <span class="nav-btns"><button type="button" class="nav-btn" data-nav="map">マップ</button><button type="button" class="nav-btn" data-nav="deck">デッキ</button></span>
   </header>
   <div class="relic-strip" id="relic-strip"></div>
   <div class="world-scroll scroll-y" id="world-scroll">
@@ -45,6 +45,7 @@
   </div>
   <div class="world-foot">
     <button type="button" id="world-menu-btn" class="menu-btn">メニュー</button>
+    <button type="button" id="world-back" class="go" hidden>もどる</button>
     <p class="world-hint" id="world-hint">光っているマスを選んでください</p>
     <button type="button" class="deck-btn">デッキ <b class="rb-deck"></b>枚</button>
   </div>
@@ -53,9 +54,9 @@
 <!-- 戦闘画面 -->
 <main id="game" class="screen" data-screen hidden>
   <header class="hud">
-    <span class="hud-life" title="ライフ">♥ <b id="h-life">20</b></span>
-    <span class="hud-turn"><span id="h-floor" class="hud-floor"></span> <b id="h-phase">準備</b> <span id="h-turn">1/5</span> <span id="h-left" class="hud-left"></span></span>
-    <span class="hud-gold" title="お金">● <b id="h-gold">20</b></span>
+    <span class="hud-stats"><span class="hud-life" title="ライフ">♥ <b id="h-life">20</b></span><span class="hud-gold" title="お金">● <b id="h-gold">20</b></span></span>
+    <span class="hud-turn"><span id="h-floor" class="hud-floor"></span><span class="hud-turn-row"><b id="h-phase">準備</b> <span id="h-turn">1/5</span><span id="h-left" class="hud-left"></span></span></span>
+    <span class="nav-btns"><button type="button" class="nav-btn" data-nav="map">マップ</button><button type="button" class="nav-btn" data-nav="deck">デッキ</button></span>
   </header>
 
   <div class="stage" id="stage">
@@ -67,7 +68,7 @@
 
   <div class="actions">
     <button type="button" id="btn-draw">ドロー <small>● <span id="draw-cost">15</span></small></button>
-    <button type="button" id="btn-speed" aria-pressed="false">×1</button>
+    <label class="speed" for="speed"><span id="speed-val">×1</span><input type="range" id="speed" min="1" max="4" step="1" value="1" aria-label="速度（1〜4倍）"></label>
     <button type="button" id="btn-go" class="go">攻撃開始</button>
   </div>
 
@@ -91,9 +92,9 @@
 <!-- 報酬・イベント・商人・休憩・ランの終わり（中身は screens.js が作る） -->
 <section id="panel" class="screen" data-screen hidden>
   <header class="runbar">
-    <span class="hud-life">♥ <b class="rb-life"></b></span>
+    <span class="hud-stats"><span class="hud-life">♥ <b class="rb-life"></b></span><span class="hud-gold">● <b class="rb-gold"></b></span></span>
     <span class="rb-title" id="panel-kind"></span>
-    <span class="hud-gold">● <b class="rb-gold"></b></span>
+    <span class="nav-btns"><button type="button" class="nav-btn" data-nav="map">マップ</button><button type="button" class="nav-btn" data-nav="deck">デッキ</button></span>
   </header>
   <div class="panel-body scroll-y" id="panel-body"></div>
   <div class="panel-foot" id="panel-foot"></div>
@@ -146,13 +147,13 @@
 
 <div id="rotate"><p>画面を縦にしてください</p></div>
 
-<script src="js/data.js?v=20261019003639"></script>
-<script src="js/battle.js?v=20261019003639"></script>
-<script src="js/run.js?v=20261019003639"></script>
-<script src="js/sprites.js?v=20261019003639"></script>
-<script src="js/render.js?v=20261019003639"></script>
-<script src="js/sound.js?v=20261019003639"></script>
-<script src="js/ui.js?v=20261019003639"></script>
-<script src="js/screens.js?v=20261019003639"></script>
+<script src="js/data.js?v=20261019010330"></script>
+<script src="js/battle.js?v=20261019010330"></script>
+<script src="js/run.js?v=20261019010330"></script>
+<script src="js/sprites.js?v=20261019010330"></script>
+<script src="js/render.js?v=20261019010330"></script>
+<script src="js/sound.js?v=20261019010330"></script>
+<script src="js/ui.js?v=20261019010330"></script>
+<script src="js/screens.js?v=20261019010330"></script>
 </body>
 </html>

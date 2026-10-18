@@ -56,7 +56,14 @@ h1 span{font-size:18px;color:var(--muted)}
 .hud-life{color:#ff7a7a}
 .hud-gold{color:var(--gold)}
 .hud-turn #h-phase{color:var(--accent)}
-.hud-floor{color:var(--muted);font-size:13px}
+.hud-floor{color:var(--muted);font-size:11px;line-height:1.1}
+.hud-stats{display:flex;flex-direction:column;line-height:1.15;font-size:14px;min-width:0}
+.hud-turn{display:flex;flex-direction:column;align-items:center;line-height:1.15;font-size:14px;min-width:0;flex:1 1 auto}
+.hud-turn-row{white-space:nowrap}
+.nav-btns{display:flex;gap:4px;flex:0 0 auto}
+.nav-btn{min-height:34px;padding:0 8px;font-size:13px;border-radius:7px;background:var(--panel)}
+#world .nav-btn[data-nav=map]{display:none}
+.runbar .rb-title{flex:1 1 auto;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rb-title{color:var(--accent)}
 .hud-left{color:var(--fg);margin-left:4px}
 #h-energy{display:flex;gap:6px;align-items:center}
@@ -101,7 +108,14 @@ h1 span{font-size:18px;color:var(--muted)}
 .pile-list li b{margin-left:auto;font-weight:400;color:var(--accent);font-variant-numeric:tabular-nums}
 .pile-list li.none{justify-content:center;color:var(--muted);padding:10px}
 #btn-draw small{color:var(--gold);font-size:13px}
-#btn-speed{min-width:52px}
+/* 速度：横にずらすと1〜4倍 */
+.speed{display:flex;align-items:center;gap:6px;flex:1 1 auto;min-width:0;max-width:160px;padding:0 4px;min-height:44px}
+.speed span{min-width:26px;color:var(--accent);font-variant-numeric:tabular-nums;font-size:15px}
+#speed{flex:1 1 auto;min-width:64px;height:44px;margin:0;-webkit-appearance:none;appearance:none;background:transparent;touch-action:none}
+#speed::-webkit-slider-runnable-track{height:8px;border-radius:4px;background:linear-gradient(90deg,var(--panel2),var(--accent));border:1px solid var(--line)}
+#speed::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:26px;height:26px;border-radius:50%;background:var(--accent);border:3px solid #16120f;margin-top:-10px}
+#speed::-moz-range-track{height:8px;border-radius:4px;background:linear-gradient(90deg,var(--panel2),var(--accent))}
+#speed::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:var(--accent);border:3px solid #16120f}
 #btn-go{min-width:100px}
 
 /* 手札：4枚までは1段、5枚以上は4枚×2段。1枚の幅は約85pt */
@@ -270,3 +284,4 @@ dt{color:var(--muted);text-align:right} dd{margin:0;text-align:left}
 .sound-row{display:flex;gap:8px}
 .sound-row button{flex:1}
 .sound-note{font-size:12px;color:var(--muted)}
+#world-back{white-space:nowrap;flex:0 0 auto;padding:0 16px}

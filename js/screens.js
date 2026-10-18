@@ -167,10 +167,13 @@ var G = window.G = window.G || {};
     var floors = run.world.floors + 1;
     return { x: left + n.lane * LANE_W, y: PAD_Y + (floors - 1 - n.floor) * FLOOR_H };
   }
-  function showWorld() {
-    lastResume = { type: 'map' }; save(lastResume);
+  // view：見るだけ（戦闘・イベント中に上の「マップ」ボタンから開いた時）。マスは選べず、「もどる」で元の画面へ
+  var viewFrom = null;
+  function showWorld(view) {
+    view = view === true;
+    if (!view) { lastResume = { type: 'map' }; save(lastResume); music('a' + run.act); viewFrom = null; }
     G.showScreen('world');
-    music('a' + run.act);
+    $('world-menu-btn').hidden = view; $('world-back').hidden = !view;
     pendingNode = null;
     var box = $('world-map'), svg = $('world-lines'), width = Math.min(box.parentNode.clientWidth || 360, 420);
     var floors = run.world.floors + 1, height = PAD_Y * 2 + (floors - 1) * FLOOR_H;
@@ -199,14 +202,15 @@ var G = window.G = window.G || {};
       b.setAttribute('aria-label', (n.floor + 1) + '階 ' + KIND[n.type]);
       if (run.visited.indexOf(k) >= 0) b.classList.add('visited');
       if (k === run.at) b.classList.add('here');
-      if (reach.indexOf(k) >= 0) b.classList.add('reach'); else b.disabled = true;
+      if (reach.indexOf(k) >= 0) b.classList.add('reach');
+      if (view || reach.indexOf(k) < 0) b.disabled = true;
       b.addEventListener('click', function () { tapNode(k, b); });
       box.appendChild(b);
     });
     renderRelics();
     var A = G.ACTS[run.act - 1];
     $('world').querySelector('.rb-title').textContent = A.name + ' ' + A.area;
-    $('world-hint').textContent = run.at ? '次に進むマスを選んでください' : '最初のマスを選んでください（下から上へ進みます）';
+    $('world-hint').textContent = view ? '見るだけ（マスは選べません）' : run.at ? '次に進むマスを選んでください' : '最初のマスを選んでください（下から上へ進みます）';
     // 今いる階が見えるようにスクロール
     var cur = run.at ? nodes[run.at] : { floor: -1, lane: 2 };
     var target = nodePos({ floor: Math.max(0, cur.floor + 1), lane: 2 }, width).y - $('world-scroll').clientHeight * 0.6;
@@ -239,7 +243,25 @@ var G = window.G = window.G || {};
     $('p-list').innerHTML = '';
     $('pile').hidden = false;
   }
-  $('world').querySelector('.deck-btn').addEventListener('click', function () { UI.showList('デッキ', run.deck, 'カードをタップすると詳しい説明が出ます。'); });
+  function showDeck() { if (run) UI.showList('デッキ', run.deck, 'カードをタップすると詳しい説明が出ます。'); }
+  $('world').querySelector('.deck-btn').addEventListener('click', showDeck);
+  // ---- 画面の上の「マップ」「デッキ」（いつでも見られる） ----
+  document.querySelectorAll('[data-nav]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      if (!run) return;
+      if (G.Sound) G.Sound.play('tap');
+      if (b.dataset.nav === 'deck') return showDeck();
+      if (G.currentScreen === 'world') return;
+      viewFrom = G.currentScreen;       // 戦闘中は、マップを見ている間 戦闘が止まる
+      showWorld(true);
+    });
+  });
+  $('world-back').addEventListener('click', function () {
+    var to = viewFrom || 'world'; viewFrom = null;
+    $('world-menu-btn').hidden = false; $('world-back').hidden = true;
+    G.showScreen(to);
+    if (to === 'game') UI.fit();
+  });
 
   function enterNode(n) {
     // マスに入る時点で保存（途中でやめても、つづきからは同じマスに入り直す。戦闘は最初から）

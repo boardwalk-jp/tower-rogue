@@ -192,7 +192,7 @@ var G = window.G = window.G || {};
     switch (def.base || def.id) {
       case 'aim': tw.turnDmgMult *= def.mult; break;
       case 'whet': tw.bonusDmg += def.amount; break;
-      case 'forge': tw.lv++; var fb = baseStats(tw.type, tw.lv); if (fb.blocker) { tw.hp += fb.blocker.hp - tw.maxHp; tw.maxHp = fb.blocker.hp; } if (fb.soldiers) makeSoldiers(s, tw); break;
+      case 'forge': tw.lv++; ev(s, { k: 'upgrade', x: tw.x, y: tw.y, id: tw.id }); var fb = baseStats(tw.type, tw.lv); if (fb.blocker) { tw.hp += fb.blocker.hp - tw.maxHp; tw.maxHp = fb.blocker.hp; } if (fb.soldiers) makeSoldiers(s, tw); break;
       case 'supply': for (var d = 0; d < def.n; d++) drawOne(s); break;
       case 'tax': s.gold += def.gold; s.stats.goldEarned += def.gold; break;
       case 'warcry': s.buff.speedMult *= def.mult; break;
@@ -252,7 +252,7 @@ var G = window.G = window.G || {};
     var bs = baseStats(tw.type, tw.lv);
     if (bs.blocker) { var add = bs.blocker.hp - tw.maxHp; tw.maxHp = bs.blocker.hp; tw.hp += add; }
     if (bs.soldiers) makeSoldiers(s, tw);
-    ev(s, { k: 'upgrade', x: tw.x, y: tw.y });
+    ev(s, { k: 'upgrade', x: tw.x, y: tw.y, id: tw.id });
     return null;
   }
   // ---- 兵士：兵舎から一番近い道の上に立つ ----

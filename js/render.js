@@ -8,7 +8,7 @@ var G = window.G = window.G || {};
   var buf = document.createElement('canvas'); buf.width = W; buf.height = H;
   var b = buf.getContext('2d');
   var bgCache = {}, M = G.MAPS.field;   // M：今描いているマップ
-  var parts = [], rings = [], floats = [], nums = [], beams = [];
+  var parts = [], rings = [], floats = [], nums = [], beams = [], glows = [];
   // 手ごたえの演出：画面のゆれ（shake：強さ）と白い光（flash：0〜1）
   var fx = { shake: 0, flash: 0 };
   function addShake(v) { fx.shake = Math.max(fx.shake, v); }
@@ -155,7 +155,12 @@ var G = window.G = window.G || {};
       } else if (e.k === 'leak') {
         floats.push({ x: sx(e.x), y: sy(e.y) - 20, text: '-' + e.life, col: '#ff5a5a', life: 1.2, heart: true });
         addShake(e.life >= 3 ? 3.5 : 1.5);
-      } else if (e.k === 'build' || e.k === 'upgrade') {
+      } else if (e.k === 'upgrade') {
+        // 強化：光の柱に包まれ、きらきらが上っていく
+        glows.push({ x: e.x, y: e.y, id: e.id, life: 1.0, ml: 1.0 });
+        burst(e.x, e.y - 0.6, 22, ['#fff6c0', '#ffe14d', '#ffffff', G.UP_COLOR], 30, -50, 0.9);
+        rings.push({ x: sx(e.x), y: sy(e.y), r: 3, max: 20, col: '#ffe14d', life: 0.55, ml: 0.55 });
+      } else if (e.k === 'build') {
         burst(e.x, e.y, 14, e.k === 'build' ? ['#e8e0c8', '#a39581'] : ['#ffe14d', '#ffffff'], 35, 30, 0.5);
         rings.push({ x: sx(e.x), y: sy(e.y), r: 3, max: 14, col: e.k === 'build' ? '#ffffff' : '#ffe14d', life: 0.4, ml: 0.4 });
       }
@@ -177,9 +182,10 @@ var G = window.G = window.G || {};
     for (i = rings.length - 1; i >= 0; i--) { rings[i].life -= dt; if (rings[i].life <= 0) rings.splice(i, 1); }
     for (i = floats.length - 1; i >= 0; i--) { floats[i].life -= dt; floats[i].y -= dt * 14; if (floats[i].life <= 0) floats.splice(i, 1); }
     for (i = beams.length - 1; i >= 0; i--) { beams[i].life -= dt; if (beams[i].life <= 0) beams.splice(i, 1); }
+    for (i = glows.length - 1; i >= 0; i--) { glows[i].life -= dt; if (glows[i].life <= 0) glows.splice(i, 1); }
     for (i = nums.length - 1; i >= 0; i--) { var n = nums[i]; n.life -= dt; n.y += n.vy * dt; n.vy *= 0.92; if (n.life <= 0) nums.splice(i, 1); }
   }
-  function clearFx() { parts = []; rings = []; floats = []; nums = []; beams = []; fx.shake = 0; fx.flash = 0; }
+  function clearFx() { parts = []; rings = []; floats = []; nums = []; beams = []; glows = []; fx.shake = 0; fx.flash = 0; }
   // 画面のゆれの量（ピクセル）を出して少しずつ弱める
   function shakeOffset(dt) {
     if (fx.flash > 0) fx.flash = Math.max(0, fx.flash - dt * 2.2);
@@ -320,6 +326,34 @@ var G = window.G = window.G || {};
       if (o.hp < o.max || E.boss) hpBar(ex, ey - img.height - 3, barW, Math.max(0, o.hp / o.max), o.hp / o.max > 0.5 ? '#7fd36a' : '#ffb347');
     }
 
+    // タワーの小窓を出している時・スキルの相手を選んでいる時：対象のタワー以外を暗くする
+    var focus = null;
+    if (ui.selTower) focus = [ui.selTower];
+    else if (ui.selSkill && ui.selSkill.target === 'tower') focus = ui.pendingTower ? [ui.pendingTower] : s.towers.map(function (q) { return q.id; });
+    if (focus) {
+      b.fillStyle = 'rgba(6,8,6,0.62)'; b.fillRect(0, 0, W, H);
+      s.towers.forEach(function (tw) {
+        if (focus.indexOf(tw.id) < 0) return;
+        var sp = S[tw.type][Math.min(2, tw.lv)][0]; if (sp.r) sp = tw.aim < 0 ? sp.l : sp.r;
+        blitB(sp, sx(tw.x), sy(tw.y) + 5);
+        for (var l = 0; l < tw.lv; l++) { b.fillStyle = '#ffe14d'; b.fillRect(sx(tw.x) - 3 + l * 4, sy(tw.y) + 3, 2, 2); }
+      });
+    }
+    // 強化した時の光：タワーを包む光の柱と、白く光るタワー
+    glows.forEach(function (g) {
+      var p = 1 - g.life / g.ml, a = p < 0.15 ? p / 0.15 : 1 - (p - 0.15) / 0.85;
+      var gx = Math.round(sx(g.x)), gy = Math.round(sy(g.y)) + 4, w = Math.round(14 - p * 6), h = 34;
+      b.globalCompositeOperation = 'lighter';
+      for (var k = 0; k < h; k++) {
+        b.globalAlpha = a * 0.55 * (1 - k / h);
+        b.fillStyle = k % 3 === 0 ? '#fff6c0' : '#ffd84a';
+        b.fillRect(gx - (w >> 1), gy - k, w, 1);
+      }
+      var tw = G.Battle.findTower(s, g.id);
+      if (tw) { var sp = S[tw.type][Math.min(2, tw.lv)][0]; if (sp.r) sp = tw.aim < 0 ? sp.l : sp.r; b.globalAlpha = a * 0.8; blitB(sp, sx(tw.x), sy(tw.y) + 5); }
+      b.globalAlpha = 1; b.globalCompositeOperation = 'source-over';
+      if (Math.random() < 0.5) parts.push({ x: gx + (Math.random() - 0.5) * 14, y: gy - Math.random() * 20, vx: 0, vy: -24, g: 0, life: 0.5, ml: 0.5, col: Math.random() < 0.5 ? '#ffffff' : '#ffe14d' });
+    });
     // 選んだタワーの射程：今の射程＝白、強化後の射程＝アップの赤（強化ボタンと同じ色）
     var selTw = ui.selTower ? G.Battle.findTower(s, ui.selTower) : null;
     if (selTw) {
