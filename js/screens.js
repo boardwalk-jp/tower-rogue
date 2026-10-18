@@ -57,7 +57,7 @@ var G = window.G = window.G || {};
     cont.disabled = !d;
     if (d) {
       var r = d.run, n = r.at ? r.world.nodes[r.at] : null;
-      var where = !n ? 'スタート地点' : n.type === 'boss' ? 'ボス' : (n.floor + 1) + '階';
+      var where = '第' + (r.act || 1) + '層 ' + (!n ? 'スタート地点' : n.type === 'boss' ? 'ボス' : (n.floor + 1) + '階');
       var dt = new Date(d.at);
       $('t-cont-info').textContent = where + '・ライフ' + r.life + '/' + r.maxLife + '・デッキ' + r.deck.length + '枚・' + (dt.getMonth() + 1) + '/' + dt.getDate() + ' ' + dt.getHours() + ':' + String(dt.getMinutes()).padStart(2, '0');
     } else $('t-cont-info').textContent = '保存されたデータはありません';
@@ -108,6 +108,7 @@ var G = window.G = window.G || {};
     G.run = run;
     var r = d.resume || { type: 'map' };
     if (r.type === 'node' && run.at) return enterNode(R.node(run));
+    if (r.type === 'actclear') { run.actClear = true; return showActClear(); }
     if (r.type === 'reward' && run.at) return showReward(R.node(run), r.bonus, { stats: r.stats, relic: r.relic }, r.cards);
     showWorld();
   }
@@ -159,6 +160,8 @@ var G = window.G = window.G || {};
       box.appendChild(b);
     });
     renderRelics();
+    var A = G.ACTS[run.act - 1];
+    $('world').querySelector('.rb-title').textContent = A.name + ' ' + A.area;
     $('world-hint').textContent = run.at ? '次に進むマスを選んでください' : '最初のマスを選んでください（下から上へ進みます）';
     // 今いる階が見えるようにスクロール
     var cur = run.at ? nodes[run.at] : { floor: -1, lane: 2 };
@@ -208,29 +211,43 @@ var G = window.G = window.G || {};
   // ============================================================
   function startBattle(n) {
     var opts = R.battleOpts(run);
-    var label = n.type === 'boss' ? 'ボス' : (n.floor + 1) + '階' + (n.type === 'elite' ? 'エリート' : '');
+    var label = run.act + '層' + (n.type === 'boss' ? 'ボス' : (n.floor + 1) + '階' + (n.type === 'elite' ? 'エリート' : ''));
     UI.start(opts, function (s) {
       R.finishBattle(run, s);
       if (run.over) { clearSave(); return showEnd(); }
       showReward(n, run.gold - s.gold, s);
-    }, { label: label, title: n.type === 'boss' ? 'ボス戦' : n.type === 'elite' ? 'エリート戦' : '準備ターン' });
+    }, { label: label, title: n.type === 'boss' ? (run.act >= G.RULES.acts ? 'ラスボス戦' : 'ボス戦') : n.type === 'elite' ? 'エリート戦' : '準備ターン' });
   }
 
   // ---- 報酬：カード3枚から1枚（取らなくてもよい） ----
   function showReward(n, bonus, s, savedCards) {
-    var cards = savedCards || R.rollCards(run, 3, n.type === 'elite' ? 'elite' : 'battle');
+    var big = n.type === 'elite' || n.type === 'boss';
+    var cards = savedCards || R.rollCards(run, 3, big ? 'elite' : 'battle');
+    // ボスに勝った後は、報酬を選んだら次の層の案内へ
+    var after = function () { if (run.actClear) showActClear(); else showWorld(); };
     lastResume = { type: 'reward', cards: cards, bonus: bonus, stats: { killed: s.stats.killed, leaked: s.stats.leaked, goldEarned: s.stats.goldEarned } };
     save(lastResume);
-    openPanel(n.type === 'elite' ? 'エリート撃破' : '勝利', function (body, foot) {
+    openPanel(n.type === 'boss' ? 'ボス撃破' : n.type === 'elite' ? 'エリート撃破' : '勝利', function (body, foot) {
       body.appendChild(el('h2', 'panel-title', '勝利！'));
       body.appendChild(el('p', 'panel-text', '倒した敵 ' + s.stats.killed + '体・通した敵 ' + s.stats.leaked + '体。戦闘で得たお金 +' + s.stats.goldEarned + 'G、勝利のおまけ +' + bonus + 'G。'));
-      if (n.type === 'elite') {
+      if (big) {
         if (!savedCards) { lastResume.relic = R.rollRelic(run, 'elite'); R.addRelic(run, lastResume.relic); save(lastResume); }
         var rid = savedCards ? s.relic : lastResume.relic;
         if (rid) { var rb = el('div', 'card-detail relic-get'); rb.innerHTML = '<h3></h3><p></p>'; rb.querySelector('h3').textContent = 'レリック獲得：' + G.RELICS[rid].name; rb.querySelector('p').textContent = G.RELICS[rid].text; body.appendChild(rb); }
       }
       body.appendChild(el('p', 'panel-sub', 'カードを1枚えらんでデッキに加えます'));
-      choose(body, foot, cards, '受け取る', function (id) { R.addCard(run, id); showWorld(); }, 'カードを受け取らない', showWorld);
+      choose(body, foot, cards, '受け取る', function (id) { R.addCard(run, id); after(); }, 'カードを受け取らない', after);
+    });
+  }
+
+  // ---- 層をクリア → 次の層へ ----
+  function showActClear() {
+    var A = G.ACTS[run.act - 1], N = G.ACTS[run.act];
+    lastResume = { type: 'actclear' }; save(lastResume);
+    openPanel(A.name + 'クリア', function (body, foot) {
+      body.appendChild(el('h2', 'panel-title win', A.name + ' ' + A.area + ' クリア！'));
+      body.appendChild(el('p', 'panel-text', A.boss + 'を倒した。次は' + N.name + '「' + N.area + '」。敵が強くなる。' + (G.RULES.actHeal >= 99 ? '進む時にライフが全回復する。' : '進む時にライフが' + G.RULES.actHeal + '回復する。')));
+      foot.appendChild(button(N.name + 'へ進む', 'go', function () { R.nextAct(run); showWorld(); }));
     });
   }
 
@@ -391,9 +408,9 @@ var G = window.G = window.G || {};
   function showEnd() {
     clearSave();
     openPanel(run.won ? 'クリア' : '敗北', function (body, foot) {
-      body.appendChild(el('h2', 'panel-title ' + (run.won ? 'win' : 'lose'), run.won ? '第1層クリア！' : '敗北…'));
+      body.appendChild(el('h2', 'panel-title ' + (run.won ? 'win' : 'lose'), run.won ? '全3層クリア！' : '敗北…'));
       var n = R.node(run);
-      body.appendChild(el('p', 'panel-text', (run.won ? 'オーガ王を倒した。' : (n ? (n.type === 'boss' ? 'ボス戦' : (n.floor + 1) + '階') : '') + 'で力つきた。') +
+      body.appendChild(el('p', 'panel-text', (run.won ? 'ラスボスの火竜を倒した。' : G.ACTS[run.act - 1].name + 'の' + (n ? (n.type === 'boss' ? 'ボス戦' : (n.floor + 1) + '階') : '') + 'で力つきた。') +
         ' 勝った戦闘 ' + run.stats.battles + '回（エリート ' + run.stats.elites + '回）、手に入れたカード ' + run.stats.cardsTaken + '枚、最後のデッキ ' + run.deck.length + '枚。'));
       foot.appendChild(button('新しく始める', 'go', newRun));
       foot.appendChild(button('タイトルに戻る', '', backToTitle));

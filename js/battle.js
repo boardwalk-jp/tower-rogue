@@ -60,6 +60,8 @@ var G = window.G = window.G || {};
   function create(opts) {
     opts = opts || {};
     var R = G.RULES, map = G.MAPS[opts.map || 'field'];
+    // 層の地域に合わせて色だけ変える（道や置ける場所は同じ）
+    if (opts.theme && opts.theme !== (map.theme || 'grass')) { map = Object.assign({}, map, { theme: opts.theme, id: map.id + '@' + opts.theme }); }
     var s = {
       rand: rng(opts.seed || (Date.now() & 0xffffff)),
       kind: opts.kind || 'battle',

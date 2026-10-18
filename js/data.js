@@ -246,6 +246,12 @@ G.ENEMIES = {
   kingslime: { name: '大スライム', hp: 150, speed: 0.7, armor: 0,   life: 2,  gold: 8,   gap: 3.0, split: { type: 'slime', n: 3 } },
   yeti:   { name: 'イエティ',   hp: 240,  speed: 0.7,  armor: 0.2, life: 2,  gold: 14,  gap: 3.0, immune: ['slow'] },
   salamander: { name: '火トカゲ', hp: 120, speed: 1.2, armor: 0.1, life: 1, gold: 8,  gap: 1.6, immune: ['burn'], magicResist: 0.3 },
+  icebat:    { name: '氷コウモリ', hp: 24,  speed: 2.4,  armor: 0,   life: 1,  gold: 4,   gap: 0.5 },
+  iceknight: { name: '氷の騎士',   hp: 300, speed: 0.55, armor: 0.5, life: 3,  gold: 22,  gap: 4.0, immune: ['slow'] },
+  magma:     { name: '溶岩スライム', hp: 160, speed: 0.7, armor: 0,  life: 2,  gold: 9,   gap: 3.0, immune: ['burn'], split: { type: 'salamander', n: 2 } },
+  demon:     { name: '炎の悪魔',   hp: 320, speed: 0.7,  armor: 0.3, life: 3,  gold: 24,  gap: 4.0, immune: ['burn'], magicResist: 0.3 },
+  frostgiant: { name: '霜の巨人',  hp: 1700, speed: 0.4, armor: 0.3, life: 10, gold: 100, gap: 1, boss: true, immune: ['slow'] },
+  dragon:    { name: '火竜',       hp: 2600, speed: 0.35, armor: 0.35, life: 15, gold: 0, gap: 1, boss: true, immune: ['burn'], magicResist: 0.25 },
   ogre:   { name: 'オーガ王',   hp: 1500, speed: 0.4,  armor: 0.3, life: 10, gold: 100, gap: 1, boss: true }
 };
 
@@ -255,64 +261,108 @@ G.ENEMIES = {
 // 入口はマップの入口から自動で割りふる。体力は階が進むほど増える（G.RULES.floorScale）
 // ============================================================
 G.WAVE_SETS = {
-  early: [
-    [[['slime', 6, 0]], [['slime', 5, 0], ['goblin', 4, 3]], [['goblin', 6, 0], ['slime', 5, 2]]],
-    [[['goblin', 6, 0]], [['slime', 6, 0], ['wolf', 3, 4]], [['orc', 1, 0], ['goblin', 6, 2]]],
-    [[['slime', 4, 0], ['slime', 4, 4]], [['wolf', 5, 0]], [['slime', 6, 0], ['orc', 1, 5]]],
-    [[['bat', 6, 0]], [['skeleton', 3, 0], ['slime', 4, 3]], [['kingslime', 1, 0], ['goblin', 6, 2]]]
-  ],
-  snow: [
-    [[['wolf', 6, 0]], [['yeti', 1, 0], ['goblin', 6, 3]], [['wolf', 8, 0], ['yeti', 2, 4]]],
-    [[['skeleton', 4, 0]], [['kingslime', 2, 0], ['wolf', 5, 3]], [['yeti', 2, 0], ['skeleton', 5, 3]]]
-  ],
-  volcano: [
-    [[['salamander', 4, 0]], [['bat', 10, 0], ['orc', 2, 3]], [['salamander', 6, 0], ['kingslime', 2, 4]]],
-    [[['bat', 8, 0], ['skeleton', 3, 3]], [['salamander', 5, 0], ['orc', 2, 4]], [['skeleton', 6, 0], ['salamander', 5, 2], ['orc', 2, 6]]]
-  ],
-  mid: [
-    [[['goblin', 7, 0]], [['orc', 2, 0], ['slime', 8, 2]], [['wolf', 8, 0], ['orc', 3, 4]]],
-    [[['slime', 8, 0]], [['orc', 2, 0], ['goblin', 7, 4]], [['wolf', 7, 0], ['goblin', 6, 2], ['orc', 2, 6]]]
-  ],
-  elite: [
-    [[['goblin', 4, 0], ['wolf', 2, 3]], [['knight', 1, 0], ['slime', 4, 3]], [['orc', 2, 0], ['wolf', 4, 4]], [['knight', 1, 0], ['goblin', 5, 3], ['orc', 1, 8]]]
-  ],
-  boss: [
-    [[['slime', 5, 0]], [['goblin', 5, 0], ['wolf', 3, 3]], [['orc', 2, 0], ['slime', 5, 3]],
-     [['knight', 1, 0], ['wolf', 5, 3]], [['ogre', 1, 0], ['goblin', 5, 5], ['wolf', 4, 10]]]
-  ]
+  // ---- 第1層 草原 ----
+  a1: {
+    early: [
+      [[['slime', 6, 0]], [['slime', 5, 0], ['goblin', 4, 3]], [['goblin', 6, 0], ['slime', 5, 2]]],
+      [[['goblin', 6, 0]], [['slime', 6, 0], ['wolf', 3, 4]], [['orc', 1, 0], ['goblin', 6, 2]]],
+      [[['slime', 4, 0], ['slime', 4, 4]], [['wolf', 5, 0]], [['slime', 6, 0], ['orc', 1, 5]]],
+      [[['bat', 6, 0]], [['wolf', 4, 0], ['slime', 4, 3]], [['kingslime', 1, 0], ['goblin', 6, 2]]]
+    ],
+    mid: [
+      [[['goblin', 7, 0]], [['orc', 2, 0], ['slime', 8, 2]], [['wolf', 8, 0], ['orc', 3, 4]]],
+      [[['slime', 8, 0]], [['orc', 2, 0], ['goblin', 7, 4]], [['wolf', 7, 0], ['goblin', 6, 2], ['orc', 2, 6]]],
+      [[['bat', 8, 0]], [['kingslime', 2, 0], ['wolf', 5, 3]], [['orc', 3, 0], ['bat', 8, 3]]]
+    ],
+    elite: [[[['goblin', 4, 0], ['wolf', 2, 3]], [['knight', 1, 0], ['slime', 4, 3]], [['orc', 2, 0], ['wolf', 4, 4]], [['knight', 1, 0], ['goblin', 5, 3], ['orc', 1, 8]]]],
+    boss: [[[['slime', 5, 0]], [['goblin', 5, 0], ['wolf', 3, 3]], [['orc', 2, 0], ['slime', 5, 3]],
+            [['knight', 1, 0], ['wolf', 5, 3]], [['ogre', 1, 0], ['goblin', 5, 5], ['wolf', 4, 10]]]]
+  },
+  // ---- 第2層 雪山 ----
+  a2: {
+    early: [
+      [[['wolf', 6, 0]], [['icebat', 6, 0], ['skeleton', 3, 3]], [['yeti', 1, 0], ['wolf', 6, 2]]],
+      [[['skeleton', 4, 0]], [['icebat', 8, 0]], [['yeti', 2, 0], ['skeleton', 4, 3]]],
+      [[['icebat', 5, 0], ['wolf', 4, 3]], [['yeti', 1, 0], ['skeleton', 4, 2]], [['wolf', 8, 0], ['yeti', 1, 4]]]
+    ],
+    mid: [
+      [[['wolf', 8, 0]], [['yeti', 2, 0], ['icebat', 6, 3]], [['skeleton', 6, 0], ['yeti', 2, 4]]],
+      [[['skeleton', 6, 0]], [['icebat', 10, 0], ['wolf', 4, 3]], [['yeti', 3, 0], ['skeleton', 5, 4]]]
+    ],
+    elite: [[[['wolf', 5, 0], ['icebat', 4, 3]], [['iceknight', 1, 0], ['skeleton', 4, 3]], [['yeti', 2, 0], ['wolf', 5, 4]], [['iceknight', 1, 0], ['icebat', 6, 3], ['yeti', 1, 8]]]],
+    boss: [[[['wolf', 6, 0]], [['skeleton', 5, 0], ['icebat', 5, 3]], [['yeti', 2, 0], ['wolf', 5, 3]],
+            [['iceknight', 1, 0], ['skeleton', 5, 3]], [['frostgiant', 1, 0], ['icebat', 6, 5], ['yeti', 1, 10]]]]
+  },
+  // ---- 第3層 火山 ----
+  a3: {
+    early: [
+      [[['salamander', 4, 0]], [['bat', 8, 0], ['skeleton', 3, 3]], [['magma', 1, 0], ['salamander', 4, 3]]],
+      [[['bat', 8, 0]], [['salamander', 5, 0], ['skeleton', 2, 3]], [['magma', 2, 0], ['bat', 6, 3]]],
+      [[['skeleton', 4, 0]], [['salamander', 6, 0]], [['orc', 2, 0], ['salamander', 4, 3], ['bat', 4, 6]]]
+    ],
+    mid: [
+      [[['salamander', 5, 0], ['bat', 4, 3]], [['magma', 2, 0], ['skeleton', 4, 3]], [['demon', 1, 0], ['salamander', 6, 3]]],
+      [[['bat', 10, 0]], [['skeleton', 6, 0], ['magma', 1, 4]], [['salamander', 8, 0], ['orc', 3, 3]]]
+    ],
+    elite: [[[['salamander', 5, 0], ['bat', 4, 3]], [['demon', 1, 0], ['skeleton', 4, 3]], [['magma', 2, 0], ['salamander', 5, 4]], [['demon', 2, 0], ['bat', 6, 3]]]],
+    boss: [[[['salamander', 6, 0]], [['bat', 8, 0], ['skeleton', 4, 3]], [['magma', 2, 0], ['salamander', 5, 3]],
+            [['demon', 1, 0], ['bat', 8, 3]], [['dragon', 1, 0], ['salamander', 6, 6], ['demon', 1, 12]]]]
+  }
 };
+
+// ============================================================
+// 層（ACT）：3層で1ラン。層ごとに地域・マップ・敵の強さが変わる
+// maps：ふつうの戦闘のマップ（theme で色を変えて使い回す）。big：エリート・ボスのマップ
+// ============================================================
+G.ACTS = [
+  { name: '第1層', area: '草原', theme: 'grass',   maps: ['field', 'snake'],              big: 'valley', hp: 1.0, boss: 'オーガ王' },
+  { name: '第2層', area: '雪山', theme: 'snow',    maps: ['snowpass', 'snowpass', 'field', 'snake'], big: 'valley', hp: 1.05, boss: '霜の巨人' },
+  { name: '第3層', area: '火山', theme: 'volcano', maps: ['lavaflow', 'lavaflow', 'snake', 'field'], big: 'valley', hp: 1.2, boss: '火竜' }
+];
 
 // ============================================================
 // イベント（？マス）。choices の effect は run.js が実行する
 // ============================================================
 G.EVENTS = [
-  { id: 'smith', title: '旅の鍛冶屋', text: '道ばたで鍛冶屋が店を広げている。「いらない道具を引き取ろうか？」',
+  { id: 'smith', acts: [1, 2, 3], title: '旅の鍛冶屋', text: '道ばたで鍛冶屋が店を広げている。「いらない道具を引き取ろうか？」',
     choices: [{ label: 'カードを1枚手放す', note: '-30G', effect: 'removeCard', gold: -30 },
               { label: '立ち去る', effect: 'none' }] },
-  { id: 'spring', title: '不思議な泉', text: '澄んだ水がわき出ている。底には金貨が光っている。',
+  { id: 'spring', acts: [1], title: '不思議な泉', text: '澄んだ水がわき出ている。底には金貨が光っている。',
     choices: [{ label: '水を飲む', note: 'ライフ+8', effect: 'heal', amount: 8 },
               { label: '金貨を投げ入れる', note: '-10G、ランダムなカードを1枚得る', effect: 'randomCard', gold: -10 }] },
-  { id: 'fallen', title: '倒れた冒険者', text: '冒険者が倒れている。荷物は手つかずのようだ。',
+  { id: 'fallen', acts: [1, 2], title: '倒れた冒険者', text: '冒険者が倒れている。荷物は手つかずのようだ。',
     choices: [{ label: '荷物を探す', note: '+40G、ライフ-4', effect: 'goldLife', gold: 40, life: -4 },
               { label: '弔う', note: 'ライフ+3', effect: 'heal', amount: 3 }] },
-  { id: 'gambler', title: '賭け好きの商人', text: '「コインの裏表、当てたら3倍だ」',
+  { id: 'gambler', acts: [1, 2, 3], title: '賭け好きの商人', text: '「コインの裏表、当てたら3倍だ」',
     choices: [{ label: '20Gを賭ける', note: '50%で+60G', effect: 'gamble', gold: -20, win: 60 },
               { label: '断る', effect: 'none' }] },
-  { id: 'altar', title: '古い祭壇', text: '赤い石の祭壇。ささげ物をすれば力を授けるという。',
+  { id: 'altar', acts: [3], title: '古い祭壇', text: '赤い石の祭壇。ささげ物をすれば力を授けるという。',
     choices: [{ label: '血をささげる', note: 'ライフ-6、珍しいカードを3枚から1枚選ぶ', effect: 'rareCard', life: -6 },
               { label: '立ち去る', effect: 'none' }] },
-  { id: 'child', title: '迷子の子ども', text: '泣いている子どもがいる。家まで送ると遠回りになりそうだ。',
+  { id: 'child', acts: [1], title: '迷子の子ども', text: '泣いている子どもがいる。家まで送ると遠回りになりそうだ。',
     choices: [{ label: '家まで送る', note: 'ライフ-3、お礼にレリックを1つ', effect: 'relic', life: -3 },
               { label: '道だけ教える', note: '+15G（親からのお礼）', effect: 'goldLife', gold: 15 }] },
-  { id: 'box', title: '謎の宝箱', text: '古びた宝箱。鍵はかかっていないが、何かの気配がする。',
+  { id: 'box', acts: [1, 2, 3], title: '謎の宝箱', text: '古びた宝箱。鍵はかかっていないが、何かの気配がする。',
     choices: [{ label: '開ける', note: '50%でレリック、50%でライフ-6', effect: 'box' },
               { label: '開けない', effect: 'none' }] },
-  { id: 'forge', title: '溶岩の鍛冶場', text: '溶岩の熱を使う鍛冶場。「同じ道具をもう1つ作ってやろう」',
+  { id: 'forge', acts: [3], title: '溶岩の鍛冶場', text: '溶岩の熱を使う鍛冶場。「同じ道具をもう1つ作ってやろう」',
     choices: [{ label: 'カードを1枚複製する', note: '-40G、選んだカードと同じものをデッキに追加', effect: 'copyCard', gold: -40 },
               { label: '立ち去る', effect: 'none' }] },
-  { id: 'hut', title: '雪山の小屋', text: '暖炉のある無人の小屋。薪が積んである。',
+  { id: 'hut', acts: [2], title: '雪山の小屋', text: '暖炉のある無人の小屋。薪が積んである。',
     choices: [{ label: '暖まって休む', note: 'ライフ+6', effect: 'heal', amount: 6 },
-              { label: '薪を売りに持っていく', note: '+25G', effect: 'goldLife', gold: 25 }] }
+              { label: '薪を売りに持っていく', note: '+25G', effect: 'goldLife', gold: 25 }] },
+  { id: 'shrine', acts: [2], title: '氷の祠', text: '氷に閉じ込められた祠。中に何かが光っている。',
+    choices: [{ label: '素手で氷を割る', note: 'ライフ-5、レリックを1つ', effect: 'relic', life: -5 },
+              { label: '祈るだけにする', note: 'ライフ+4', effect: 'heal', amount: 4 }] },
+  { id: 'stranded', acts: [2], title: '遭難した旅人', text: '雪に埋もれかけた旅人がいる。「食べ物を分けてくれないか」',
+    choices: [{ label: '食料を分ける', note: '-20G、最大ライフ+4', effect: 'maxLife', gold: -20, amount: 4 },
+              { label: '道を急ぐ', effect: 'none' }] },
+  { id: 'firespring', acts: [3], title: '火の泉', text: '煮えたぎる泉。浴びれば体がきたえられるという。',
+    choices: [{ label: '泉を浴びる', note: 'ライフ-8、最大ライフ+6', effect: 'maxLife', life: -8, amount: 6 },
+              { label: '立ち去る', effect: 'none' }] },
+  { id: 'lavatreasure', acts: [3], title: '溶岩の中の宝', text: '溶岩の流れの向こうに金貨の山が見える。',
+    choices: [{ label: '手を伸ばす', note: '50%で+80G、50%でライフ-8', effect: 'risk', win: 80, lose: 8 },
+              { label: 'やめておく', effect: 'none' }] }
 ];
 
 // ============================================================
@@ -349,16 +399,20 @@ G.DOWN_COLOR = '#4ea8ff';
 // ルール（仮の数値）
 // ============================================================
 G.RULES = {
-  maxLife: 30,        // ラン全体のライフ（戦闘をまたいで持ち越す）
+  maxLife: 40,        // ラン全体のライフ（戦闘をまたいで持ち越す）
   startGold: 30,      // ラン開始時のお金（戦闘・商人で共通）
   energyPerTurn: 3,   // 準備ターンの始めにこの値まで回復（持ち越しなし）
   drawPerTurn: 4,     // 毎ターン無料で引く枚数
   handMax: 8,
   extraDrawCost: 15,  // お金で1枚追加で引く
-  floors: 10,         // ボスの前の階の数（最後の階は休憩）
+  floors: 10,         // 1層あたりのボスの前の階の数（最後の階は休憩）
+  acts: 3,            // 層の数（3層目のボスがラスボス）
+  actHeal: 99,        // 次の層へ進む時に回復するライフ（99＝全回復）
+  restPerRoute: [2, 5],   // どの道を通っても、休憩マスはこの範囲（最後の階の休憩も数える）
+  shopPerRoute: 2,        // どの道を通っても、商人マスはこの数まで
   floorScale: 0.04,   // 1階進むごとに敵の体力が4%ずつ増える（数はひな形どおり）
   battleGold: { battle: 10, elite: 30 },   // 戦闘に勝った時のおまけのお金
-  restHeal: 10,
+  restHeal: 12,
   shop: { price: { common: 35, uncommon: 55, rare: 80 }, remove: 50, heal: 30, healAmount: 10,
           relicPrice: { common: 90, uncommon: 120, rare: 160 } }
 };

@@ -85,8 +85,9 @@ function playRun(seed, log) {
       var s = fight(G.Run.battleOpts(run));
       G.Run.finishBattle(run, s);
       steps.push(n.floor + n.type[0] + '(-' + (lifeBefore - s.life) + ')');
+      if (run.actClear) { var cs = G.Run.rollCards(run, 3, 'elite'); G.Run.addCard(run, cs[0]); G.Run.addRelic(run, G.Run.rollRelic(run, 'elite')); G.Run.nextAct(run); steps.push('| 第' + run.act + '層'); continue; }
       if (!run.over) {
-        if (n.type === 'elite') G.Run.addRelic(run, G.Run.rollRelic(run, 'elite'));
+        if (n.type === 'elite' || n.type === 'boss') G.Run.addRelic(run, G.Run.rollRelic(run, 'elite'));
         var cards = G.Run.rollCards(run, 3, n.type === 'elite' ? 'elite' : 'battle');
         G.Run.addCard(run, cards[0]);
       }
@@ -111,6 +112,6 @@ var N = +process.argv[2] || 10, wins = 0, reached = [];
 for (var i = 1; i <= N; i++) {
   var r = playRun(i * 7919, true);
   if (r.won) wins++;
-  reached.push(G.Run.node(r).floor);
+  reached.push(r.act + '-' + (G.Run.node(r) ? G.Run.node(r).floor : 0));
 }
 console.log('勝率 ' + wins + '/' + N + '、到達した階 ' + reached.join(','));

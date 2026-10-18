@@ -108,11 +108,12 @@ var G = window.G = window.G || {};
     g.rect(8, 6, 6, 1, light);
     return both(g.outline(OUT));
   }
-  function ogre(f) {   // ボス：オーガ王（大きい・王冠）
-    var g = new Grid(34, 36), skin = '#b0703f', dark = '#7d4a26';
+  function ogre(f, pal) {   // ボス：オーガ王（大きい・王冠）。pal で色違い（霜の巨人）
+    pal = pal || {};
+    var g = new Grid(34, 36), skin = pal.skin || '#b0703f', dark = pal.dark || '#7d4a26';
     if (f === 0) { g.rect(10, 28, 5, 7, '#3b2a1a'); g.rect(19, 28, 5, 6, '#3b2a1a'); g.rect(19, 34, 6, 1, '#3b2a1a'); }
     else { g.rect(10, 28, 5, 6, '#3b2a1a'); g.rect(9, 34, 6, 1, '#3b2a1a'); g.rect(19, 28, 5, 7, '#3b2a1a'); }
-    g.ell(17, 21, 11, 9, skin); g.ell(17, 23, 9, 6, '#c98a55');       // 太った体
+    g.ell(17, 21, 11, 9, skin); g.ell(17, 23, 9, 6, pal.belly || '#c98a55');       // 太った体
     g.rect(7, 25, 20, 4, '#6b2a2a'); g.rect(7, 25, 20, 1, '#8e3b3b'); g.rect(15, 25, 4, 4, '#d9b24a');  // 腰布・ベルト
     g.rect(3, 15, 4, 10, skin); g.rect(27, 14, 4, 9, skin);            // 腕
     g.rect(29, 2, 3, 16, '#6b4a2b'); g.ell(30.5, 4, 3.5, 4, '#8a6a42'); g.px(28, 2, '#c9c9c9'); g.px(33, 4, '#c9c9c9'); g.px(30, 0, '#c9c9c9');  // 大きなこん棒
@@ -272,8 +273,9 @@ var G = window.G = window.G || {};
     g.rect(17, 5 - lv, 1, 4 + lv, '#5b4632'); g.rect(18, 5 - lv, 2, 2, FLAG[lv]);
     return g.outline(OUT).bake();
   }
-  function bat(f) {
-    var g = new Grid(18, 12), c = '#5b4a78', d = '#3a2e52';
+  function bat(f, pal) {
+    pal = pal || {};
+    var g = new Grid(18, 12), c = pal.c || '#5b4a78', d = pal.d || '#3a2e52';
     g.ell(9, 6, 3, 3, c); g.px(8, 5, '#ff4d3a'); g.px(10, 5, '#ff4d3a'); g.px(7, 2, c); g.px(11, 2, c);
     if (f === 0) { g.rect(1, 3, 6, 2, d); g.rect(11, 3, 6, 2, d); g.px(0, 2, d); g.px(17, 2, d); }
     else { g.rect(1, 6, 6, 2, d); g.rect(11, 6, 6, 2, d); g.px(0, 8, d); g.px(17, 8, d); }
@@ -287,10 +289,11 @@ var G = window.G = window.G || {};
     g.ell(7, 4, 3.5, 3.2, b); g.rect(5, 4, 2, 2, '#1a1a1a'); g.rect(8, 4, 2, 2, '#1a1a1a'); g.rect(6, 7, 3, 1, d);
     return both(g.outline(OUT));
   }
-  function kingslime(f) {
+  function kingslime(f, pal) {
+    pal = pal || ['#7a3fa0', '#9a5fc8', '#d8b8f0'];
     var g = new Grid(26, 19), sq = f === 1, B = 17, rx = sq ? 12 : 10.5, ry = sq ? 11 : 14;
-    g.ell(13, B + 1, rx, ry, '#7a3fa0'); g.ell(13, B + 1, rx - 1.5, ry - 2, '#9a5fc8'); g.rect(0, B + 1, 26, 2, null);
-    g.ell(9.5, B + 1 - ry + 4, 2.5, 1.5, '#d8b8f0');
+    g.ell(13, B + 1, rx, ry, pal[0]); g.ell(13, B + 1, rx - 1.5, ry - 2, pal[1]); g.rect(0, B + 1, 26, 2, null);
+    g.ell(9.5, B + 1 - ry + 4, 2.5, 1.5, pal[2]);
     var ey = Math.round(B - ry * 0.4); g.rect(9, ey, 2, 2, '#1a0e24'); g.rect(15, ey, 2, 2, '#1a0e24');
     var ty = B + 1 - ry; g.rect(9, ty - 2, 8, 2, '#ffd84a'); g.px(9, ty - 3, '#ffd84a'); g.px(13, ty - 3, '#ffd84a'); g.px(16, ty - 3, '#ffd84a');
     return both(g.outline(OUT));
@@ -309,6 +312,23 @@ var G = window.G = window.G || {};
     g.ell(11, 7, 6.5, 2.6, c); g.rect(6, 6, 10, 1, y);
     if (f === 0) { g.rect(7, 9, 2, 2, d); g.rect(14, 9, 2, 2, d); } else { g.rect(8, 9, 2, 2, d); g.rect(13, 9, 2, 2, d); }
     g.ell(18, 6, 3.5, 2.4, c); g.px(19, 5, '#ffe14d'); g.rect(20, 7, 2, 1, d);
+    return both(g.outline(OUT));
+  }
+
+  function dragon(f) {   // ラスボス：火竜（とても大きい・翼）
+    var g = new Grid(46, 40), r = '#a8281e', d = '#6a1812', y = '#ffb347';
+    var wy = f === 0 ? 0 : 5;   // 翼のはばたき
+    for (var i = 0; i < 14; i++) { g.rect(3 + i, 4 + wy + Math.floor(i / 2), 2, 14 - Math.floor(i / 2) - wy, i % 3 === 0 ? d : '#8a2018'); }
+    for (i = 0; i < 14; i++) { g.rect(29 + i, 4 + wy + Math.floor((13 - i) / 2), 2, 14 - Math.floor((13 - i) / 2) - wy, i % 3 === 0 ? d : '#8a2018'); }
+    g.ell(23, 25, 12, 9, r); g.ell(23, 28, 8, 5, y);                       // 胴・おなか
+    for (i = 0; i < 4; i++) g.rect(19 + i * 3, 25 + i, 6 - i, 1, '#e8902e');
+    g.rect(13, 32, 5, 7, d); g.rect(28, 32, 5, 7, d); g.rect(12, 38, 7, 2, '#3a0a08'); g.rect(27, 38, 7, 2, '#3a0a08');
+    g.rect(33, 27, 10, 3, r); g.rect(41, 24, 3, 4, r); g.px(44, 23, y);    // しっぽ
+    g.rect(20, 9, 6, 9, r);                                                // 首
+    g.ell(23, 7, 6, 5, r); g.rect(23, 6, 9, 5, r); g.rect(28, 9, 4, 2, d); // 頭・口
+    g.rect(24, 4, 2, 2, '#ffe14d'); g.px(25, 4, '#1a1a1a');
+    g.rect(18, 0, 2, 4, '#e8e0d0'); g.rect(22, 0, 2, 3, '#e8e0d0');       // 角
+    if (f === 1) { g.rect(32, 9, 6, 2, '#ff6a2a'); g.rect(36, 8, 4, 4, '#ffd84a'); }   // 口の火
     return both(g.outline(OUT));
   }
 
@@ -404,7 +424,15 @@ var G = window.G = window.G || {};
       knight: [orc(0, { skin: '#5d7f52', dark: '#3f5a37', armor: ['#4a4f5c', '#7d8496', '#2e323c'], trim: '#d9b24a' }),
                orc(1, { skin: '#5d7f52', dark: '#3f5a37', armor: ['#4a4f5c', '#7d8496', '#2e323c'], trim: '#d9b24a' })],
       wolf: [wolf(0), wolf(1)],
-      bat: [bat(0), bat(1)], skeleton: [skeleton(0), skeleton(1)], kingslime: [kingslime(0), kingslime(1)],
+      bat: [bat(0), bat(1)],
+      icebat: [bat(0, { c: '#7ab8e0', d: '#4a7aa8' }), bat(1, { c: '#7ab8e0', d: '#4a7aa8' })],
+      iceknight: [orc(0, { skin: '#8ab0c8', dark: '#5a7a92', armor: ['#a8c8e0', '#e0f0ff', '#6a8aa8'], trim: '#ffffff' }),
+                  orc(1, { skin: '#8ab0c8', dark: '#5a7a92', armor: ['#a8c8e0', '#e0f0ff', '#6a8aa8'], trim: '#ffffff' })],
+      frostgiant: [ogre(0, { skin: '#9ac0d8', dark: '#5a7a92', belly: '#c8e0f0' }), ogre(1, { skin: '#9ac0d8', dark: '#5a7a92', belly: '#c8e0f0' })],
+      magma: [kingslime(0, ['#a8281e', '#e0582a', '#ffd84a']), kingslime(1, ['#a8281e', '#e0582a', '#ffd84a'])],
+      demon: [orc(0, { skin: '#c8402a', dark: '#7a2016', armor: ['#3a2a2a', '#5a4040', '#1e1414'], trim: '#ff8a2a' }),
+              orc(1, { skin: '#c8402a', dark: '#7a2016', armor: ['#3a2a2a', '#5a4040', '#1e1414'], trim: '#ff8a2a' })],
+      dragon: [dragon(0), dragon(1)], skeleton: [skeleton(0), skeleton(1)], kingslime: [kingslime(0), kingslime(1)],
       yeti: [yeti(0), yeti(1)], salamander: [salamander(0), salamander(1)],
       pine: [pine(0), pine(1)], spire: [spire(0), spire(1)],
       ogre: [ogre(0), ogre(1)],
