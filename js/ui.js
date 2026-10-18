@@ -34,15 +34,23 @@ var G = window.G = window.G || {};
     if (!(btn && btn.disabled) && typeof tgt.click === 'function') tgt.click();
   }, { passive: false });
   document.addEventListener('dblclick', function (e) { e.preventDefault(); }, { passive: false });
-  // それでも拡大された時は、画面の設定を書き直して元の大きさに戻す
-  var vpMeta = document.querySelector('meta[name=viewport]');
-  function resetZoom() {
+  // それでも拡大された・横にずれた時は、元の大きさ・位置に戻す
+  // （画面の設定を一度ちがう値に書きかえてから戻すと、iPhone は倍率を1に戻す）
+  var vpMeta = document.querySelector('meta[name=viewport]'), vpBase = vpMeta ? vpMeta.getAttribute('content') : '';
+  function fixView() {
+    if (window.scrollX) window.scrollTo(0, window.scrollY);
     if (!vpMeta || !zoomed()) return;
-    var c = vpMeta.getAttribute('content');
-    vpMeta.setAttribute('content', c + ',user-scalable=0');
-    setTimeout(function () { vpMeta.setAttribute('content', c); }, 50);
+    vpMeta.setAttribute('content', 'width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=0,viewport-fit=cover');
+    setTimeout(function () { vpMeta.setAttribute('content', vpBase); if (window.scrollX) window.scrollTo(0, window.scrollY); }, 80);
   }
-  if (window.visualViewport) window.visualViewport.addEventListener('resize', function () { setTimeout(resetZoom, 300); });
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', function () { setTimeout(fixView, 250); });
+    window.visualViewport.addEventListener('scroll', function () { if (!zoomed() && window.visualViewport.offsetLeft) setTimeout(fixView, 100); });
+  }
+  window.addEventListener('scroll', function () { if (window.scrollX) window.scrollTo(0, window.scrollY); }, { passive: true });
+  document.addEventListener('touchend', function () { setTimeout(fixView, 50); }, { passive: true });
+  window.addEventListener('load', fixView);
+  window.addEventListener('pageshow', fixView);
   // ゲーム中は画面がスクロールしないように（細くなったアドレスバーを戻さないため）。.scroll-y の中だけはスクロールできる
   document.addEventListener('touchmove', function (e) {
     if (e.touches.length > 1 && zoomed()) return;   // 拡大中のピンチ（元に戻す操作）は止めない

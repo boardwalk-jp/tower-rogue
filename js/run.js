@@ -73,21 +73,40 @@ var G = window.G = window.G || {};
     return out;
   }
   // どの道を通っても：休憩は G.RULES.restPerRoute の範囲、商人は shopPerRoute 以下になるように直す
+  // 前後のマス（つながっている上下の階）に休憩がないか
+  function restNear(nodes, n) {
+    if (n.next.some(function (k) { return nodes[k].type === 'rest'; })) return true;
+    return Object.keys(nodes).some(function (k) { return nodes[k].type === 'rest' && nodes[k].next.indexOf(n.id) >= 0; });
+  }
+  // 休憩が2つ続くか（どの道でも）。続く所の下側のマス（最後の階の休憩は動かさない）を返す
+  function restPair(nodes) {
+    var ks = Object.keys(nodes);
+    for (var i = 0; i < ks.length; i++) {
+      var n = nodes[ks[i]];
+      if (n.type !== 'rest') continue;
+      for (var j = 0; j < n.next.length; j++) if (nodes[n.next[j]].type === 'rest') return n;
+    }
+    return null;
+  }
   function enforceRoutes(nodes, F, r) {
     var lo = G.RULES.restPerRoute[0], hi = G.RULES.restPerRoute[1], shopMax = G.RULES.shopPerRoute;
     for (var guard = 0; guard < 200; guard++) {
       var routes = allRoutes(nodes), fixed = false;
+      // 休憩は絶対に2つ続けない（続いていたら下側を戦闘に）
+      var pair = restPair(nodes);
+      if (pair) { pair.type = 'battle'; continue; }
       for (var i = 0; i < routes.length && !fixed; i++) {
         var route = routes[i].map(function (k) { return nodes[k]; });
         var rests = route.filter(function (n) { return n.type === 'rest'; });
         var shops = route.filter(function (n) { return n.type === 'shop'; });
         if (rests.length < lo) {
           // 5〜9階の 戦闘・イベントのうち、前後が休憩でないマスを休憩に変える
-          var cands = route.filter(function (n, j) {
-            return n.floor >= 4 && n.floor <= F - 2 && (n.type === 'battle' || n.type === 'event') &&
-              (!route[j - 1] || route[j - 1].type !== 'rest') && (!route[j + 1] || route[j + 1].type !== 'rest');
+          // 前後（ほかの道の分も含む）に休憩がないマスだけを休憩に変える
+          var cands = route.filter(function (n) {
+            return n.floor >= 4 && n.floor <= F - 3 && (n.type === 'battle' || n.type === 'event') && !restNear(nodes, n);
           });
-          if (!cands.length) cands = route.filter(function (n) { return n.floor >= 3 && n.floor <= F - 2 && n.type !== 'rest'; });
+          if (!cands.length) cands = route.filter(function (n) { return n.floor >= 2 && n.floor <= F - 3 && n.type !== 'rest' && n.type !== 'elite' && !restNear(nodes, n); });
+          if (!cands.length) cands = route.filter(function (n) { return n.floor >= 1 && n.floor <= F - 3 && n.type !== 'rest' && !restNear(nodes, n); });
           if (cands.length) { cands[Math.floor(r() * cands.length)].type = 'rest'; fixed = true; }
         } else if (rests.length > hi) {
           var ex = rests.filter(function (n) { return n.floor < F - 1; });
