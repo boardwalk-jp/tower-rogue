@@ -285,3 +285,6 @@ dt{color:var(--muted);text-align:right} dd{margin:0;text-align:left}
 .sound-row button{flex:1}
 .sound-note{font-size:12px;color:var(--muted)}
 #world-back{white-space:nowrap;flex:0 0 auto;padding:0 16px}
+/* 重なり順：カードの詳細は一番上（一覧・カード選びの上に開くため）→ 一覧 → ほかの小窓 */
+#pile{z-index:50}
+#detail{z-index:60}
