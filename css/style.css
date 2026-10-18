@@ -288,3 +288,4 @@ dt{color:var(--muted);text-align:right} dd{margin:0;text-align:left}
 /* 重なり順：カードの詳細は一番上（一覧・カード選びの上に開くため）→ 一覧 → ほかの小窓 */
 #pile{z-index:50}
 #detail{z-index:60}
+.ver{position:fixed;right:12px;bottom:max(10px,env(safe-area-inset-bottom));margin:0;font-size:11px;color:var(--muted)}

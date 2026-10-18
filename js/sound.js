@@ -168,17 +168,24 @@ var G = window.G = window.G || {};
   }
   // ---- ボス出現の曲（終焉の玉座 ver11）：流している間は、ふつうのBGMを止めておく ----
   var boss = null, bossOut = null, bossOn = false;
+  var bossErr = '';
   function bossTheme(on) {
     if (on === bossOn) return;
     bossOn = on;
     if (on) {
-      if (!ac || !G.makeBossTheme) return;
-      if (!boss) { bossOut = ac.createGain(); bossOut.connect(master); boss = G.makeBossTheme(ac, bossOut); }
-      bossOut.gain.value = cfg.bgm ? 0.55 : 0;
-      playing = null;            // ふつうのBGMを止める（wantTrack は覚えておく）
-      boss.start();
+      playing = null;            // まずふつうのBGMを止める（wantTrack は覚えておく）
+      if (!ac || !G.makeBossTheme) { bossErr = !ac ? '音の準備前' : '曲のファイルなし'; return; }
+      try {
+        if (!boss) { bossOut = ac.createGain(); bossOut.connect(master); boss = G.makeBossTheme(ac, bossOut); }
+        bossOut.gain.value = cfg.bgm ? 0.55 : 0;
+        boss.start(); bossErr = '';
+      } catch (e) {
+        // 鳴らせなかった時は、ふつうのBGMに戻す（理由は「音のテスト」に出す）
+        bossErr = String(e && e.message || e); bossOn = false; boss = null;
+        if (wantTrack) startTrack(wantTrack);
+      }
     } else {
-      if (boss) boss.stop();
+      if (boss) try { boss.stop(); } catch (e) {}
       if (wantTrack && ac) startTrack(wantTrack);   // 元のBGMに戻す
     }
   }
@@ -197,7 +204,7 @@ var G = window.G = window.G || {};
     if (kind === 'bgm' && bossOut) bossOut.gain.value = v ? 0.55 : 0;
   }
   // 音の状態（メニューの「音のテスト」で表示）
-  function state() { return !ac ? 'まだ準備していない（画面をタップすると準備）' : ac.state === 'running' ? '鳴らせる状態' : '止まっている（' + ac.state + '）'; }
+  function state() { return (!ac ? 'まだ準備していない（画面をタップすると準備）' : ac.state === 'running' ? '鳴らせる状態' : '止まっている（' + ac.state + '）') + (bossErr ? '・ボス曲のエラー：' + bossErr : '') + '・ボス曲' + (G.makeBossTheme ? 'あり' : 'なし'); }
   function test() { unlock(); var was = cfg.se; cfg.se = true; play('upgrade'); cfg.se = was; }
   G.Sound = { play: play, music: music, set: set, bossTheme: bossTheme, bossPlaying: function () { return bossOn && !!boss && boss.playing; }, get: function (k) { return cfg[k]; }, state: state, test: test };
 })();
