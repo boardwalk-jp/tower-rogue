@@ -304,7 +304,7 @@ var G = window.G = window.G || {};
       return '<span class="k">' + r[0] + '</span><span class="v">' + r[1] + '</span>' + (n ? '<span class="nx">' + r[2] + '</span>' : '');
     }).join('');
     if (n) txt += '<span class="mid" style="grid-row:1 / span ' + rows.length + '"><small>強化後</small>' +
-      '<svg viewBox="0 0 30 18" aria-hidden="true"><path d="M0 6h17V0l13 9-13 9v-6H0z"/></svg></span>';
+      '<svg width="30" height="18" viewBox="0 0 30 18" aria-hidden="true"><path d="M0 6h17V0l13 9-13 9v-6H0z"/></svg></span>';
     $('ts-stats').classList.toggle('maxed', !n);
     $('ts-stats').innerHTML = txt;
     var up = $('ts-up');

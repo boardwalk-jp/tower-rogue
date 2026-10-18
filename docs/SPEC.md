@@ -191,6 +191,7 @@
 - ファイルは役割ごとに分ける（データ／描画／戦闘処理／画面）
 - 縦持ち画面の高さは、アドレスバーの状態に合わせて変わる指定（dvh）で合わせる
 - 長押しメニュー・文字選択・ダブルタップ拡大を無効化する
+- スマホが前の版のCSS・JSを使い回して表示がくずれることがあるため、`index.html` の読み込みに `?v=日時` を付ける。ファイルを変えて公開する前に `python3 tools/stamp.py` を実行する（2026-10-18 に実機で発生）
 - 参考資料
   - iPhone Safari は全画面表示・向きの固定に非対応（2026年10月時点）：https://caniuse.com/fullscreen 、https://caniuse.com/wf-screen-orientation-lock
   - アドレスバーはユーザーが下にスクロール（指を上に動かす）した時だけ縮む：https://www.macrumors.com/guide/ios-26-safari-features/
