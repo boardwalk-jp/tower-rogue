@@ -145,7 +145,7 @@ var G = window.G = window.G || {};
 
     if (def.kind === 'tower') {
       var t = { id: s.nextId++, type: def.tower, tx: target.tx, ty: target.ty, x: target.tx + 0.5, y: target.ty + 0.5,
-                lv: 0, bonusDmg: 0, turnDmgMult: 1, cd: 0.2, aim: 0, fire: 0 };
+                lv: 0, bonusDmg: 0, turnDmgMult: 1, cd: 0.2, aim: 0, fire: 0, target: 'first' };
       s.towers.push(t);
       s.stats.built++;
       ev(s, { k: 'build', x: t.x, y: t.y });
@@ -204,6 +204,10 @@ var G = window.G = window.G || {};
     if (s.gold < c) return 'お金が足りません';
     s.gold -= c; tw.lv++;
     ev(s, { k: 'upgrade', x: tw.x, y: tw.y });
+    return null;
+  }
+  function findTowerAt(s, tx, ty) {
+    for (var i = 0; i < s.towers.length; i++) if (s.towers[i].tx === tx && s.towers[i].ty === ty) return s.towers[i];
     return null;
   }
   function findTower(s, id) {
@@ -275,6 +279,21 @@ var G = window.G = window.G || {};
     }
   }
 
+  // ---- タワーが狙う敵の決め方（射程内の敵のうち、点数が一番大きい敵を狙う） ----
+  var TARGET_SCORE = {
+    first:  function (e) { return e.d; },               // 先頭（一番城に近い）
+    last:   function (e) { return -e.d; },              // 最後尾
+    strong: function (e) { return e.hp; },              // 体力が一番多い
+    weak:   function (e) { return -e.hp; },             // 体力が一番少ない
+    near:   function (e, dist) { return -dist; },       // タワーから一番近い
+    far:    function (e, dist) { return dist; }         // タワーから一番遠い
+  };
+  var TARGET_MODES = [
+    { id: 'first', name: '先頭' }, { id: 'last', name: '最後尾' }, { id: 'strong', name: '体力が多い' },
+    { id: 'weak', name: '体力が少ない' }, { id: 'near', name: '近い' }, { id: 'far', name: '遠い' }
+  ];
+  function setTarget(s, towerId, mode) { var tw = findTower(s, towerId); if (tw && TARGET_SCORE[mode]) tw.target = mode; }
+
   function update(s, dt) {
     if (s.phase !== 'attack') return;
     s.time += dt;
@@ -307,11 +326,14 @@ var G = window.G = window.G || {};
     for (i = 0; i < s.towers.length; i++) {
       var tw = s.towers[i], st = towerStats(tw, s), T = G.TOWERS[tw.type];
       tw.cd -= dt; if (tw.fire > 0) tw.fire -= dt;
-      var best = null;
+      var best = null, bestScore = 0, score = TARGET_SCORE[tw.target] || TARGET_SCORE.first;
       for (var j = 0; j < s.enemies.length; j++) {
         var en = s.enemies[j];
         if (en.hp <= 0 || en.y < 0) continue;
-        if (Math.hypot(en.x - tw.x, en.y - tw.y) <= st.range && (!best || en.d > best.d)) best = en;
+        var dist = Math.hypot(en.x - tw.x, en.y - tw.y);
+        if (dist > st.range) continue;
+        var sc = score(en, dist);
+        if (!best || sc > bestScore) { best = en; bestScore = sc; }
       }
       if (best) tw.aim = best.x < tw.x ? -1 : 1;
       if (best && tw.cd <= 0) {
@@ -418,6 +440,6 @@ var G = window.G = window.G || {};
     create: create, update: update, startAttack: startAttack, playCard: playCard, skillBlocked: skillBlocked,
     canPlaceAt: canPlaceAt, upgrade: upgrade, upgradeCost: upgradeCost, towerStats: towerStats, nextStats: nextStats,
     baseStats: baseStats, extraDraw: extraDraw, nextWave: nextWave, findTower: findTower, tileAt: tileAt,
-    cardCost: cardCost, cardDef: cardDef, rng: rng, shuffle: shuffle
+    cardCost: cardCost, cardDef: cardDef, rng: rng, shuffle: shuffle, TARGET_MODES: TARGET_MODES, setTarget: setTarget, findTowerAt: findTowerAt
   };
 })();

@@ -149,7 +149,7 @@ var G = window.G = window.G || {};
 
   // カードを並べて1枚選ばせる（報酬・祭壇）
   function choose(body, foot, cards, okLabel, onOk, skipLabel, onSkip) {
-    var grid = el('div', 'cards-grid'), picked = null, desc = el('p', 'pk-text', 'カードをタップすると説明が出ます');
+    var grid = el('div', 'cards-grid'), picked = null, desc = el('div', 'card-detail empty', 'カードをタップすると詳細が出ます');
     var ok = button(okLabel, 'go', function () { if (picked) onOk(picked); });
     ok.disabled = true;
     cards.forEach(function (id) {
@@ -157,7 +157,7 @@ var G = window.G = window.G || {};
       c.addEventListener('click', function () {
         grid.querySelectorAll('.card').forEach(function (x) { x.classList.remove('sel'); });
         c.classList.add('sel'); picked = id; ok.disabled = false;
-        desc.textContent = G.CARDS[id].name + '：' + G.CARDS[id].text;
+        var box = UI.detailBox(id); desc.replaceWith(box); desc = box;
       });
       grid.appendChild(c);
     });
@@ -215,8 +215,8 @@ var G = window.G = window.G || {};
     function render() {
       openPanel('商人', function (body, foot) {
         body.appendChild(el('h2', 'panel-title', '旅の商人'));
-        body.appendChild(el('p', 'panel-sub', 'カードをタップすると説明、もう一度タップで買う'));
-        var grid = el('div', 'cards-grid shop'), desc = el('p', 'pk-text', ''), picked = null;
+        var grid = el('div', 'cards-grid shop'), desc = el('div', 'card-detail empty', 'カードをタップすると詳細、もう一度タップで買う'), picked = null;
+        function say(t) { var p = el('div', 'card-detail empty', t); desc.replaceWith(p); desc = p; }
         stock.forEach(function (it, i) {
           var wrap = el('div', 'shop-item'), c = UI.cardEl(it.id);
           if (it.sold) { c.classList.add('sold'); }
@@ -226,10 +226,10 @@ var G = window.G = window.G || {};
               picked = i;
               grid.querySelectorAll('.card').forEach(function (x) { x.classList.remove('sel'); });
               c.classList.add('sel');
-              desc.textContent = G.CARDS[it.id].name + '：' + G.CARDS[it.id].text + '（もう一度タップで ●' + it.price + ' で買う）';
+              var box = UI.detailBox(it.id, 'もう一度タップで ●' + it.price + ' で買う'); desc.replaceWith(box); desc = box;
               return;
             }
-            if (run.gold < it.price) { desc.textContent = 'お金が足りません'; return; }
+            if (run.gold < it.price) { say('お金が足りません'); return; }
             run.gold -= it.price; it.sold = true; R.addCard(run, it.id); render();
           });
           wrap.appendChild(c);
@@ -240,14 +240,14 @@ var G = window.G = window.G || {};
         var sv = el('div', 'choices');
         var rm = button('', 'choice', function () {
           if (used.remove) return;
-          if (run.gold < P.remove) { desc.textContent = 'お金が足りません'; return; }
+          if (run.gold < P.remove) { say('お金が足りません'); return; }
           pickFromDeck('手放すカードを選ぶ（●' + P.remove + '）', function (idx) { run.gold -= P.remove; used.remove = true; R.removeCard(run, idx); render(); }, false, render);
         });
         rm.appendChild(el('b', '', 'カードを1枚手放す')); rm.appendChild(el('small', '', used.remove ? '利用済み' : '● ' + P.remove));
         rm.disabled = used.remove;
         var hl = button('', 'choice', function () {
           if (used.heal) return;
-          if (run.gold < P.heal) { desc.textContent = 'お金が足りません'; return; }
+          if (run.gold < P.heal) { say('お金が足りません'); return; }
           run.gold -= P.heal; used.heal = true; run.life = Math.min(run.maxLife, run.life + P.healAmount); render();
         });
         hl.appendChild(el('b', '', 'ライフを' + P.healAmount + '回復')); hl.appendChild(el('small', '', used.heal ? '利用済み' : '● ' + P.heal));
@@ -313,14 +313,15 @@ var G = window.G = window.G || {};
   function pickFromDeck(title, onOk, mustPick, onCancel) {
     var grid = $('pk-grid'), picked = -1;
     $('pk-title').textContent = title;
-    $('pk-text').textContent = 'カードをタップして選ぶ';
+    var tip = document.createElement('p'); tip.id = 'pk-text'; tip.className = 'pk-text'; tip.textContent = 'カードをタップして選ぶ';
+    $('pk-text').replaceWith(tip);
     grid.innerHTML = '';
     run.deck.forEach(function (id, i) {
       var c = UI.cardEl(id);
       c.addEventListener('click', function () {
         grid.querySelectorAll('.card').forEach(function (x) { x.classList.remove('sel'); });
         c.classList.add('sel'); picked = i; $('pk-ok').disabled = false;
-        $('pk-text').textContent = G.CARDS[id].name + '：' + G.CARDS[id].text;
+        var box = UI.detailBox(id); box.id = 'pk-text'; $('pk-text').replaceWith(box);
       });
       grid.appendChild(c);
     });

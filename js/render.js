@@ -208,7 +208,10 @@ var G = window.G = window.G || {};
         var fire = o.fire > 0.12 ? 1 : 0, spr = S[o.type][Math.min(2, o.lv)][fire];
         if (spr.r) spr = o.aim < 0 ? spr.l : spr.r;
         b.fillStyle = 'rgba(0,0,0,.35)'; b.fillRect(sx(o.x) - 7, sy(o.y) + 3, 14, 2);
+        // タワーを置くカードを選んでいる間は、後ろのマスが見えるようにタワーを半透明にする
+        if (ui.selType) b.globalAlpha = 0.45;
         blitB(spr, sx(o.x), sy(o.y) + 5);
+        b.globalAlpha = 1;
         for (var l = 0; l < o.lv; l++) { b.fillStyle = '#ffe14d'; b.fillRect(sx(o.x) - 3 + l * 4, sy(o.y) + 3, 2, 2); }
         // スキルで強くなっている間は、タワーの上に赤い↑（アップの色）
         if (o.bonusDmg > 0 || o.turnDmgMult > 1 || s.buff.speedMult > 1) {

@@ -119,7 +119,16 @@ h1 span{font-size:18px;color:var(--muted)}
   background:var(--panel);border:1px solid var(--accent);border-radius:12px;padding:10px 12px;box-shadow:0 -6px 20px rgba(0,0,0,.5)}
 .sheet-head{font-size:17px} .sheet-head span{color:var(--accent);font-size:14px}
 .sheet p{margin:6px 0 10px;font-size:14px;color:var(--muted);line-height:1.6}
-.sheet #ts-up{width:100%}
+.sheet-btns{display:flex;gap:8px}
+.sheet #ts-up{flex:1 1 auto}
+.target-btn{flex:0 0 auto;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:0;line-height:1.2;padding:4px 12px;min-width:118px}
+.target-btn small{font-size:11px;color:var(--muted)}
+.target-btn b{font-weight:400;font-size:15px}
+.card-detail{margin:0;padding:10px 12px;border-radius:10px;background:var(--panel);border:1px solid var(--line);display:flex;flex-direction:column;gap:6px}
+.card-detail h3{margin:0;font-weight:400;font-size:17px}
+.card-detail p{margin:0;font-size:14px;line-height:1.6;color:var(--muted)}
+.card-detail dl{justify-content:start}
+.card-detail.empty{color:var(--muted);font-size:14px}
 /* 強さの表：左から 項目名｜今の値｜太い矢印（全行で1本、上に「強化後」）｜強化後の値。項目ごとに1行 */
 .stat-table{display:grid;grid-template-columns:auto auto auto 1fr;align-items:center;column-gap:8px;row-gap:3px;
   margin:6px 0 10px;font-size:14px;line-height:1.5;font-variant-numeric:tabular-nums;white-space:nowrap}

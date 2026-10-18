@@ -258,13 +258,13 @@ var G = window.G = window.G || {};
     var tw = towerFromClient(e.clientX, e.clientY);
     if (ui.selType) {
       var t = tileFromClient(e.clientX, e.clientY);
+      // タワーを置くカードを選んでいる間は、タワーの絵をタップしても小窓は開かない（後ろのマスをねらった誤タップを防ぐ）
       if (t && B.canPlaceAt(s, t.tx, t.ty)) {
         if (ui.pending && ui.pending.tx === t.tx && ui.pending.ty === t.ty) tryPlace(ui.selIndex, t.tx, t.ty);
         else setPending(t);
         return;
       }
-      if (tw) { deselect(); renderHand(); openTowerSheet(tw.id); return; }
-      toast('そこには置けません');
+      toast(t && B.findTowerAt && B.findTowerAt(s, t.tx, t.ty) ? 'もうタワーがあります（カードを外すとタワーを選べます）' : 'そこには置けません');
       return;
     }
     if (ui.selSkill) {
@@ -358,10 +358,18 @@ var G = window.G = window.G || {};
       '<svg width="30" height="18" viewBox="0 0 30 18" aria-hidden="true"><path d="M0 6h17V0l13 9-13 9v-6H0z"/></svg></span>';
     $('ts-stats').classList.toggle('maxed', !n);
     $('ts-stats').innerHTML = txt;
+    var mode = B.TARGET_MODES.filter(function (m) { return m.id === (tw.target || 'first'); })[0];
+    $('ts-target').innerHTML = '<small>狙う敵（タップで変更）</small><b>' + mode.name + '</b>';
     var up = $('ts-up');
     if (c === null) { up.textContent = '最大まで強化済み'; up.disabled = true; }
     else { up.textContent = '強化 ● ' + c; up.disabled = s.gold < c; }
   }
+  $('ts-target').addEventListener('click', function () {
+    var tw = B.findTower(s, ui.selTower); if (!tw) return;
+    var ids = B.TARGET_MODES.map(function (m) { return m.id; });
+    B.setTarget(s, tw.id, ids[(ids.indexOf(tw.target || 'first') + 1) % ids.length]);
+    renderTowerSheet();
+  });
   $('ts-up').addEventListener('click', function () {
     var err = B.upgrade(s, ui.selTower);
     if (err) toast(err); renderTowerSheet(); renderHud(true);
@@ -376,13 +384,8 @@ var G = window.G = window.G || {};
   // ============================================================
   // カードの詳細（長押し・デッキ一覧から）
   // ============================================================
-  function showDetail(id) {
-    var def = G.CARDS[id], c = $('detail-art').getContext('2d');
-    c.clearRect(0, 0, 34, 36);
-    if (def.kind === 'tower') { var img = G.towerImg(def.tower, 0, false); c.drawImage(img, Math.round((34 - img.width) / 2), 36 - img.height); }
-    else c.drawImage(SPR.icon[def.icon], 9, 10);
-    $('d-name').textContent = def.name;
-    $('d-text').textContent = def.text;
+  function detailStats(id) {
+    var def = G.CARDS[id];
     var h = '<dt>エネルギー</dt><dd>' + def.cost + '</dd><dt>種類</dt><dd>' + (def.kind === 'tower' ? 'タワー' : 'スキル') + '</dd>';
     if (def.kind === 'tower') {
       var T = G.TOWERS[def.tower], st = B.baseStats(def.tower, 0), R = G.Rank.ofStats(st);
@@ -395,7 +398,27 @@ var G = window.G = window.G || {};
     } else {
       h += '<dt>使う相手</dt><dd>' + (def.target === 'tower' ? 'タワー1つ' : 'なし（すぐ効く）') + '</dd>';
     }
-    $('d-stats').innerHTML = h;
+    if (def.exhaust) h += '<dt>使い切り</dt><dd>この戦闘中は戻らない</dd>';
+    return h;
+  }
+  // 報酬・商人・カード選びの画面で、選んだカードの詳細を出す箱
+  function detailBox(id, extra) {
+    var box = document.createElement('div'); box.className = 'card-detail';
+    var def = G.CARDS[id];
+    box.innerHTML = '<h3></h3><p></p><dl>' + detailStats(id) + '</dl>' + (extra ? '<p class="extra"></p>' : '');
+    box.querySelector('h3').textContent = def.name;
+    box.querySelector('p').textContent = def.text;
+    if (extra) box.querySelector('.extra').textContent = extra;
+    return box;
+  }
+  function showDetail(id) {
+    var def = G.CARDS[id], c = $('detail-art').getContext('2d');
+    c.clearRect(0, 0, 34, 36);
+    if (def.kind === 'tower') { var img = G.towerImg(def.tower, 0, false); c.drawImage(img, Math.round((34 - img.width) / 2), 36 - img.height); }
+    else c.drawImage(SPR.icon[def.icon], 9, 10);
+    $('d-name').textContent = def.name;
+    $('d-text').textContent = def.text;
+    $('d-stats').innerHTML = detailStats(id);
     $('detail').hidden = false;
     if (s && G.currentScreen === 'game') { deselect(); renderHand(); }
   }
@@ -440,8 +463,8 @@ var G = window.G = window.G || {};
   $('pile').addEventListener('click', function (e) { if (e.target === this) this.hidden = true; });
 
   $('btn-speed').addEventListener('click', function () {
-    speed = speed === 1 ? 2 : 1;
-    this.textContent = '×' + speed; this.setAttribute('aria-pressed', String(speed === 2));
+    speed = speed === 1 ? 2 : speed === 2 ? 4 : 1;   // ×1 → ×2 → ×4 → ×1
+    this.textContent = '×' + speed; this.setAttribute('aria-pressed', String(speed > 1));
   });
 
   // ---- 戦闘の出来事を画面に反映 ----
@@ -509,7 +532,7 @@ var G = window.G = window.G || {};
   }
   requestAnimationFrame(frame);
 
-  G.BattleUI = { start: start, cardEl: cardEl, cardArt: cardArt, showDetail: showDetail, showList: showList, fit: fit };
+  G.BattleUI = { start: start, cardEl: cardEl, cardArt: cardArt, showDetail: showDetail, showList: showList, detailBox: detailBox, fit: fit };
   // 開発用：コンソールから状態を見られるように
   G.debug = { get state() { return s; }, ui: ui };
 })();
