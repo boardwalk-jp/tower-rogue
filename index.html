@@ -2,595 +2,104 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>オーク対魔導士 ドット版</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#121815">
+<title>タワーローグ 試作</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Zen+Kaku+Gothic+New:wght@400;700&display=swap">
-<style>
-/* Layout: one narrow column — framed pixel game screen, playback row, load-test row, short notes. Single deliberate dark "game cabinet" look. */
-:root{
-  --bg:#121815;
-  --panel:#1b231f;
-  --line:#2b3a32;
-  --fg:#e8eee5;
-  --muted:#9db0a1;
-  --accent:#e6b84a;
-  --good:#7fd36a;
-  --warn:#ffb347;
-  --bad:#ff6b5b;
-  --display:"DotGothic16","Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;
-  --body:"Zen Kaku Gothic New","Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif;
-  color-scheme:dark;
-}
-*{box-sizing:border-box}
-html,body{background:var(--bg);color:var(--fg)}
-body{margin:0}
-body{font-family:var(--body);font-size:15px;line-height:1.7;
-  padding-left:max(16px,env(safe-area-inset-left,0px));
-  padding-right:max(16px,env(safe-area-inset-right,0px));
-  padding-block:20px 40px}
-.wrap{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
-.eyebrow{font-family:var(--display);color:var(--accent);letter-spacing:.08em;font-size:13px;margin:0}
-h1{font-family:var(--display);font-weight:400;font-size:clamp(26px,6vw,36px);line-height:1.2;margin:0;text-wrap:balance}
-.lead{color:var(--muted);margin:0;max-width:62ch}
-.screen{position:relative;border:2px solid var(--line);border-radius:10px;overflow:hidden;background:#0d1411}
-canvas{display:block;width:100%;aspect-ratio:3/2;max-width:100%;image-rendering:pixelated}
-.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-.row .label{font-family:var(--display);color:var(--muted);font-size:13px;margin-right:4px}
-.status{font-family:var(--display);font-size:15px;margin:0;min-height:1.6em}
-.status::before{content:"▶ ";color:var(--accent)}
-.meter{font-family:var(--display);font-variant-numeric:tabular-nums;display:flex;flex-wrap:wrap;gap:6px 16px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 12px;font-size:14px}
-.meter b{font-weight:400}
-.ok{color:var(--good)}.mid{color:var(--warn)}.ng{color:var(--bad)}
-button{font-family:var(--display);font-size:14px;color:var(--fg);background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:7px 12px;cursor:pointer}
-button:hover{border-color:var(--accent)}
-button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-button[aria-pressed="true"]{background:var(--accent);color:#1b1505;border-color:var(--accent)}
-.notes{border-top:1px solid var(--line);padding-top:12px;display:flex;flex-direction:column;gap:12px}
-.notes h2{font-family:var(--display);font-weight:400;font-size:17px;margin:0 0 4px}
-.notes ul{margin:0;padding-left:1.2em;color:var(--muted);max-width:66ch}
-.notes li b{color:var(--fg);font-weight:700}
-</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap">
+<link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
-<div class="wrap">
-  <p class="eyebrow">ドット表現サンプル ／ 画像・音声ファイル不使用</p>
-  <h1>オーク対魔導士 ドット版</h1>
-  <p class="lead">前回と同じ場面を、コードで1ドットずつ描いたドット絵で作り直した版です。キャラの絵は起動時に一度だけ作り置きし、動きはコマの切り替えで見せています。</p>
-
-  <div class="screen"><canvas id="cv" aria-label="ドット絵のオークと魔導士の戦闘アニメーション"></canvas></div>
-
-  <p class="status" id="status">オークが一本道を進む</p>
-
-  <div class="row">
-    <button id="replay" type="button">ストーリー再生</button>
-    <button id="zoom" type="button" aria-pressed="false">拡大</button>
-    <span class="label">速度</span>
-    <button type="button" data-speed="0.3" aria-pressed="false">スロー</button>
-    <button type="button" data-speed="1" aria-pressed="true">等速</button>
-    <button type="button" data-speed="2" aria-pressed="false">2倍</button>
-  </div>
-
-  <div class="row">
-    <span class="label">負荷テスト（オーク数）</span>
-    <button type="button" data-crowd="50">50体</button>
-    <button type="button" data-crowd="100">100体</button>
-    <button type="button" data-crowd="200">200体</button>
-    <button type="button" data-crowd="400">400体</button>
-    <button type="button" data-crowd="800">800体</button>
-  </div>
-  <div class="meter" aria-live="polite">
-    <span>FPS <b id="fps">--</b></span>
-    <span>1コマの処理 <b id="ms">--</b></span>
-    <span>オーク <b id="cnt">1</b>体</span>
-    <span>粒子 <b id="pc">0</b>個</span>
-  </div>
-
-  <section class="notes">
-    <div>
-      <h2>この版の作り方</h2>
-      <ul>
-        <li><b>画面</b>：320×213ドットの小さな画面に描いて、それを拡大表示しています</li>
-        <li><b>キャラ</b>：図形で形を決め、1ドット単位の絵に変換。輪郭線と「上と左が明るい・下と右が暗い」の3段階の色を自動で付けています</li>
-        <li><b>コマ数</b>：オーク 歩き4・攻撃5・勝ちどき2／魔導士 待機2・詠唱5・倒れ4／タワー 旗2×ひび3段階。被弾時の白い絵も別に作り置き</li>
-        <li><b>エフェクト</b>：魔法陣（回転8コマ）、光弾、粒子、波紋もすべてドット単位</li>
-        <li><b>負荷</b>：絵を毎回描き直さず作り置きを貼るだけなので、前回の版より大人数に強い作りです。前回と同じ負荷テストで比べられます</li>
-      </ul>
+<!-- スタート画面：上にスワイプ（＝ページを下へ読み進める）で Safari のアドレスバーを細くしてから始める -->
+<section id="start">
+  <div class="start-inner">
+    <p class="eyebrow">段階1 戦闘の試作</p>
+    <h1>タワーローグ<span>（仮）</span></h1>
+    <canvas id="title-art" width="112" height="40" aria-hidden="true"></canvas>
+    <div class="mode">
+      <p class="mode-label">タワーの置き方（くらべる用）</p>
+      <div class="seg" role="radiogroup" aria-label="タワーの置き方">
+        <button type="button" data-mode="pedestal" aria-pressed="true">台座だけ</button>
+        <button type="button" data-mode="free" aria-pressed="false">道以外どこでも</button>
+      </div>
     </div>
-  </section>
+    <div class="swipe">
+      <div class="arrow" aria-hidden="true">▲<br>▲</div>
+      <p>上にスワイプしてスタート</p>
+      <button type="button" id="pc-start" class="pc-only">クリックでスタート</button>
+    </div>
+  </div>
+</section>
+
+<!-- ゲーム画面 -->
+<main id="game" hidden>
+  <header class="hud">
+    <span class="hud-life" title="ライフ">♥ <b id="h-life">20</b></span>
+    <span class="hud-turn"><b id="h-phase">準備</b> <span id="h-turn">1/5</span></span>
+    <span class="hud-energy" title="エネルギー"><span id="h-energy"></span></span>
+    <span class="hud-gold" title="お金">● <b id="h-gold">20</b></span>
+  </header>
+
+  <div class="stage" id="stage">
+    <canvas id="map"></canvas>
+    <div class="banner" id="banner"></div>
+    <div class="toast" id="toast" role="status"></div>
+  </div>
+
+  <div class="info" id="info"></div>
+
+  <div class="actions">
+    <span class="piles"><span title="山札">山 <b id="h-draw">0</b></span><span title="捨て札">捨 <b id="h-disc">0</b></span></span>
+    <button type="button" id="btn-draw">+1枚 <small id="draw-cost">15</small></button>
+    <button type="button" id="btn-speed" aria-pressed="false">×1</button>
+    <button type="button" id="btn-go" class="go">攻撃開始</button>
+  </div>
+
+  <div class="hand" id="hand"></div>
+
+  <!-- タワーをタップした時の小窓 -->
+  <div class="sheet" id="tower-sheet" hidden>
+    <div class="sheet-head"><b id="ts-name"></b> <span id="ts-lv"></span></div>
+    <p id="ts-stats"></p>
+    <div class="sheet-btns">
+      <button type="button" id="ts-up" class="go">強化</button>
+      <button type="button" id="ts-close">閉じる</button>
+    </div>
+  </div>
+</main>
+
+<!-- カードの詳細（長押し） -->
+<div class="modal" id="detail" hidden>
+  <div class="modal-box">
+    <canvas id="detail-art" width="34" height="36"></canvas>
+    <h2 id="d-name"></h2>
+    <p id="d-text"></p>
+    <dl id="d-stats"></dl>
+    <button type="button" id="d-close">閉じる</button>
+  </div>
 </div>
 
-<script>
-(function(){
-/* ================= pixel rasterizer ================= */
-const RAMPS={
-  green:['#2f5220','#5a8e3c','#8cc45f'],greenB:['#22401a','#46702d','#5f9440'],
-  leather:['#2e1b0e','#5b3a21','#8a5a32'],boot:['#1f140c','#3a2616','#5a3d24'],
-  cloth:['#4a1712','#8a2f24','#c24a3a'],gold:['#8a6420','#d9ad45','#ffe08a'],
-  metal:['#41484c','#8a9398','#e4e8ea'],wood:['#3d2512','#7a5230','#a87c4e'],
-  bone:['#a89a76','#e6dcc0','#fffaf0'],hair:['#0e0c0a','#24201a','#4a4236'],
-  robe:['#1a2462','#33459e','#5a72d8'],cape:['#1c1030','#3a2262','#5e3e98'],
-  skin:['#a8714e','#e0ad86','#ffe2c4'],beard:['#8e93a2','#d8dbe4','#ffffff'],
-  crystal:['#5a2fa0','#9a6ad8','#efe4ff'],staff:['#2e1a0a','#5e3a1a','#8f6038'],
-  stone:['#6f6858','#a39b8b','#d2cbbb'],roof:['#22386e','#3a5aa8','#5b7fd0'],
-  flag:['#8a2a26','#d9534f','#f08a7a'],trunk:['#3a2616','#6b4a2e','#8f6a44'],
-  leaf:['#1f4d27','#3a8540','#6cbf5e'],rock:['#4e5551','#7d8580','#b4bcb7']
-};
-const SPECS=[],SPECID={};
-function sid(s){
-  if(SPECID[s]!==undefined)return SPECID[s];
-  const o={};let t=s;if(t[0]==='!'){o.no=true;t=t.slice(1);}
-  if(t[0]==='#')o.hex=t;else{const m=t.match(/^([a-zA-Z]+)(\d)?$/);o.ramp=m[1];o.tone=m[2]!==undefined?+m[2]:-1;}
-  SPECS.push(o);return SPECID[s]=SPECS.length-1;
-}
-const HEXC={};
-function rgb(h){if(HEXC[h])return HEXC[h];const n=parseInt(h.slice(1),16);return HEXC[h]=[n>>16&255,n>>8&255,n&255];}
-function pip(p,x,y){let c=false;const n=p.length/2;for(let i=0,j=n-1;i<n;j=i++){const xi=p[i*2],yi=p[i*2+1],xj=p[j*2],yj=p[j*2+1];if(((yi>y)!==(yj>y))&&(x<(xj-xi)*(y-yi)/(yj-yi)+xi))c=!c;}return c;}
-function dseg(px,py,x0,y0,x1,y1){const dx=x1-x0,dy=y1-y0,l=dx*dx+dy*dy;let t=l?((px-x0)*dx+(py-y0)*dy)/l:0;t=Math.max(0,Math.min(1,t));return Math.hypot(px-x0-dx*t,py-y0-dy*t);}
-function bz(x0,y0,a,b,c,d,x1,y1,n){n=n||8;const o=[];for(let i=1;i<=n;i++){const t=i/n,u=1-t;o.push(u*u*u*x0+3*u*u*t*a+3*u*t*t*c+t*t*t*x1,u*u*u*y0+3*u*u*t*b+3*u*t*t*d+t*t*t*y1);}return o;}
-function qz(x0,y0,a,b,x1,y1,n){n=n||6;const o=[];for(let i=1;i<=n;i++){const t=i/n,u=1-t;o.push(u*u*x0+2*u*t*a+t*t*x1,u*u*y0+2*u*t*b+t*t*y1);}return o;}
-const lerp=(a,b,t)=>a+(b-a)*t;
-const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-const easeOut=t=>1-(1-t)*(1-t);
-const easeIn=t=>t*t;
+<!-- 勝ち・負け -->
+<div class="modal" id="result" hidden>
+  <div class="modal-box">
+    <h2 id="r-title"></h2>
+    <p id="r-text"></p>
+    <div class="seg" role="radiogroup" aria-label="タワーの置き方">
+      <button type="button" data-mode="pedestal" aria-pressed="true">台座だけ</button>
+      <button type="button" data-mode="free" aria-pressed="false">道以外どこでも</button>
+    </div>
+    <button type="button" id="r-again" class="go">もう一度</button>
+  </div>
+</div>
 
-class Painter{
-  constructor(w,h,ax,ay,fz){this.w=w;this.h=h;this.ax=ax;this.ay=ay;this.buf=new Int16Array(w*h).fill(-1);this.part=new Int16Array(w*h);this.pid=0;this.m=[fz,0,0,fz,ax,ay];this.st=[];}
-  push(){this.st.push(this.m.slice());}
-  pop(){this.m=this.st.pop();}
-  mul(n){const m=this.m;this.m=[m[0]*n[0]+m[2]*n[1],m[1]*n[0]+m[3]*n[1],m[0]*n[2]+m[2]*n[3],m[1]*n[2]+m[3]*n[3],m[0]*n[4]+m[2]*n[5]+m[4],m[1]*n[4]+m[3]*n[5]+m[5]];}
-  translate(x,y){this.mul([1,0,0,1,x,y]);}
-  rotate(a){const c=Math.cos(a),s=Math.sin(a);this.mul([c,s,-s,c,0,0]);}
-  scale(x,y){this.mul([x,0,0,y,0,0]);}
-  ap(x,y){const m=this.m;return[m[0]*x+m[2]*y+m[4],m[1]*x+m[3]*y+m[5]];}
-  set(x,y,id){if(x>=0&&y>=0&&x<this.w&&y<this.h){this.buf[y*this.w+x]=id;this.part[y*this.w+x]=this.pid;}}
-  fill(bb,test,col){
-    const id=sid(col);this.pid++;const m=this.m;const det=m[0]*m[3]-m[1]*m[2];
-    const ia=m[3]/det,ib=-m[1]/det,ic=-m[2]/det,id2=m[0]/det,ie=-(ia*m[4]+ic*m[5]),iff=-(ib*m[4]+id2*m[5]);
-    let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;
-    for(const c of [[bb[0],bb[1]],[bb[2],bb[1]],[bb[0],bb[3]],[bb[2],bb[3]]]){const p=this.ap(c[0],c[1]);x0=Math.min(x0,p[0]);x1=Math.max(x1,p[0]);y0=Math.min(y0,p[1]);y1=Math.max(y1,p[1]);}
-    x0=Math.max(0,Math.floor(x0));y0=Math.max(0,Math.floor(y0));x1=Math.min(this.w-1,Math.ceil(x1));y1=Math.min(this.h-1,Math.ceil(y1));
-    for(let py=y0;py<=y1;py++)for(let px=x0;px<=x1;px++){const X=px+.5,Y=py+.5;if(test(ia*X+ic*Y+ie,ib*X+id2*Y+iff)){this.buf[py*this.w+px]=id;this.part[py*this.w+px]=this.pid;}}
-  }
-  ell(cx,cy,rx,ry,col){this.fill([cx-rx,cy-ry,cx+rx,cy+ry],(x,y)=>((x-cx)/rx)**2+((y-cy)/ry)**2<=1,col);}
-  rect(x,y,w,h,col){this.fill([x,y,x+w,y+h],(a,b)=>a>=x&&a<=x+w&&b>=y&&b<=y+h,col);}
-  ring(cx,cy,r0,r1,col){this.fill([cx-r1,cy-r1,cx+r1,cy+r1],(x,y)=>{const d=Math.hypot(x-cx,y-cy);return d>=r0&&d<=r1;},col);}
-  poly(p,col){let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;for(let i=0;i<p.length;i+=2){x0=Math.min(x0,p[i]);x1=Math.max(x1,p[i]);y0=Math.min(y0,p[i+1]);y1=Math.max(y1,p[i+1]);}this.fill([x0,y0,x1,y1],(x,y)=>pip(p,x,y),col);}
-  cap(p,r,col){let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;for(let i=0;i<p.length;i+=2){x0=Math.min(x0,p[i]);x1=Math.max(x1,p[i]);y0=Math.min(y0,p[i+1]);y1=Math.max(y1,p[i+1]);}
-    this.fill([x0-r,y0-r,x1+r,y1+r],(x,y)=>{for(let i=0;i+3<p.length;i+=2)if(dseg(x,y,p[i],p[i+1],p[i+2],p[i+3])<=r)return true;return false;},col);}
-  line(x0,y0,x1,y1,col){const id=sid(col);const a=this.ap(x0,y0),b=this.ap(x1,y1);const n=Math.max(1,Math.ceil(Math.hypot(b[0]-a[0],b[1]-a[1])*1.5));for(let i=0;i<=n;i++){const t=i/n;this.set(Math.floor(lerp(a[0],b[0],t)),Math.floor(lerp(a[1],b[1],t)),id);}}
-  dot(x,y,col){const p=this.ap(x,y);this.set(Math.floor(p[0]),Math.floor(p[1]),sid(col));}
-}
-function bake(P,ol){
-  const {w,h,buf,part}=P;
-  const mk=()=>{const c=document.createElement('canvas');c.width=w;c.height=h;return c;};
-  const out=mk(),fl=mk();const g=out.getContext('2d'),g2=fl.getContext('2d');
-  const im=g.createImageData(w,h),im2=g2.createImageData(w,h);
-  const at=(x,y)=>(x<0||y<0||x>=w||y>=h)?-1:buf[y*w+x];
-  const pt=(x,y)=>(x<0||y<0||x>=w||y>=h)?-1:part[y*w+x];
-  const olc=ol?rgb(ol):null;
-  for(let y=0;y<h;y++)for(let x=0;x<w;x++){
-    const i=y*w+x,id=buf[i];let c=null,isOL=false,fx=false;
-    if(id>=0){const s=SPECS[id];fx=!!s.no;
-      if(s.hex)c=rgb(s.hex);
-      else{let t=s.tone;
-        if(t<0){const r=s.ramp,me=part[i];const same=(xx,yy)=>{const v=at(xx,yy);return v>=0&&SPECS[v].ramp===r&&pt(xx,yy)===me;};
-          const up=same(x,y-1),dn=same(x,y+1),rt=same(x+1,y),lf=same(x-1,y);
-          t=!up?2:(!dn||!rt)?0:!lf?2:1;}
-        c=rgb(RAMPS[s.ramp][t]);}
-    }else if(olc){
-      for(const v of [at(x-1,y),at(x+1,y),at(x,y-1),at(x,y+1)])if(v>=0&&!SPECS[v].no){c=olc;isOL=true;break;}
-    }
-    if(c){const k=i*4;im.data[k]=c[0];im.data[k+1]=c[1];im.data[k+2]=c[2];im.data[k+3]=255;
-      if(!fx){const f=isOL?c:[255,248,236];im2.data[k]=f[0];im2.data[k+1]=f[1];im2.data[k+2]=f[2];im2.data[k+3]=255;}}
-  }
-  g.putImageData(im,0,0);g2.putImageData(im2,0,0);
-  return{c:out,f:fl,ax:P.ax,ay:P.ay};
-}
+<div id="rotate"><p>画面を縦にしてください</p></div>
 
-/* ================= sprite designs ================= */
-const FZ=.75;
-function orcDraw(P,o){
-  const leg=(hx,a,back)=>{P.push();P.translate(hx,-11);P.rotate(a);P.rect(-3.2,0,6.4,8,back?'greenB':'green');
-    P.poly([-3.6,6,3.4,6,4,9.2,6.6,10.2,6.6,12,-3.8,12],'boot');P.line(-3,8,3.8,8,'leather2');P.pop();};
-  leg(-2,-o.legA,true);leg(3,o.legA,false);
-  P.translate(0,o.bob);P.translate(0,-11);P.rotate(o.lean);P.translate(0,11);
-  P.push();P.translate(-6,-24);P.rotate(o.armB);P.rect(-3,-2,6,13,'greenB');P.rect(-3.4,6,6.8,4,'leather');P.ell(0,12,3.3,3.3,'greenB');P.pop();
-  P.poly([-8,-10,...bz(-8,-10,-13,-16,-13,-26,-6,-29),...bz(-6,-29,-1,-32,8,-30,11,-24),...bz(11,-24,13,-19,12,-13,8,-10)],'green');
-  P.line(1,-22,5,-20,'green0');P.line(5,-20,10,-21.5,'green0');P.line(5,-19,5.3,-12.5,'green0');P.line(3.5,-16.5,8.5,-16.8,'green0');
-  P.poly([-8,-27,-4.2,-29.2,10.2,-12.4,6.2,-11],'leather');P.dot(1.6,-20.4,'metal2');
-  P.rect(-10,-13,20,4.5,'leather');
-  P.ell(1,-10.8,3.2,3,'bone');P.dot(-.2,-11.6,'#2a2018');P.dot(2.2,-11.6,'#2a2018');
-  const sw=o.sway;
-  P.poly([-3,-8.6,5,-8.6,...qz(5,-8.6,6+sw,-3,4+sw,1),3+sw,0,2+sw,1.3,1+sw,0,0+sw,1.3,-1+sw,0,-2+sw,1,...qz(-2+sw,1,-3+sw*.5,-4,-3,-8.6)],'cloth');
-  P.line(-2.6,-6.5,5,-6.5,'gold1');
-  P.push();P.translate(4,-30);
-  P.poly([-3,-2,-12,-7,-9,-3,-3,2],'green');P.poly([-4.5,-1.5,-10,-5.5,-8,-3,-4.5,.5],'#8a4a3e');P.dot(-9,-1,'gold2');
-  P.poly([-4,3,...bz(-4,3,-7,-2,-6,-9,0,-10),...bz(0,-10,5,-11,9,-7,9,-3),10.5,-1,...qz(10.5,-1,11,1,9.5,2),...bz(9.5,2,10,5,8,8,3,8),...bz(3,8,0,8,-3,6,-4,3)],'green');
-  P.cap([-4,-10,...qz(-4,-10,-9,-7+sw*.4,-10,-1+sw*.6)],1.1,'hair');
-  P.ell(-2,-10.2,3.2,2.6,'hair');P.dot(-4,-10.6,'gold2');
-  P.poly([1,-5.5,...qz(1,-5.5,6,-8.6,10.2,-4.6),9.6,-3.4,...qz(9.6,-3.4,6,-6,1.6,-4.1)],'green0');
-  P.ell(6.9,-3.3,1.4,.95,'#ff6a2a');P.dot(7.3,-3.8,'#fff3c0');
-  P.line(9.8,-3,11,-.6,'green0');P.line(11,-.6,10,.6,'green0');
-  P.line(5,3.4,9.6,3,'green0');
-  P.line(2,-7,5,-1.2,'#b06a5a');P.line(1.6,.4,5.4,.9,'#962a20');
-  P.poly([5,4.2,...qz(5,4.2,4.4,.4,6.5,-.9),...qz(6.5,-.9,6.5,2,7.4,4.2)],'bone');
-  P.poly([8.2,3.8,...qz(8.2,3.8,8,.8,9.7,-.3),...qz(9.7,-.3,9.8,2,10.3,3.6)],'bone');
-  P.pop();
-  if(o.smear){const a0=-1.7,a1=Math.min(o.ang,1.25),p=[];
-    for(let i=0;i<=12;i++){const a=lerp(a0,a1,i/12);p.push(4+Math.cos(a)*38,-23+Math.sin(a)*38);}
-    for(let i=12;i>=0;i--){const a=lerp(a0,a1,i/12),r=36-i*.5;p.push(4+Math.cos(a)*r,-23+Math.sin(a)*r);}
-    P.poly(p,'!#fff3c8');}
-  P.push();P.translate(4,-23);P.rotate(o.ang);
-  P.rect(-1,-3.8,11,7.6,'green');
-  P.rect(5,-4.2,5,8.4,'leather');P.dot(6.4,-2.4,'metal2');P.dot(6.4,2.4,'metal2');
-  P.rect(10,-1.9,7,3.8,'bone');P.line(12,1.4,13,-1.4,'bone0');P.line(14.6,1.4,15.6,-1.4,'bone0');
-  P.poly([16,-2.2,...bz(16,-2.2,22,-3.2,28,-7.5,33,-5.5),...bz(33,-5.5,37,-3,37,3,33,5.5),...bz(33,5.5,28,7.5,22,3.2,16,2.2)],'wood');
-  P.line(20,-1,31,-3.4,'wood0');P.line(21,1.4,32,2.8,'wood0');
-  P.rect(21.5,-4.6,2.4,9.2,'metal');
-  for(const sp of [[28,-6.2],[33,-5.6],[36.4,-1.6],[35.8,3.4],[30,6.4]]){const dx=sp[0]-28,dy=sp[1],L=Math.hypot(dx,dy)||1,ux=dx/L,uy=dy/L;
-    P.poly([sp[0]-uy*1.5,sp[1]+ux*1.5,sp[0]+ux*4.2,sp[1]+uy*4.2,sp[0]+uy*1.5,sp[1]-ux*1.5],'metal');}
-  P.ell(10.5,0,3.9,3.9,'green');
-  P.pop();
-  const pa=[];for(let i=0;i<=12;i++){const a=lerp(Math.PI*.95,Math.PI*2.05,i/12);const x=Math.cos(a)*6.8,y=Math.sin(a)*4.8,c=Math.cos(-.25),s=Math.sin(-.25);pa.push(4+x*c-y*s,-25+x*s+y*c);}
-  P.poly(pa,'metal');P.dot(1,-26,'metal2');P.dot(4,-28.6,'metal2');P.dot(7.6,-27,'metal2');
-  P.poly([2.6,-29,5.4,-29.4,4,-35],'metal');
-}
-function makeOrc(o){const P=new Painter(72,58,34,52,FZ);orcDraw(P,o);return bake(P,'#141a10');}
-
-function mageDraw(P,o){
-  if(o.dead)P.rotate(-o.dead);
-  const c=o.c,br=o.br;
-  P.poly([-3,-24+br,...bz(-3,-24+br,-10,-18,-12+c,-8,-13+c,0),-2,0,-1,-20],'cape');
-  P.poly([-6,-22+br,...bz(-6,-22+br,-7,-14,-10,-6,-10.5,0),10.5,0,...bz(10.5,0,10,-6,7,-14,6,-22+br),...qz(6,-22+br,0,-24+br,-6,-22+br)],'robe');
-  P.line(-4,-14,-6.4,-3,'robe0');P.line(5,-12,7,-3,'robe0');P.line(-1,-10,-1.5,-3,'robe0');
-  P.line(1,-21+br,2.6,-2.6,'gold1');
-  P.poly([-10.6,0,10.6,0,10.2,-2.8,...qz(10.2,-2.8,0,-2,-10.2,-2.8)],'gold');
-  for(const dx of [-7,-3.5,0,3.5,7])P.dot(dx,-1.3,'#6a2a80');
-  P.poly([-6.2,-15.4,6.2,-15.4,6.4,-12.4,-6.4,-12.4],'cloth');
-  P.cap([-3,-12.6,-4+c*.3,-7.4],.9,'cloth');
-  P.rect(3.4,-12.8,3.8,3.6,'leather');
-  P.ell(-4.2+c*.3,-6.6,1.2,1.2,'gold');
-  P.poly([1,-19+br,...qz(1,-19+br,7,-19.5,9.2,-14.2),...qz(9.2,-14.2,8.2,-10.6,4.6,-11),...qz(4.6,-11,2,-14,1,-19+br)],'robe');
-  P.line(4.6,-11,9.2,-14.2,'gold1');
-  P.push();P.translate(1,-27+br);
-  P.ell(0,0,4.7,5.1,'skin');
-  P.poly([3.2,-.8,...qz(3.2,-.8,7,1.2,4,2.4)],'skin');
-  P.dot(2.4,-.8,'#1d1b2a');
-  P.line(.4,-2.6,4.2,-2.3,'beard2');
-  const b=o.b;
-  P.poly([-1.6,1,...qz(-1.6,1,4.5,1.5,5.2,2.6),...bz(5.2,2.6,5,7,3+b,11,1.5+b,15),...bz(1.5+b,15,0,11,-2.6,7,-1.6,1)],'beard');
-  P.line(1.6,3.4,2+b*.6,12,'beard0');
-  P.ell(3.8,2.3,2.4,1.2,'beard');
-  P.ell(.5,-4.6,10.2,3.1,'robe');
-  const ts=o.ts;
-  P.poly([-5,-7.4,...qz(-5,-7.4,-3.5,-14,-2.5,-18.5),...qz(-2.5,-18.5,-4+ts*.5,-23,-8.5+ts,-23.5),...qz(-8.5+ts,-23.5,-3+ts*.3,-21.5,1,-17),...qz(1,-17,3.5,-12,5.6,-7.4)],'robe');
-  P.poly([-5.6,-5,6.4,-5,5.8,-7.8,-5.2,-7.8],'gold');
-  P.ell(.6,-6.4,1.2,1.4,'#7fd8ff');
-  P.dot(0,-12,'gold2');P.dot(-2.4,-15.8,'gold2');P.dot(2.4,-10.4,'gold2');
-  P.ell(-8.5+ts,-23.5,1.4,1.4,'gold');
-  P.pop();
-  P.push();P.translate(6,-13);P.rotate(o.a);
-  P.rect(-1.5,-22,3,34,'staff');
-  for(let yy=10;yy>-21;yy-=4)P.dot(Math.sin(yy*.7)*.9,yy,'staff2');
-  P.cap([0,-21,...qz(0,-21,-3.6,-24,-2.6,-29)],.8,'staff');P.cap([0,-21,...qz(0,-21,3.6,-24,2.6,-29)],.8,'staff');
-  P.poly([0,-35,2.9,-28.5,0,-24,-2.9,-28.5],'crystal');
-  P.poly([0,-35,0,-24,-2.9,-28.5],'crystal2');
-  P.ell(0,0,2.8,2.8,'skin');
-  P.pop();
-}
-function makeMage(o){const P=new Painter(92,56,46,50,FZ);mageDraw(P,o);return bake(P,'#100c20');}
-
-function makeTree(v){
-  const P=new Painter(34,40,17,36,.67);
-  P.rect(-2.6,-13,5.2,13,'trunk');P.line(-.5,-10,-.5,-2,'trunk0');
-  if(v===0){P.ell(0,-23,11,11,'leaf');P.ell(-5,-27,8,8,'leaf');P.ell(5,-25,8,8,'leaf');P.ell(-1,-32,6.5,6.5,'leaf');}
-  else{P.ell(0,-21,12,10,'leaf');P.ell(-6,-24,7,7,'leaf');P.ell(6,-26,7.5,7.5,'leaf');P.ell(0,-30,7,6,'leaf');}
-  P.dot(-5,-33,'leaf2');P.dot(3,-28,'leaf2');P.dot(-7,-25,'leaf2');
-  return bake(P,'#0f1f10');
-}
-function makeTower(hp,fr){
-  const P=new Painter(40,84,20,77,.67);
-  for(const s of [[-15.5,-5,'stone2'],[-5,5,'stone1'],[5,15.5,'stone0']])
-    P.fill([s[0],-63,s[1],5.5],(x,y)=>x>=s[0]&&x<s[1]&&((y>=-58&&y<=0)||((x/15.5)**2+(y/5.5)**2<=1)),s[2]);
-  P.ell(0,-58,15,5,'#ddd6c6');
-  for(let r=1;r<7;r++){const yy=-r*8.5;let px=-14,py=yy+5*Math.sqrt(1-(14/15)**2);for(let x=-12;x<=14;x+=2){const y=yy+5*Math.sqrt(Math.max(0,1-(x/15)**2));P.line(px,py,x,y,'#6a6454');px=x;py=y;}
-    for(let c=0;c<3;c++){const bx=-10+c*10+(r%2?5:0);if(bx>-14&&bx<14)P.line(bx,yy+4.5,bx,yy+8,'#6a6454');}}
-  for(const cx of [-14,-6,2,10])P.rect(cx,-64,5,7,'stone');
-  P.ell(0,-63,17,5.5,'roof0');
-  P.poly([-17,-63,17,-63,0,-90],'roof1');P.poly([0,-90,17,-63,4,-61],'roof0');P.line(-1,-87,-12,-64,'roof2');
-  P.line(0,-90,0,-103,'#5b4a3a');
-  const wv=fr?2:-1;P.poly([0,-103,...qz(0,-103,7,-104+wv,13,-100),...qz(13,-100,7,-98+wv,0,-96)],'flag');
-  const door=[-9,0,-9,-11];for(let i=0;i<=8;i++){const a=Math.PI+i/8*Math.PI;door.push(-4.5+Math.cos(a)*4.5,-11+Math.sin(a)*4.5);}door.push(0,0);
-  P.poly(door,'#3a2a1e');P.rect(-1,-42,3,9,'#2a2622');
-  if(hp<3){P.line(-6,-50,-2,-44,'#2a2018');P.line(-2,-44,-7,-38,'#2a2018');P.line(-7,-38,-3,-31,'#2a2018');}
-  if(hp<2){P.line(8,-30,4,-24,'#2a2018');P.line(4,-24,9,-18,'#2a2018');}
-  return bake(P,'#1a1712');
-}
-function makeGlow(r){const s=Math.ceil(r)*2+2;const P=new Painter(s,s,s/2,s/2,1);P.ell(0,0,r,r,'!#4a2c80');P.ell(0,0,r*.68,r*.68,'!#9a6ad8');P.ell(0,0,r*.38,r*.38,'!#e6d6ff');P.ell(0,0,Math.max(.8,r*.16),Math.max(.8,r*.16),'!#ffffff');return bake(P,null);}
-function makeCircle(rot){const P=new Painter(40,20,20,10,FZ);P.scale(1,.42);P.rotate(rot);
-  P.ring(0,0,20.6,22.4,'!#b98cff');P.ring(0,0,16,17.4,'!#7a52c8');
-  for(let k=0;k<2;k++){const v=[];for(let i=0;i<3;i++){const a=k*Math.PI/3+i*Math.PI*2/3-Math.PI/2;v.push([Math.cos(a)*16.5,Math.sin(a)*16.5]);}
-    for(let i=0;i<3;i++)P.line(v[i][0],v[i][1],v[(i+1)%3][0],v[(i+1)%3][1],'!#7fd8ff');}
-  for(let i=0;i<8;i++){const a=i*Math.PI/4;P.line(Math.cos(a)*18,Math.sin(a)*18,Math.cos(a)*20,Math.sin(a)*20,'!#efe4ff');}
-  return bake(P,null);}
-function makeShadow(rx,ry){const P=new Painter(rx*2+2,ry*2+2,rx+1,ry+1,1);P.ell(0,0,rx,ry,'#000000');return bake(P,null);}
-function makeRock(){const P=new Painter(12,8,6,5,1);P.ell(0,0,4,2.6,'rock');P.dot(-1,-1,'rock2');return bake(P,'#2a2f2c');}
-
-/* ---- build all frames ---- */
-const ORC_CYCLE=1.0,MAGE_CYCLE=1.4;
-function orcAngleP(p){if(p<.5)return lerp(.9,-2.4,easeOut(p/.5));if(p<.66)return lerp(-2.4,1.25,easeIn((p-.5)/.16));return lerp(1.25,.9,(p-.66)/.34);}
-function orcLeanP(p){return p<.5?-.12*easeOut(p/.5):p<.66?lerp(-.12,.18,(p-.5)/.16):lerp(.18,0,(p-.66)/.34);}
-const SPR={orc:{walk:[],atk:[],cheer:[]},mage:{idle:[],cast:[],dead:[]},tower:{},tree:[],glow:[],circle:[]};
-const walkLeg=[.5,0,-.5,0],walkBob=[0,-1.5,0,-1.5];
-for(let k=0;k<4;k++)SPR.orc.walk.push(makeOrc({legA:walkLeg[k],bob:walkBob[k],sway:walkLeg[k]*3,lean:0,ang:.9+walkLeg[k]*.5,armB:.3-walkLeg[k]*.8}));
-for(const p of [.25,.48,.6,.7,.86])SPR.orc.atk.push(makeOrc({legA:.12,bob:0,sway:0,lean:orcLeanP(p),ang:orcAngleP(p),armB:.4,smear:p>.55&&p<.8}));
-for(let k=0;k<2;k++)SPR.orc.cheer.push(makeOrc({legA:.2,bob:k?-2:0,sway:k?1:-1,lean:-.05,ang:-2.0+(k?.25:-.25),armB:-.6}));
-for(let k=0;k<2;k++)SPR.mage.idle.push(makeMage({a:.12,br:k?.6:0,c:k?1:-1,b:k?.6:-.4,ts:k?1:0}));
-for(const s of [[.24,0],[.38,.5],[.5,1],[.95,.4],[.5,-.4]])SPR.mage.cast.push(makeMage({a:s[0],br:.3,c:s[1],b:s[1]*.6,ts:s[1]}));
-for(const r of [.4,.8,1.15,1.38])SPR.mage.dead.push(makeMage({a:.12,br:0,c:0,b:0,ts:0,dead:r}));
-for(const hp of [3,2,1])SPR.tower[hp]=[makeTower(hp,0),makeTower(hp,1)];
-SPR.tree=[makeTree(0),makeTree(1)];
-SPR.glow=[2.5,4,5.5,7,9].map(makeGlow);
-for(let k=0;k<8;k++)SPR.circle.push(makeCircle(k*Math.PI/12));
-const SHADOW=makeShadow(9,3),SHADOW_S=makeShadow(7,2.5),ROCK=makeRock();
-
-/* ================= world ================= */
-const W=320,H=213,TW=26,TH=13,OX=160,OY=32,N=12;
-function iso(x,y){return[(x-y)*TW/2+OX,(x+y)*TH/2+OY];}
-function inv(sx,sy){const a=(sx-OX)/(TW/2),b=(sy-OY)/(TH/2);return[(a+b)/2,(b-a)/2];}
-function hash(x,y){let h=Math.imul(x,374761393)+Math.imul(y,668265263)|0;h=Math.imul(h^(h>>>13),1274126177);return((h^(h>>>16))>>>0)/4294967296;}
-function rng(seed){return function(){seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
-const pathTiles=new Set();
-for(let i=0;i<=4;i++)pathTiles.add(i+','+2);
-for(let j=2;j<=7;j++)pathTiles.add(4+','+j);
-for(let i=4;i<=9;i++)pathTiles.add(i+','+7);
-const isPath=(i,j)=>pathTiles.has(i+','+j);
-const WP=[[-0.6,2.5],[4.5,2.5],[4.5,7.5],[9.15,7.5]];
-const SEG=[];let PL=0;
-for(let i=0;i<WP.length-1;i++){const a=WP[i],b=WP[i+1];const l=Math.hypot(b[0]-a[0],b[1]-a[1]);SEG.push({a,b,l,s:PL});PL+=l;}
-function posAt(d){for(const s of SEG){if(d<=s.s+s.l){const t=(d-s.s)/s.l;return{x:lerp(s.a[0],s.b[0],t),y:lerp(s.a[1],s.b[1],t),hz:s.a[1]===s.b[1],dir:(s.b[0]-s.a[0])-(s.b[1]-s.a[1])};}}const s=SEG[SEG.length-1];return{x:s.b[0],y:s.b[1],hz:true,dir:1};}
-const TOWER={x:10.5,y:7.5};
-const trees=[[1,0],[6,0],[8,1],[10,3],[9,4],[1,5],[0,9],[2,10],[7,10],[11,10],[11,0],[2,7]].map((p,k)=>({x:p[0]+.5,y:p[1]+.5,v:k%2}));
-
-const ground=document.createElement('canvas');ground.width=W;ground.height=H;
-(function(){
-  const g=ground.getContext('2d');const im=g.createImageData(W,H);const R=rng(11);
-  const tr=[];for(let i=0;i<N;i++){tr[i]=[];for(let j=0;j<N;j++)tr[i][j]={r:R(),fl:R()<.16,fc:(R()*3)|0};}
-  const grass=['#4a8838','#50903e','#579a43'],dirt=['#a8865c','#b08e62','#b89668'];
-  const put=(k,c)=>{const v=rgb(c);im.data[k]=v[0];im.data[k+1]=v[1];im.data[k+2]=v[2];im.data[k+3]=255;};
-  for(let py=0;py<H;py++)for(let px=0;px<W;px++){
-    const k=(py*W+px)*4;const [x,y]=inv(px+.5,py+.5);const n=hash(px,py);
-    if(x>=0&&y>=0&&x<N&&y<N){
-      const i=Math.floor(x),j=Math.floor(y),fx=x-i,fy=y-j,t=tr[i][j];
-      if(isPath(i,j)){
-        let c=dirt[(t.r*3)|0];
-        const edge=(fx<.09&&!isPath(i-1,j))||(fx>.91&&!isPath(i+1,j))||(fy<.09&&!isPath(i,j-1))||(fy>.91&&!isPath(i,j+1));
-        if(edge)c='#7a5a3a';else if(n<.07)c='#6e5236';else if(n>.93)c='#d6bb8c';
-        put(k,c);
-      }else{
-        let c=grass[(t.r*3)|0];if((i+j)%2)c=grass[Math.min(2,((t.r*3)|0)+1)];
-        if(n<.07)c='#356a2a';else if(n>.955)c='#7cbc5c';
-        if(t.fl&&n>.985)c=['#fff6d6','#ffd84a','#f6a6c8'][t.fc];
-        put(k,c);
-      }
-    }else{
-      for(let d=1;d<=7;d++){const [x2,y2]=inv(px+.5,py+.5-d);
-        if(x2>=0&&y2>=0&&x2<N&&y2<N){const left=y2>x2;let c=d<=2?(left?'#3d7a34':'#336a2c'):(left?'#5b3f28':'#43301f');if(d>2&&n<.12)c=left?'#4a3220':'#36261a';put(k,c);break;}}
-    }
-  }
-  g.putImageData(im,0,0);
-  for(let s=0;s<9;s++){const i=(R()*N)|0,j=(R()*N)|0;if(isPath(i,j))continue;const [x,y]=iso(i+.3+R()*.4,j+.3+R()*.4);g.drawImage(ROCK.c,Math.round(x)-ROCK.ax,Math.round(y)-ROCK.ay);}
-})();
-
-/* ================= state & logic ================= */
-const PART_CAP=2500;
-const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
-const buf=document.createElement('canvas');buf.width=W;buf.height=H;const b=buf.getContext('2d');
-const statusEl=document.getElementById('status');
-let S,speed=1,cam={x:W/2,y:H/2+8,z:1},zoomOn=false;
-function newMage(x,y,hp){return{x,y,hp,max:hp,state:'idle',cast:0,fired:false,flash:0,face:-1,dead:0,target:null,seen:false};}
-function reset(){
-  S={mode:'story',t:0,shake:0,freeze:0,banner:0,bannerOn:false,proj:[],parts:[],floats:[],rings:[],
-    orcs:[{x:WP[0][0],y:WP[0][1],hp:100,max:100,state:'walk',wi:1,walkT:0,atk:0,hitDone:false,flash:0,face:1,pause:0}],
-    mages:[newMage(4.5,4.7,70)],tower:{hp:3,max:3,flash:0}};
-  setMsg('オークが一本道を進む');
-}
-function startCrowd(n){
-  const R=rng(n*13+5);
-  S={mode:'stress',t:0,shake:0,freeze:0,banner:0,bannerOn:false,proj:[],parts:[],floats:[],rings:[],orcs:[],
-    mages:[newMage(6.5,5.5,99),newMage(2.5,4.5,99),newMage(7.5,9.4,99)],tower:{hp:3,max:3,flash:0}};
-  for(let k=0;k<n;k++)S.orcs.push({dist:R()*PL,spd:.9+R()*.6,off:(R()-.5)*.55,x:0,y:0,hp:100,max:100,state:'walk',walkT:R()*10,atk:0,flash:0,face:1});
-  setMsg(`負荷テスト中：オーク${n}体＋魔導士3人`);
-}
-function setMsg(t){if(statusEl.textContent!==t)statusEl.textContent=t;}
-const scr=o=>iso(o.x,o.y);
-const sdx=(a,c)=>(c.x-c.y)-(a.x-a.y);
-function addP(p){if(S.parts.length<PART_CAP)S.parts.push(p);}
-function burst(x,y,n,cols,spd,grav,size,life,glow){for(let k=0;k<n;k++){const a=Math.random()*Math.PI*2,v=spd*(.35+Math.random()*.75);addP({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v-spd*.35,g:grav,life,max:life,size,color:cols[(Math.random()*cols.length)|0],glow:!!glow});}}
-function smoke(x,y,n,col){for(let k=0;k<n;k++)addP({x:x+(Math.random()-.5)*10,y:y+(Math.random()-.5)*6,vx:(Math.random()-.5)*13,vy:-7-Math.random()*10,g:0,life:1.1,max:1.1,size:2,grow:3,color:col||'#cfd3cf'});}
-function ring(x,y,max,col,sy,life){S.rings.push({x,y,r:1,max,col,sy,life,ml:life});}
-function floatT(x,y,text,color,size){S.floats.push({x,y,text,color,life:1.1,size:size||1});}
-
-function staffAngle(m){if(m.state!=='cast')return .12;const p=m.cast/MAGE_CYCLE;if(p<.62)return lerp(.12,.5,easeOut(p/.62));if(p<.72)return lerp(.5,.95,(p-.62)/.1);return lerp(.95,.12,easeOut((p-.72)/.28));}
-function charge(m){if(m.state!=='cast')return 0;const p=m.cast/MAGE_CYCLE;return p<.62?p/.62:Math.max(0,1-(p-.62)/.18);}
-function mageFrame(m){
-  if(m.state==='dead')return{s:SPR.mage.dead[Math.min(3,Math.floor(m.dead*6))],a:.12};
-  if(m.state==='cast'){const p=m.cast/MAGE_CYCLE;
-    if(p<.62){const i=Math.min(2,Math.floor(p/.62*3));return{s:SPR.mage.cast[i],a:[.24,.38,.5][i]};}
-    if(p<.78)return{s:SPR.mage.cast[3],a:.95};
-    if(p<.9)return{s:SPR.mage.cast[4],a:.5};}
-  return{s:SPR.mage.idle[Math.floor(S.t*2+m.x)%2],a:.12};
-}
-function orbPos(m){const [x,y]=scr(m),a=mageFrame(m).a;return[x+m.face*FZ*(6+28.5*Math.sin(a)),y+FZ*(-13-28.5*Math.cos(a))];}
-function orcFrame(o){
-  if(o.state==='walk'){const ph=((o.walkT%(Math.PI*2))+Math.PI*2)%(Math.PI*2);return SPR.orc.walk[Math.floor(ph/(Math.PI*2)*4)%4];}
-  if(o.state==='cheer'||o.state==='win')return SPR.orc.cheer[Math.floor(S.t*8)%2];
-  const p=o.atk/ORC_CYCLE;return SPR.orc.atk[p<.36?0:p<.55?1:p<.66?2:p<.78?3:4];
-}
-
-function mageCast(m,dt,target){
-  if(!target){m.state='idle';m.cast=0;return;}
-  m.face=sdx(m,target)>=0?1:-1;
-  if(m.state==='idle'){m.state='cast';m.cast=0;m.fired=false;
-    if(S.mode==='story'&&!m.seen){m.seen=true;const [x,y]=scr(m);floatT(x,y-48,'！','#ffd23f',1.4);setMsg('魔導士がオークを発見、魔法で迎え撃つ');}}
-  m.cast+=dt;const p=m.cast/MAGE_CYCLE;
-  if(p<.62&&Math.random()<dt*40){const [ox,oy]=orbPos(m);const a=Math.random()*Math.PI*2,r=9+Math.random()*4;
-    addP({x:ox+Math.cos(a)*r,y:oy+Math.sin(a)*r,vx:-Math.cos(a)*r*2.2+Math.sin(a)*9,vy:-Math.sin(a)*r*2.2-Math.cos(a)*9,g:0,life:.42,max:.42,size:1,color:Math.random()<.5?'#c9a8ff':'#8fe3ff',glow:true});}
-  if(p<.62&&Math.random()<dt*6){const [x,y]=scr(m);addP({x:x+(Math.random()-.5)*24,y:y-1+(Math.random()-.5)*6,vx:0,vy:-12,g:0,life:.8,max:.8,size:1,color:'#c9a8ff',glow:true,kind:'rune'});}
-  if(p>=.62&&!m.fired){m.fired=true;const [sx,sy]=orbPos(m);S.proj.push({sx,sy,x:sx,y:sy,t:0,dur:.5,target,hist:[]});burst(sx,sy,6,['#ffffff','#c9a8ff'],32,0,1,.3,true);}
-  if(m.cast>=MAGE_CYCLE){m.cast-=MAGE_CYCLE;m.fired=false;m.target=null;}
-}
-function storyUpdate(dt){
-  const o=S.orcs[0],m=S.mages[0],tw=S.tower;const alive=m.state!=='dead';const d=Math.hypot(m.x-o.x,m.y-o.y);
-  if(o.state==='walk'){
-    const [tx,ty]=WP[o.wi];const dx=tx-o.x,dy=ty-o.y,L=Math.hypot(dx,dy),step=1.25*dt;
-    if(L<=step){o.x=tx;o.y=ty;o.wi++;if(o.wi>=WP.length){o.state='siege';o.atk=0;o.hitDone=false;o.face=1;setMsg('オークがタワーに到達。攻撃開始');}}
-    else{o.x+=dx/L*step;o.y+=dy/L*step;const s=dx-dy;if(Math.abs(s)>.01)o.face=s>0?1:-1;}
-    o.walkT+=dt*9;
-    if(alive&&o.state==='walk'&&d<.95){o.state='fight';o.atk=0;o.hitDone=false;setMsg('接近戦！ オークがこん棒で殴りかかる');}
-  }else if(o.state==='fight'||o.state==='siege'){
-    if(o.state==='fight')o.face=sdx(o,m)>=0?1:-1;
-    o.atk+=dt;const p=o.atk/ORC_CYCLE;
-    if(p>=.66&&!o.hitDone){o.hitDone=true;S.freeze=.08;
-      if(o.state==='fight'){const dmg=25;m.hp=Math.max(0,m.hp-dmg);m.flash=.16;const [x,y]=scr(m);
-        addP({x,y:y-15,vx:0,vy:0,g:0,life:.16,max:.16,size:7,color:'#fff6c0',glow:true,kind:'star'});
-        burst(x,y-15,14,['#fff3b0','#ffd23f','#ffffff'],70,90,1,.45,true);ring(x,y,15,'#e6d7aa',.42,.4);smoke(x,y-1,4,'#b9a07a');
-        floatT(x,y-36,'-'+dmg,'#ff6b5b',1.2);S.shake=3;}
-      else{tw.hp--;tw.flash=.18;const [x,y]=iso(TOWER.x,TOWER.y);
-        addP({x:x-9,y:y-16,vx:0,vy:0,g:0,life:.16,max:.16,size:8,color:'#fff6c0',glow:true,kind:'star'});
-        burst(x-8,y-15,16,['#c9c1b0','#8f8778','#e7e0cf'],60,160,1,.8);smoke(x-7,y-3,5,'#b0a898');
-        floatT(x,y-52,'-1','#ff6b5b',1.2);S.shake=4;
-        if(tw.hp<=0){o.state='win';S.bannerOn=true;setMsg('タワー陥落。オークの勝利');}}
-    }
-    if(o.atk>=ORC_CYCLE){o.atk-=ORC_CYCLE;o.hitDone=false;}
-    if(o.state==='fight'&&m.hp<=0){o.state='cheer';o.pause=1.2;const [x,y]=scr(o);floatT(x,y-44,'ウォォ！','#ffd23f',1.1);}
-  }else if(o.state==='cheer'){o.pause-=dt;if(o.pause<=0){o.state='walk';setMsg('オークが再びタワーへ進む');}}
-  if(m.state!=='dead'){
-    if(m.hp<=0){m.state='dead';m.dead=0;const [x,y]=scr(m);smoke(x,y-10,12);setMsg('魔導士を撃破！ オークの勝ち');}
-    else mageCast(m,dt,d<3.4?o:null);
-  }else m.dead+=dt;
-}
-function stressUpdate(dt){
-  for(const o of S.orcs){o.dist+=o.spd*dt;if(o.dist>PL)o.dist-=PL;const p=posAt(o.dist);o.x=p.x+(p.hz?0:o.off);o.y=p.y+(p.hz?o.off:0);o.face=p.dir>0?1:-1;o.walkT+=dt*9*o.spd/1.25;}
-  for(const m of S.mages){if(!m.target){let best=null,bd=4;for(const o of S.orcs){const dd=Math.hypot(o.x-m.x,o.y-m.y);if(dd<bd){bd=dd;best=o;}}m.target=best;}mageCast(m,dt,m.target);}
-}
-function update(dt){
-  if(S.freeze>0){S.freeze-=dt;return;}
-  S.t+=dt;for(const o of S.orcs)o.flash-=dt;for(const m of S.mages)m.flash-=dt;S.tower.flash-=dt;
-  S.shake=Math.max(0,S.shake-dt*16);
-  if(S.mode==='story')storyUpdate(dt);else stressUpdate(dt);
-  for(let k=S.proj.length-1;k>=0;k--){
-    const p=S.proj[k];p.t+=dt/p.dur;const tg=p.target;const [ex,ey0]=scr(tg);const ey=ey0-15;const t=Math.min(1,p.t);
-    p.hist.push([p.x,p.y]);if(p.hist.length>10)p.hist.shift();
-    p.x=lerp(p.sx,ex,t);p.y=lerp(p.sy,ey,t)-Math.sin(Math.PI*t)*12;
-    if(Math.random()<.5)addP({x:p.x,y:p.y,vx:(Math.random()-.5)*10,vy:(Math.random()-.5)*10,g:0,life:.4,max:.4,size:1,color:Math.random()<.5?'#b98cff':'#7fd8ff',glow:true});
-    if(p.t>=1){S.proj.splice(k,1);tg.flash=.14;
-      addP({x:ex,y:ey,vx:0,vy:0,g:0,life:.2,max:.2,size:4,color:'#fff',glow:true,kind:'flash'});
-      burst(ex,ey,12,['#b98cff','#7fd8ff','#ffffff'],55,0,1,.5,true);ring(ex,ey0,14,'#b98cff',.45,.45);
-      if(S.mode==='story'){const dmg=11;tg.hp=Math.max(1,tg.hp-dmg);floatT(ex,ey-20,'-'+dmg,'#c9a8ff',1.1);S.shake=Math.max(S.shake,1.5);}}
-  }
-  for(let k=S.parts.length-1;k>=0;k--){const p=S.parts[k];p.life-=dt;if(p.life<=0){S.parts.splice(k,1);continue;}p.vy+=p.g*dt;p.x+=p.vx*dt;p.y+=p.vy*dt;if(p.grow)p.size+=p.grow*dt;}
-  for(let k=S.rings.length-1;k>=0;k--){const r=S.rings[k];r.life-=dt;if(r.life<=0){S.rings.splice(k,1);continue;}r.r=lerp(1,r.max,easeOut(1-r.life/r.ml));}
-  for(let k=S.floats.length-1;k>=0;k--){const f=S.floats[k];f.life-=dt;f.y-=14*dt;if(f.life<=0)S.floats.splice(k,1);}
-  if(S.bannerOn)S.banner+=dt;
-}
-
-/* ================= render ================= */
-function blit(s,x,y,face,flash){
-  const img=flash?s.f:s.c;x=Math.round(x);y=Math.round(y);
-  if(face<0){b.save();b.translate(x,y);b.scale(-1,1);b.drawImage(img,-s.ax,-s.ay);b.restore();}
-  else b.drawImage(img,x-s.ax,y-s.ay);
-}
-function px(x,y,s,c){b.fillStyle=c;b.fillRect(Math.round(x),Math.round(y),s,s);}
-function hpBar(x,y,w,r,col){x=Math.round(x-w/2);y=Math.round(y);b.fillStyle='#0b0d0a';b.fillRect(x-1,y-1,w+2,4);b.fillStyle='#4a1a1a';b.fillRect(x,y,w,2);if(r>0){b.fillStyle=col;b.fillRect(x,y,Math.max(1,Math.round(w*r)),2);}}
-function drawBuffer(){
-  b.fillStyle='#16241f';b.fillRect(0,0,W,H);
-  b.save();
-  if(S.shake>0)b.translate(Math.round((Math.random()-.5)*S.shake),Math.round((Math.random()-.5)*S.shake));
-  b.drawImage(ground,0,0);
-  for(const r of S.rings){b.globalAlpha=r.life/r.ml;b.fillStyle=r.col;const n=Math.max(10,Math.ceil(r.r*5));for(let i=0;i<n;i++){const a=i/n*Math.PI*2;b.fillRect(Math.round(r.x+Math.cos(a)*r.r),Math.round(r.y+Math.sin(a)*r.r*r.sy),1,1);}b.globalAlpha=1;}
-  const list=[];
-  for(const t of trees)list.push({d:t.x+t.y,f:()=>{const [x,y]=iso(t.x,t.y);b.globalAlpha=.3;blit(SHADOW,x+2,y,1);b.globalAlpha=1;blit(SPR.tree[t.v],x,y,1);}});
-  list.push({d:TOWER.x+TOWER.y,f:()=>{const [x,y]=iso(TOWER.x,TOWER.y);b.globalAlpha=.3;blit(SHADOW,x+2,y+1,1);b.globalAlpha=1;blit(SPR.tower[Math.max(1,S.tower.hp)][Math.floor(S.t*3)%2],x,y,1,S.tower.flash>0);}});
-  for(const o of S.orcs)list.push({d:o.x+o.y,f:()=>{const [x,y]=scr(o);b.globalAlpha=.32;blit(SHADOW,x,y,1);b.globalAlpha=1;blit(orcFrame(o),x,y,o.face,o.flash>0);}});
-  for(const m of S.mages)list.push({d:m.x+m.y,f:()=>{
-    let al=1;if(m.state==='dead')al=m.dead<.9?1:(Math.floor(m.dead*14)%2?.25:clamp(1-(m.dead-.9)/.7,0,1));if(al<=0)return;
-    const [x,y]=scr(m);const ch=charge(m);
-    if(ch>.02&&m.state!=='dead'){b.globalCompositeOperation='lighter';b.globalAlpha=ch;blit(SPR.circle[Math.floor(S.t*10)%8],x,y,1);b.globalAlpha=1;b.globalCompositeOperation='source-over';}
-    b.globalAlpha=.3*al;blit(SHADOW_S,x,y,1);b.globalAlpha=al;
-    const fr=mageFrame(m);blit(fr.s,x,y,m.face,m.flash>0);
-    if(m.state!=='dead'){const [ox,oy]=orbPos(m);b.globalCompositeOperation='lighter';b.globalAlpha=.55+ch*.45;blit(SPR.glow[Math.min(4,Math.floor(ch*4.99))],ox,oy,1);b.globalCompositeOperation='source-over';}
-    b.globalAlpha=1;}});
-  list.sort((p,q)=>p.d-q.d).forEach(e=>e.f());
-
-  b.globalCompositeOperation='lighter';
-  for(const p of S.proj){for(let i=0;i<p.hist.length;i++){const h=p.hist[i];b.globalAlpha=(i+1)/p.hist.length*.7;px(h[0],h[1],i>p.hist.length-4?2:1,i%2?'#7fd8ff':'#b98cff');}b.globalAlpha=1;blit(SPR.glow[2],p.x,p.y,1);
-    for(let k=0;k<3;k++){const a=S.t*14+k*2.094;px(p.x+Math.cos(a)*5,p.y+Math.sin(a)*3,1,'#ffffff');}}
-  b.globalCompositeOperation='source-over';
-  for(const p of S.parts){
-    const al=clamp(p.life/p.max,0,1);b.globalAlpha=p.grow?al*.5:al;if(p.glow)b.globalCompositeOperation='lighter';
-    if(p.kind==='star'){const s=Math.round(p.size*(1.2-al*.2));b.fillStyle=p.color;b.fillRect(Math.round(p.x-s),Math.round(p.y),s*2+1,1);b.fillRect(Math.round(p.x),Math.round(p.y-s),1,s*2+1);const d=Math.round(s*.5);for(let i=1;i<=d;i++){b.fillRect(Math.round(p.x+i),Math.round(p.y+i),1,1);b.fillRect(Math.round(p.x-i),Math.round(p.y-i),1,1);b.fillRect(Math.round(p.x+i),Math.round(p.y-i),1,1);b.fillRect(Math.round(p.x-i),Math.round(p.y+i),1,1);}}
-    else if(p.kind==='flash'){blit(SPR.glow[4],p.x,p.y,1);}
-    else if(p.kind==='rune'){b.fillStyle=p.color;const x=Math.round(p.x),y=Math.round(p.y);b.fillRect(x-1,y-1,3,1);b.fillRect(x-1,y+1,3,1);b.fillRect(x-1,y,1,1);b.fillRect(x+1,y,1,1);}
-    else px(p.x,p.y,Math.max(1,Math.round(p.size)),p.color);
-    b.globalCompositeOperation='source-over';
-  }
-  b.globalAlpha=1;
-  for(const o of S.orcs){const [x,y]=scr(o);hpBar(x,y-38,16,o.hp/o.max,'#6fd05a');}
-  if(S.mode==='story'){for(const m of S.mages)if(m.state!=='dead'){const [x,y]=scr(m);hpBar(x,y-44,14,m.hp/m.max,'#6fb6ff');}
-    const [x,y]=iso(TOWER.x,TOWER.y);for(let k=0;k<3;k++){b.fillStyle='#0b0d0a';b.fillRect(Math.round(x)-12+k*8,Math.round(y)-78,7,4);b.fillStyle=k<S.tower.hp?'#e6b84a':'#3a2a14';b.fillRect(Math.round(x)-11+k*8,Math.round(y)-77,5,2);}}
-  b.restore();
-}
-function draw(){
-  drawBuffer();
-  const vw=W/cam.z,vh=H/cam.z;const vx=clamp(cam.x-vw/2,0,W-vw),vy=clamp(cam.y-vh/2,0,H-vh);
-  ctx.setTransform(1,0,0,1,0,0);ctx.imageSmoothingEnabled=false;
-  ctx.drawImage(buf,vx,vy,vw,vh,0,0,cv.width,cv.height);
-  const k=cv.width/vw;
-  ctx.textAlign='center';ctx.textBaseline='middle';
-  const base=Math.max(10,Math.round(cv.width/W*8));
-  for(const f of S.floats){const age=1.1-f.life;const pop=age<.12?1.5:1;
-    ctx.globalAlpha=clamp(f.life/.4,0,1);const sz=Math.round(base*f.size*pop*Math.min(1.6,Math.sqrt(cam.z)));
-    ctx.font=`${sz}px DotGothic16, monospace`;const X=(f.x-vx)*k,Y=(f.y-vy)*k;
-    ctx.lineWidth=Math.max(2,sz*.22);ctx.strokeStyle='#0b0d0a';ctx.strokeText(f.text,X,Y);ctx.fillStyle=f.color;ctx.fillText(f.text,X,Y);}
-  ctx.globalAlpha=1;
-  if(S.banner>0){const t=clamp(S.banner/.6,0,1);ctx.fillStyle=`rgba(5,8,6,${.5*t})`;ctx.fillRect(0,0,cv.width,cv.height);
-    ctx.globalAlpha=t;const s=cv.width/W;const yy=cv.height/2-8*s+(1-easeOut(t))*10*s;
-    ctx.font=`${Math.round(22*s)}px DotGothic16, monospace`;ctx.lineWidth=4*s;ctx.strokeStyle='#120c02';ctx.strokeText('オークの勝利',cv.width/2,yy);ctx.fillStyle='#e6b84a';ctx.fillText('オークの勝利',cv.width/2,yy);
-    ctx.font=`${Math.round(10*s)}px DotGothic16, monospace`;ctx.lineWidth=3*s;ctx.strokeText('タワーが陥落しました',cv.width/2,yy+20*s);ctx.fillStyle='#e8eee5';ctx.fillText('タワーが陥落しました',cv.width/2,yy+20*s);ctx.globalAlpha=1;}
-}
-
-/* ================= loop & controls ================= */
-function fit(){const r=cv.getBoundingClientRect();const d=Math.min(window.devicePixelRatio||1,2);const w=Math.max(1,Math.round(r.width*d));cv.width=w;cv.height=Math.round(w*H/W);}
-if(window.ResizeObserver)new ResizeObserver(fit).observe(cv);else window.addEventListener('resize',fit);
-fit();reset();
-const fpsEl=document.getElementById('fps'),msEl=document.getElementById('ms'),cntEl=document.getElementById('cnt'),pcEl=document.getElementById('pc');
-let last=performance.now(),acc=0,frames=0,work=0;
-function frame(now){
-  const real=clamp((now-last)/1000,0,.1);last=now;const t0=performance.now();
-  update(Math.min(.05,real)*speed);
-  let tx=W/2,ty=H/2+8;
-  if(S.mode==='story'){const o=S.orcs[0],m=S.mages[0];const [x,y]=scr(o);
-    if(m.state!=='dead'&&(o.state==='fight'||Math.hypot(m.x-o.x,m.y-o.y)<3.4)){const [mx,my]=scr(m);tx=(x+mx)/2;ty=(y+my)/2-16;}else{tx=x;ty=y-16;}}
-  const ck=1-Math.pow(.02,real);cam.z=lerp(cam.z,zoomOn?3:1,ck);cam.x=lerp(cam.x,zoomOn?tx:W/2,ck);cam.y=lerp(cam.y,zoomOn?ty:H/2+8,ck);
-  draw();
-  work+=performance.now()-t0;frames++;acc+=real;
-  if(acc>=.5){const fps=Math.round(frames/acc),ms=work/frames;
-    fpsEl.textContent=fps;fpsEl.className=fps>=55?'ok':fps>=30?'mid':'ng';
-    msEl.textContent=ms.toFixed(1)+'ms';msEl.className=ms<=16.7?'ok':ms<=33?'mid':'ng';
-    cntEl.textContent=S.orcs.length;pcEl.textContent=S.parts.length;acc=0;frames=0;work=0;}
-  requestAnimationFrame(frame);
-}
-requestAnimationFrame(frame);
-document.getElementById('replay').addEventListener('click',reset);
-const zb=document.getElementById('zoom');
-zb.addEventListener('click',()=>{zoomOn=!zoomOn;zb.setAttribute('aria-pressed',zoomOn?'true':'false');});
-document.querySelectorAll('[data-speed]').forEach(x=>x.addEventListener('click',()=>{speed=parseFloat(x.dataset.speed);document.querySelectorAll('[data-speed]').forEach(y=>y.setAttribute('aria-pressed',y===x?'true':'false'));}));
-document.querySelectorAll('[data-crowd]').forEach(x=>x.addEventListener('click',()=>{startCrowd(parseInt(x.dataset.crowd,10));if(zoomOn){zoomOn=false;zb.setAttribute('aria-pressed','false');}}));
-})();
-</script>
+<script src="js/data.js"></script>
+<script src="js/battle.js"></script>
+<script src="js/sprites.js"></script>
+<script src="js/render.js"></script>
+<script src="js/ui.js"></script>
 </body>
 </html>
