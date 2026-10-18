@@ -151,7 +151,8 @@ var G = window.G = window.G || {};
     G.run = run;
     var r = d.resume || { type: 'map' };
     if (r.type === 'node' && run.at) return enterNode(R.node(run));
-    if (r.type === 'actclear') { run.actClear = true; return showActClear(); }
+    if (r.type === 'actclear') { run.actClear = true; music('victory'); return showActClear(); }
+    if (r.type === 'reward' && run.at && R.node(run).type === 'boss') music('victory');
     if (r.type === 'reward' && run.at) return showReward(R.node(run), r.bonus, { stats: r.stats, relic: r.relic }, r.cards);
     showWorld();
   }
@@ -477,7 +478,7 @@ var G = window.G = window.G || {};
   // ランの終わり
   // ============================================================
   function showEnd() {
-    clearSave(); music(null);
+    clearSave(); music(run.won ? 'victory' : null);
     openPanel(run.won ? 'クリア' : '敗北', function (body, foot) {
       body.appendChild(el('h2', 'panel-title ' + (run.won ? 'win' : 'lose'), run.won ? '全3層クリア！' : '敗北…'));
       var n = R.node(run);

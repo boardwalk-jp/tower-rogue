@@ -289,3 +289,4 @@ dt{color:var(--muted);text-align:right} dd{margin:0;text-align:left}
 #pile{z-index:50}
 #detail{z-index:60}
 .ver{position:fixed;right:12px;bottom:max(10px,env(safe-area-inset-bottom));margin:0;font-size:11px;color:var(--muted)}
+#tap-sound{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(max(22px,env(safe-area-inset-bottom)) + 70px);z-index:35;background:rgba(14,18,15,.92);border:1px solid var(--accent);color:var(--accent);border-radius:999px;padding:6px 14px;font-size:13px;pointer-events:none;white-space:nowrap}

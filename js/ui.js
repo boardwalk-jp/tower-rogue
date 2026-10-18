@@ -577,7 +577,7 @@ var G = window.G = window.G || {};
         case 'healcast': SND.play('heal'); break;
         case 'attack': SND.play('attack'); break;
         case 'income': SND.play('coin'); break;
-        case 'win': SND.play('win'); break;
+        case 'win': SND.play('win'); if (s.kind === 'boss') SND.music('victory'); break;   // ボスに勝ったら勝利の曲（次の層へ進むまで）
         case 'lose': SND.play('lose'); break;
       }
     });
