@@ -37,17 +37,19 @@ h1 span{font-size:18px;color:var(--muted)}
 @media (hover:hover) and (pointer:fine){.pc-only{display:inline-block}}
 
 /* ---- ゲーム画面 ---- */
-#game{position:fixed;inset:0;height:100dvh;display:flex;flex-direction:column;touch-action:none;
+.screen{position:fixed;inset:0;height:100dvh;display:flex;flex-direction:column;touch-action:none;
   padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right);
   padding-top:max(6px,env(safe-area-inset-top));
   padding-bottom:max(22px,calc(env(safe-area-inset-bottom) + 10px));
   max-width:520px;margin:0 auto;background:var(--bg)}
-.hud{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:4px 10px 6px;font-size:15px;
+.hud,.runbar{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:4px 10px 6px;font-size:15px;
   font-variant-numeric:tabular-nums}
 .hud b{font-weight:400}
 .hud-life{color:#ff7a7a}
 .hud-gold{color:var(--gold)}
 .hud-turn #h-phase{color:var(--accent)}
+.hud-floor{color:var(--muted);font-size:13px}
+.rb-title{color:var(--accent)}
 .hud-left{color:var(--fg);margin-left:4px}
 #h-energy{display:flex;gap:6px;align-items:center}
 .gem{width:13px;height:13px;transform:rotate(45deg);border:1px solid #4f8fae;background:#16303c}
@@ -99,14 +101,14 @@ h1 span{font-size:18px;color:var(--muted)}
    --row2 は2段目で増える高さ。マップの大きさはこの分をいつも見込んで計算する（ui.js の fit） */
 .hand{--card-h:76px;--peek:36px;--row2:var(--peek);
   display:grid;grid-template-columns:repeat(4,1fr);column-gap:6px;padding:8px 8px 0}
-.card{position:relative;height:var(--card-h);border-radius:9px;border:2px solid #4a5a50;background:linear-gradient(#2b3a31,#1d2621);
+.card{position:relative;min-width:0;height:var(--card-h);border-radius:9px;border:2px solid #4a5a50;background:linear-gradient(#2b3a31,#1d2621);
   display:flex;flex-direction:column;align-items:center;padding:3px 3px 4px;gap:1px;
   transition:transform .12s, border-color .12s;touch-action:none;cursor:pointer;box-shadow:0 -3px 8px rgba(0,0,0,.35)}
 .hand.two .card:nth-child(n+5){margin-top:calc(var(--peek) - var(--card-h))}
 .card .top{display:flex;align-items:center;gap:3px;width:100%;min-height:22px}
-.card .nm{font-size:12px;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:clip;flex:1 1 auto;min-width:0;text-align:center;padding-right:4px}
+.card .nm{font-size:11.5px;letter-spacing:-.02em;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:clip;flex:1 1 auto;min-width:0;text-align:center;padding-right:4px}
 .card canvas{image-rendering:pixelated;flex:1 1 auto;min-height:0;max-width:100%;object-fit:contain}
-.card .cost{position:relative;flex:0 0 auto;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:13px;color:#08202c;z-index:0}
+.card .cost{position:relative;flex:0 0 auto;width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:13px;color:#08202c;z-index:0}
 .card .cost::before{content:"";position:absolute;inset:3px;transform:rotate(45deg);background:var(--energy);border:1px solid #b8ecff;z-index:-1}
 .card.sel{border-color:var(--accent);transform:translateY(-8px);z-index:3}
 .card.poor{opacity:.45}
@@ -159,3 +161,63 @@ dt{color:var(--muted);text-align:right} dd{margin:0;text-align:left}
 @media (orientation:landscape) and (pointer:coarse) and (max-height:520px){
   #rotate{display:flex;position:fixed;inset:0;z-index:99;background:var(--bg);align-items:center;justify-content:center;font-size:20px}
 }
+
+/* ---- カードの種類・珍しさ ---- */
+.card.skill{background:linear-gradient(#352b45,#221c2d);border-color:#5d4f78}
+.card.r-uncommon{border-color:#4f7fae}
+.card.r-rare{border-color:#c79a2a}
+.card.skill.r-uncommon{border-color:#6f8fd0}
+.card.skill.r-rare{border-color:#d9a82a}
+.card.sel{border-color:var(--accent)}
+.card .tag{position:absolute;right:3px;bottom:3px;font-size:9px;line-height:1;padding:2px 3px;border-radius:3px;background:rgba(0,0,0,.55);color:#e6d6ff}
+
+/* ---- ワールドマップ ---- */
+.world-scroll{flex:1 1 auto;overflow-y:auto;-webkit-overflow-scrolling:touch;touch-action:pan-y;overscroll-behavior:contain;
+  background:radial-gradient(ellipse at 50% 30%,#1f2a24,#121815 70%)}
+.world-map{position:relative;margin:0 auto}
+#world-lines{position:absolute;left:0;top:0}
+#world-lines line{stroke:#3a4a40;stroke-width:2;stroke-dasharray:4 5}
+#world-lines line.open{stroke:var(--accent);stroke-dasharray:none;stroke-width:2.5}
+#world-lines line.walked{stroke:#8a9a8e;stroke-dasharray:none;stroke-width:3}
+.node{position:absolute;width:44px;height:44px;min-height:0;padding:0;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  background:#1e2822;border:2px solid #3a4a40;opacity:.55}
+.node canvas{width:28px;height:28px;image-rendering:pixelated}
+.node:disabled{cursor:default}
+.node.t-boss{border-color:#8a3b3b;opacity:.8}
+.node.t-boss canvas{width:40px;height:40px}
+.node.visited{opacity:.35;border-color:#5a6a60}
+.node.here{opacity:1;border-color:#e8e8e8;box-shadow:0 0 0 3px rgba(232,232,232,.25)}
+.node.reach{opacity:1;border-color:var(--accent);animation:pulse 1.2s ease-in-out infinite}
+.node.pick{background:var(--accent);animation:none;box-shadow:0 0 0 4px rgba(230,184,74,.35)}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(230,184,74,.0)}50%{box-shadow:0 0 0 6px rgba(230,184,74,.35)}}
+@media (prefers-reduced-motion:reduce){.node.reach,.arrow{animation:none}}
+.world-foot{display:flex;align-items:center;gap:8px;padding:8px 10px 4px}
+.world-hint{flex:1 1 auto;margin:0;font-size:13px;color:var(--fg);min-width:0}
+.deck-btn{flex:0 0 auto}
+.deck-btn b{font-weight:400;color:var(--accent)}
+
+/* ---- パネル画面（報酬・イベント・商人・休憩） ---- */
+.panel-body{flex:1 1 auto;overflow-y:auto;-webkit-overflow-scrolling:touch;touch-action:pan-y;padding:8px 16px 12px;display:flex;flex-direction:column;gap:10px}
+.panel-foot{display:flex;flex-direction:column;gap:8px;padding:8px 16px 4px}
+.panel-foot button{width:100%}
+.panel-title{margin:6px 0 0;font-weight:400;font-size:24px;text-wrap:balance}
+.panel-title.win{color:var(--good)} .panel-title.lose{color:var(--bad)}
+.panel-text{margin:0;font-size:15px;line-height:1.7;color:var(--fg)}
+.panel-sub{margin:0;font-size:13px;color:var(--muted)}
+.choices{display:flex;flex-direction:column;gap:8px}
+.choice{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:10px 14px;text-align:left;min-height:56px}
+.choice b{font-weight:400;font-size:16px}
+.choice small{font-size:13px;color:var(--muted)}
+.cards-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.cards-grid .card{height:104px}
+.cards-grid .card canvas{max-height:56px}
+.pk-text{margin:0;font-size:14px;line-height:1.6;color:var(--fg);min-height:3.2em}
+.shop-item{display:flex;flex-direction:column;align-items:center;gap:4px}
+.shop-item .card{width:100%}
+.shop-item .card.sold{opacity:.3}
+.price{font-size:14px;color:var(--gold)} .price.poor{color:var(--bad)}
+.modal-box.wide{max-width:420px;max-height:calc(100dvh - 32px)}
+#pk-grid{width:100%;max-height:52dvh;overflow-y:auto;grid-template-columns:repeat(4,1fr);gap:6px;padding:4px}
+#pk-grid .card{height:84px}
+.pile-list{max-height:50dvh;overflow-y:auto}
+.pile-list li{cursor:pointer}

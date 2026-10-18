@@ -1,61 +1,72 @@
-// 画面：スタート、手札、ボタン、タップ・ドラッグ・長押し、ゲームの時計
+// 戦闘画面：手札、ボタン、タップ・ドラッグ・長押し、タワーの小窓、ゲームの時計
+// G.BattleUI.start(opts, onEnd) で戦闘を始め、勝ち負けが決まると onEnd(戦闘の状態) を呼ぶ
 'use strict';
 var G = window.G = window.G || {};
 
 (function () {
   var $ = function (id) { return document.getElementById(id); };
   var SPR = G.buildSprites();
-  var s = null;
-  // pending：1回目のタップで仮に置いた場所（もう一度タップで建設が確定）
-  var ui = { selIndex: -1, selType: null, selTower: null, preview: null, pending: null, time: 0 };
+  var B = G.Battle;
+  var s = null, onEnd = null, ended = false, info = {};
+  // selIndex：選んでいるカード。selType：タワーカードならタワーの種類。selSkill：スキルカードならその定義
+  // pending：1回目のタップで仮に置いた場所。pendingTower：タワー対象スキルで1回目にタップしたタワー
+  var ui = { selIndex: -1, selType: null, selSkill: null, selTower: null, preview: null, pending: null, pendingTower: null, time: 0 };
   var speed = 1;
   var cv = $('map'), ctx = cv.getContext('2d');
-  var started = false;
 
   // ---- Safari の長押しメニュー・文字選択・拡大を止める ----
   document.addEventListener('contextmenu', function (e) { e.preventDefault(); });
   document.addEventListener('selectstart', function (e) { e.preventDefault(); });
   ['gesturestart', 'gesturechange'].forEach(function (n) { document.addEventListener(n, function (e) { e.preventDefault(); }); });
-  // ゲーム中は画面がスクロールしないように（細くなったアドレスバーを戻さないため）
-  document.addEventListener('touchmove', function (e) { if (started) e.preventDefault(); }, { passive: false });
+  // ゲーム中は画面がスクロールしないように（細くなったアドレスバーを戻さないため）。.scroll-y の中だけはスクロールできる
+  document.addEventListener('touchmove', function (e) {
+    if (!G.started) return;
+    if (e.target.closest && e.target.closest('.scroll-y')) return;
+    e.preventDefault();
+  }, { passive: false });
 
-  // ---- スタート画面 ----
-  (function titleArt() {
-    var c = $('title-art').getContext('2d');
-    c.fillStyle = '#2f5a2a'; c.fillRect(0, 30, 112, 10);
-    c.fillStyle = '#94744a'; c.fillRect(0, 34, 112, 4);
-    c.drawImage(SPR.archer[2][0], 4, 6);
-    c.drawImage(SPR.mage[1][0], 24, 2);
-    c.drawImage(SPR.cannon[0][0].r, 42, 18);
-    c.drawImage(SPR.slime[0].l, 66, 25);
-    c.drawImage(SPR.goblin[1].l, 80, 20);
-    c.drawImage(SPR.orc[0].l, 92, 15);
-  })();
+  // ============================================================
+  // カードの見た目（手札・報酬・商人・デッキ一覧で共通）
+  // ============================================================
+  function cardArt(id) {
+    var def = G.CARDS[id], c = document.createElement('canvas');
+    if (def.kind === 'tower') {
+      var img = G.towerImg(def.tower, 0, false);
+      c.width = 26; c.height = 34;
+      c.getContext('2d').drawImage(img, Math.round((26 - img.width) / 2), 34 - img.height);
+    } else {
+      c.width = 26; c.height = 26;
+      c.getContext('2d').drawImage(SPR.icon[def.icon], 5, 5);
+    }
+    return c;
+  }
+  // card：{ id, cost?, temp? }（手札のカード）または カードのid
+  function cardEl(card) {
+    if (typeof card === 'string') card = { id: card };
+    var def = G.CARDS[card.id], cost = card.cost !== undefined ? card.cost : def.cost;
+    var d = document.createElement('div');
+    d.className = 'card ' + (def.kind === 'skill' ? 'skill' : 'tower') + ' r-' + def.rarity;
+    d.setAttribute('role', 'button'); d.setAttribute('aria-label', def.name + ' エネルギー' + cost);
+    d.innerHTML = '<span class="top"><span class="cost">' + cost + '</span><span class="nm"></span></span>';
+    d.querySelector('.nm').textContent = def.name;
+    d.appendChild(cardArt(card.id));
+    if (card.temp || def.exhaust) { var tg = document.createElement('span'); tg.className = 'tag'; tg.textContent = '使い切り'; d.appendChild(tg); }
+    return d;
+  }
 
-
-  function start() {
-    if (started) return;
-    started = true;
-    $('game').hidden = false;
-    newBattle();
+  // ============================================================
+  // 戦闘の開始
+  // ============================================================
+  function start(opts, cb, extra) {
+    s = B.create(opts); onEnd = cb; ended = false; info = extra || {};
+    G.Render.clearFx();
+    closeGateInfo(); closeTowerSheet(); deselect();
+    s.events = [];
+    G.showScreen('game');
+    renderHand(); renderInfo(); renderHud(true);
+    showBanner(info.title || '準備ターン', 'prep');
     requestAnimationFrame(fit);
   }
-  // ユーザーが自分でスクロールした時だけアドレスバーが縮むので、スクロールを合図に始める
-  window.addEventListener('scroll', function () { if (window.scrollY > 60) start(); }, { passive: true });
-  $('pc-start').addEventListener('click', start);
-
-  // ---- 戦闘の開始・やり直し ----
-  function newBattle() {
-    s = G.Battle.create();
-    closeGateInfo();
-    G.Render.clearFx();
-    deselect();
-    $('result').hidden = true;
-    s.events = [];
-    renderHand(); renderInfo(); renderHud(true);
-    showBanner('準備ターン', 'prep');
-  }
-  $('r-again').addEventListener('click', newBattle);
 
   // ---- 表示 ----
   var last = {};
@@ -66,6 +77,7 @@ var G = window.G = window.G || {};
     last = v;
     $('h-life').textContent = s.life;
     $('h-gold').textContent = s.gold;
+    $('h-floor').textContent = info.label || '';
     $('h-turn').textContent = Math.min(s.turn + 1, s.totalTurns) + '/' + s.totalTurns;
     $('h-phase').textContent = s.phase === 'attack' ? '攻撃' : s.phase === 'prep' ? '準備' : '終了';
     var max = Math.max(G.RULES.energyPerTurn, s.energy), h = '';
@@ -81,7 +93,9 @@ var G = window.G = window.G || {};
 
   function enemyIcon(type) {
     var c = document.createElement('canvas'), img = SPR[type][0].l;
-    c.width = 22; c.height = 18; c.getContext('2d').drawImage(img, Math.round((22 - img.width) / 2), 18 - img.height);
+    var w = Math.max(22, img.width), h = Math.max(18, img.height);
+    c.width = w; c.height = h; c.style.width = (w * 22 / Math.max(22, img.width)) + 'px';
+    c.getContext('2d').drawImage(img, Math.round((w - img.width) / 2), h - img.height);
     return c;
   }
   // 攻撃中の残りの敵の数は上の帯に出す
@@ -89,24 +103,13 @@ var G = window.G = window.G || {};
     $('h-left').textContent = s.phase === 'attack' ? '残り' + (s.spawnQueue.length + s.enemies.length) + '体' : '';
   }
 
-  function cardArt(type, big) {
-    var img = SPR[type][0][0]; if (type === 'cannon') img = img.r;
-    var c = document.createElement('canvas'); c.width = 24; c.height = 34;
-    c.getContext('2d').drawImage(img, Math.round((24 - img.width) / 2), 34 - img.height);
-    return c;
-  }
   function renderHand() {
     var el = $('hand'); el.innerHTML = '';
     el.classList.toggle('two', s.hand.length > 4);
     s.hand.forEach(function (card, i) {
-      var T = G.TOWERS[card.type], d = document.createElement('div');
-      d.className = 'card' + (i === ui.selIndex ? ' sel' : '');
+      var d = cardEl(card);
+      if (i === ui.selIndex) d.classList.add('sel');
       d.dataset.index = i;
-      d.setAttribute('role', 'button'); d.setAttribute('aria-label', T.name + ' エネルギー' + T.cost);
-      // 上の段：コストと名前（2段で重なっても見えるように）
-      d.innerHTML = '<span class="top"><span class="cost">' + T.cost + '</span><span class="nm"></span></span>';
-      d.querySelector('.nm').textContent = T.name;
-      d.appendChild(cardArt(card.type));
       bindCard(d, i);
       el.appendChild(d);
     });
@@ -119,7 +122,7 @@ var G = window.G = window.G || {};
     if (!s) return;
     document.querySelectorAll('#hand .card[data-index]').forEach(function (d) {
       var c = s.hand[+d.dataset.index]; if (!c) return;
-      d.classList.toggle('poor', G.TOWERS[c.type].cost > s.energy);
+      d.classList.toggle('poor', B.cardCost(c) > s.energy);
     });
   }
 
@@ -127,18 +130,30 @@ var G = window.G = window.G || {};
   function toast(msg) { var t = $('toast'); t.textContent = msg; t.classList.add('show'); toastT = 1.6; }
   function showBanner(msg, cls) { var b = $('banner'); b.textContent = msg; b.className = 'banner show ' + cls; bannerT = 1.2; }
 
-  // ---- 選択 ----
+  // ============================================================
+  // カードを選ぶ・使う
+  //  タワー：選ぶ → マスをタップ（仮置き）→ 同じマスをもう一度タップで建設
+  //  タワー対象スキル：選ぶ → タワーをタップ（仮選択）→ 同じタワーをもう一度タップで使う
+  //  対象なしスキル：選ぶ → 同じカードをもう一度タップで使う
+  // ============================================================
   function selectCard(i) {
-    if (ui.selIndex === i) { deselect(); return; }
+    var card = s.hand[i], def = B.cardDef(card);
+    if (ui.selIndex === i) {
+      if (def.kind === 'skill' && def.target === 'none') { useSkill(i, null); return; }
+      deselect(); renderHand(); return;
+    }
     closeTowerSheet();
-    ui.selIndex = i; ui.selType = s.hand[i].type; ui.preview = null; ui.pending = null;
-    var T = G.TOWERS[ui.selType];
-    if (T.cost > s.energy) toast('エネルギーが足りません');
-    else toast('置く場所をタップ');
+    deselect();
+    ui.selIndex = i;
+    if (def.kind === 'tower') ui.selType = def.tower; else ui.selSkill = def;
+    if (B.cardCost(card) > s.energy) toast('エネルギーが足りません');
+    else if (def.kind === 'tower') toast('置く場所をタップ');
+    else if (def.target === 'tower') toast(s.towers.length ? '使うタワーをタップ' : '先にタワーを建ててください');
+    else toast('もう一度タップで使う');
     renderHand();
   }
   function deselect() {
-    ui.selIndex = -1; ui.selType = null; ui.preview = null; ui.pending = null;
+    ui.selIndex = -1; ui.selType = null; ui.selSkill = null; ui.preview = null; ui.pending = null; ui.pendingTower = null;
     document.querySelectorAll('#hand .card.sel').forEach(function (d) { d.classList.remove('sel'); });
   }
   // 1回目：仮置き（射程が見える）。同じマスをもう一度タップで建設
@@ -147,9 +162,18 @@ var G = window.G = window.G || {};
     toast('もう一度タップで建設');
   }
   function tryPlace(i, tx, ty) {
-    var err = G.Battle.playCard(s, i, tx, ty);
+    var err = B.playCard(s, i, { tx: tx, ty: ty });
     if (err) { toast(err); return false; }
     deselect(); renderHand(); renderHud(true);
+    return true;
+  }
+  function useSkill(i, towerId) {
+    var def = B.cardDef(s.hand[i]);
+    var err = B.playCard(s, i, towerId ? { tower: towerId } : null);
+    if (err) { toast(err); return false; }
+    toast(def.name + 'を使った');
+    deselect(); renderHand(); renderHud(true);
+    if (ui.selTower) renderTowerSheet();
     return true;
   }
 
@@ -160,22 +184,25 @@ var G = window.G = window.G || {};
       if (s.phase !== 'prep' && s.phase !== 'attack') return;
       st = { x: e.clientX, y: e.clientY, drag: false, long: false, ghost: null };
       try { el.setPointerCapture(e.pointerId); } catch (_) {}
-      st.timer = setTimeout(function () { if (st && !st.drag) { st.long = true; showDetail(s.hand[i].type); } }, 450);
+      st.timer = setTimeout(function () { if (st && !st.drag) { st.long = true; showDetail(s.hand[i].id); } }, 450);
     });
     el.addEventListener('pointermove', function (e) {
       if (!st || st.long) return;
-      var dx = e.clientX - st.x, dy = e.clientY - st.y;
+      var dx = e.clientX - st.x, dy = e.clientY - st.y, def = B.cardDef(s.hand[i]);
       if (!st.drag && Math.hypot(dx, dy) > 10) {
+        if (def.kind === 'skill' && def.target === 'none') return;   // 対象なしスキルはドラッグしない
         st.drag = true; clearTimeout(st.timer);
-        closeTowerSheet();
-        ui.selIndex = i; ui.selType = s.hand[i].type; ui.pending = null;
+        closeTowerSheet(); deselect();
+        ui.selIndex = i;
+        if (def.kind === 'tower') ui.selType = def.tower; else ui.selSkill = def;
         st.ghost = el.cloneNode(true); st.ghost.classList.add('ghost'); st.ghost.style.width = el.offsetWidth + 'px';
         document.body.appendChild(st.ghost);
       }
       if (st.drag) {
         st.ghost.style.left = e.clientX + 'px'; st.ghost.style.top = e.clientY + 'px';
-        ui.preview = tileFromClient(e.clientX, e.clientY);
-        st.ghost.style.opacity = ui.preview ? '.25' : '.85';
+        if (ui.selType) ui.preview = tileFromClient(e.clientX, e.clientY);
+        else { var tw = towerFromClient(e.clientX, e.clientY); ui.pendingTower = tw ? tw.id : null; }
+        st.ghost.style.opacity = (ui.preview || ui.pendingTower) ? '.25' : '.85';
       }
     });
     function end(e, cancel) {
@@ -183,11 +210,16 @@ var G = window.G = window.G || {};
       clearTimeout(st.timer);
       if (st.ghost) st.ghost.remove();
       if (st.drag) {
-        var t = cancel ? null : tileFromClient(e.clientX, e.clientY);
-        // ドラッグで離した場所も仮置き。確定はタップで
-        if (t && G.Battle.canPlaceAt(s, t.tx, t.ty)) { renderHand(); setPending(t); }
-        else if (t) { ui.preview = null; renderHand(); toast('そこには置けません'); }
-        else { deselect(); renderHand(); }
+        if (ui.selType) {
+          var t = cancel ? null : tileFromClient(e.clientX, e.clientY);
+          // ドラッグで離した場所も仮置き。確定はタップで
+          if (t && B.canPlaceAt(s, t.tx, t.ty)) { renderHand(); setPending(t); }
+          else if (t) { ui.preview = null; renderHand(); toast('そこには置けません'); }
+          else { deselect(); renderHand(); }
+        } else {
+          if (ui.pendingTower && !cancel) { renderHand(); toast('もう一度タップで使う'); }
+          else { deselect(); renderHand(); }
+        }
       } else if (!st.long && !cancel) selectCard(i);
       st = null;
     }
@@ -199,15 +231,17 @@ var G = window.G = window.G || {};
     var r = cv.getBoundingClientRect();
     if (x < r.left || x > r.right || y < r.top || y > r.bottom) return null;
     var t = G.Render.toTile(x - r.left, y - r.top, r.width, r.height);
-    if (t.tx < 0 || t.ty < 0 || t.tx >= G.MAP.cols || t.ty >= G.MAP.rowsN) return null;
+    if (t.tx < 0 || t.ty < 0 || t.tx >= s.map.cols || t.ty >= s.map.rowsN) return null;
     return t;
+  }
+  function towerFromClient(x, y) {
+    var r = cv.getBoundingClientRect();
+    return G.Render.towerAt(s, x - r.left, y - r.top, r.width, r.height);
   }
 
   // ---- マップの操作 ----
   var mp = null;
-  cv.addEventListener('pointerdown', function (e) {
-    mp = { x: e.clientX, y: e.clientY };
-  });
+  cv.addEventListener('pointerdown', function (e) { mp = { x: e.clientX, y: e.clientY }; });
   // マウスの時だけ、仮置き前はカーソルの場所に見本を出す
   cv.addEventListener('pointermove', function (e) {
     if (ui.selType && !ui.pending && e.pointerType === 'mouse') ui.preview = tileFromClient(e.clientX, e.clientY);
@@ -216,24 +250,34 @@ var G = window.G = window.G || {};
   cv.addEventListener('pointerup', function (e) {
     if (!mp) return;
     var moved = Math.hypot(e.clientX - mp.x, e.clientY - mp.y) > 14; mp = null;
-    if (moved && !ui.selType) return;
+    if (moved) return;
     var r = cv.getBoundingClientRect();
     var gk = G.Render.gateAt(s, e.clientX - r.left, e.clientY - r.top, r.width, r.height);
     if (gk) { openGateInfo(gk); return; }
     closeGateInfo();
+    var tw = towerFromClient(e.clientX, e.clientY);
     if (ui.selType) {
       var t = tileFromClient(e.clientX, e.clientY);
-      if (t && G.Battle.canPlaceAt(s, t.tx, t.ty)) {
+      if (t && B.canPlaceAt(s, t.tx, t.ty)) {
         if (ui.pending && ui.pending.tx === t.tx && ui.pending.ty === t.ty) tryPlace(ui.selIndex, t.tx, t.ty);
         else setPending(t);
         return;
       }
-      var tw0 = G.Render.towerAt(s, e.clientX - r.left, e.clientY - r.top, r.width, r.height);
-      if (tw0) { deselect(); renderHand(); openTowerSheet(tw0.id); return; }
+      if (tw) { deselect(); renderHand(); openTowerSheet(tw.id); return; }
       toast('そこには置けません');
       return;
     }
-    var tw = G.Render.towerAt(s, e.clientX - r.left, e.clientY - r.top, r.width, r.height);
+    if (ui.selSkill) {
+      if (ui.selSkill.target === 'tower') {
+        if (!tw) { toast('タワーをタップしてください'); return; }
+        var why = B.skillBlocked(s, ui.selSkill, tw); if (why) { toast(why); return; }
+        if (ui.pendingTower === tw.id) useSkill(ui.selIndex, tw.id);
+        else { ui.pendingTower = tw.id; toast('もう一度タップで使う'); }
+        return;
+      }
+      toast('カードをもう一度タップで使う');
+      return;
+    }
     if (tw) openTowerSheet(tw.id); else closeTowerSheet();
   });
 
@@ -242,8 +286,8 @@ var G = window.G = window.G || {};
     if (ui.gateOpen === k) { closeGateInfo(); return; }
     ui.gateOpen = k;
     var el = $('gate-info'); el.innerHTML = '';
-    var gt = document.createElement('span'); gt.className = 'gate'; gt.textContent = G.MAP.gateName[k] + 'から'; el.appendChild(gt);
-    G.Battle.nextWave(s).filter(function (g) { return g.gate === k; }).forEach(function (g) {
+    var gt = document.createElement('span'); gt.className = 'gate'; gt.textContent = s.map.gateName[k] + 'から'; el.appendChild(gt);
+    B.nextWave(s).filter(function (g) { return g.gate === k; }).forEach(function (g) {
       var row = document.createElement('div'); row.className = 'row';
       row.appendChild(enemyIcon(g.type));
       row.appendChild(document.createTextNode(G.ENEMIES[g.type].name + ' ×' + g.n));
@@ -263,12 +307,15 @@ var G = window.G = window.G || {};
   }
   function closeGateInfo() { ui.gateOpen = null; $('gate-info').hidden = true; }
 
-  // ---- タワーの小窓（強化） ----
+  // ============================================================
+  // タワーの小窓（強さの表と強化）
+  // ============================================================
   function openTowerSheet(id) { ui.selTower = id; renderTowerSheet(); $('tower-sheet').hidden = false; }
   function closeTowerSheet() { ui.selTower = null; $('tower-sheet').hidden = true; }
   // 攻撃速度の表示：データは「何秒に1回」なので、1秒あたりの発数に直す（例：0.8秒 → 1.25発/s）
   function perSec(interval) { return (1 / interval).toFixed(2); }
   function fmtSplash(v) { return v.toFixed(2).replace(/0$/, ''); }
+  function fmtNum(v) { return Math.round(v * 10) / 10; }
   // ランクの小さな札（ランクがない数値は何も出さない）
   function rk(r) { return r ? '<i class="rank rank-' + r.toLowerCase() + '">' + r + '</i>' : ''; }
   // 強化後のランク：上がれば赤の↑、下がれば青の↓を前に付け、札もその色にする。
@@ -281,25 +328,29 @@ var G = window.G = window.G || {};
     return '<b class="rk-arrow d-' + dir + '">' + (up ? '↑' : '↓') + '</b>' +
       '<i class="rank rank-' + after.toLowerCase() + (high ? '' : ' rank-' + dir) + '">' + after + '</i>';
   }
+  // 変わる数値の後ろに (+4) のように差を書く。色は「強くなる＝アップの赤／弱くなる＝ダウンの青」
+  function diff(a, b, dec) {
+    var v = +(b - a).toFixed(dec); if (v === 0) return '';
+    return ' <b class="' + (v > 0 ? 'd-up' : 'd-down') + '">(' + (v > 0 ? '+' : '') + v + ')</b>';
+  }
   function renderTowerSheet() {
-    var tw = G.Battle.findTower(s, ui.selTower); if (!tw) { closeTowerSheet(); return; }
-    var T = G.TOWERS[tw.type], st = G.Battle.towerStats(tw), c = G.Battle.upgradeCost(tw), R = G.Rank.ofStats(st);
+    var tw = B.findTower(s, ui.selTower); if (!tw) { closeTowerSheet(); return; }
+    var T = G.TOWERS[tw.type], st = B.towerStats(tw, s), c = B.upgradeCost(tw), R = G.Rank.ofStats(st);
     $('ts-name').textContent = T.name;
-    $('ts-lv').textContent = 'Lv' + (tw.lv + 1) + '/' + (T.up.length + 1);
-    var n = G.Battle.nextStats(tw), RN = n ? G.Rank.ofStats(n) : null;
-    // 変わる数値の後ろに (+4) のように差を書く。色は「強くなる＝アップの赤／弱くなる＝ダウンの青」
-    var d = function (a, b, dec) {
-      var v = +(b - a).toFixed(dec); if (v === 0) return '';
-      return ' <b class="' + (v > 0 ? 'd-up' : 'd-down') + '">(' + (v > 0 ? '+' : '') + v + ')</b>';
-    };
+    $('ts-lv').textContent = 'Lv' + (tw.lv + 1) + '/' + (T.up.length + 1) + (tw.bonusDmg ? '　研ぎ+' + tw.bonusDmg : '');
+    var n = B.nextStats(tw, s), RN = n ? G.Rank.ofStats(n) : null;
     // 1行＝1項目：[項目名, 今の値, 強化後の値]
     var rows = [
-      ['攻撃力', st.dmg + rk(R.dmg), n && (n.dmg + rkNext(R.dmg, RN.dmg) + d(st.dmg, n.dmg, 0))],
-      ['射程', st.range.toFixed(1) + 'マス' + rk(R.range), n && (n.range.toFixed(1) + 'マス' + rkNext(R.range, RN.range) + d(st.range, n.range, 1))],
-      ['攻撃速度', perSec(st.rate) + '発/s' + rk(R.speed), n && (perSec(n.rate) + '発/s' + rkNext(R.speed, RN.speed) + d(+perSec(st.rate), +perSec(n.rate), 2))]
+      ['攻撃力', fmtNum(st.dmg) + rk(R.dmg), n && (fmtNum(n.dmg) + rkNext(R.dmg, RN.dmg) + diff(st.dmg, n.dmg, 1))],
+      ['射程', st.range.toFixed(1) + 'マス' + rk(R.range), n && (n.range.toFixed(1) + 'マス' + rkNext(R.range, RN.range) + diff(st.range, n.range, 1))],
+      ['攻撃速度', perSec(st.rate) + '発/s' + rk(R.speed), n && (perSec(n.rate) + '発/s' + rkNext(R.speed, RN.speed) + diff(+perSec(st.rate), +perSec(n.rate), 2))]
     ];
     if (st.splash) rows.push(['爆発範囲', fmtSplash(st.splash) + 'マス' + rk(R.splash),
-      n && (fmtSplash(n.splash) + 'マス' + rkNext(R.splash, RN.splash) + d(st.splash, n.splash, 2))]);
+      n && (fmtSplash(n.splash) + 'マス' + rkNext(R.splash, RN.splash) + diff(st.splash, n.splash, 2))]);
+    if (st.poison) rows.push(['毒', '毎秒' + st.poison.dps + '×' + st.poison.dur + '秒',
+      n && ('毎秒' + n.poison.dps + '×' + n.poison.dur + '秒' + diff(st.poison.dps, n.poison.dps, 0))]);
+    if (st.slow) rows.push(['遅くする', Math.round(st.slow.pct * 100) + '%×' + st.slow.dur + '秒',
+      n && (Math.round(n.slow.pct * 100) + '%×' + n.slow.dur + '秒' + diff(st.slow.pct * 100, n.slow.pct * 100, 0))]);
     var txt = rows.map(function (r) {
       return '<span class="k">' + r[0] + '</span><span class="v">' + r[1] + '</span>' + (n ? '<span class="nx">' + r[2] + '</span>' : '');
     }).join('');
@@ -312,7 +363,7 @@ var G = window.G = window.G || {};
     else { up.textContent = '強化 ● ' + c; up.disabled = s.gold < c; }
   }
   $('ts-up').addEventListener('click', function () {
-    var err = G.Battle.upgrade(s, ui.selTower);
+    var err = B.upgrade(s, ui.selTower);
     if (err) toast(err); renderTowerSheet(); renderHud(true);
   });
   // 閉じるボタンはなし：小窓の外（マップ以外も含む）をタップすると閉じる
@@ -322,53 +373,69 @@ var G = window.G = window.G || {};
     closeTowerSheet();
   }, true);
 
-  // ---- 詳細（長押し） ----
-  function showDetail(type) {
-    var T = G.TOWERS[type], c = $('detail-art').getContext('2d');
+  // ============================================================
+  // カードの詳細（長押し・デッキ一覧から）
+  // ============================================================
+  function showDetail(id) {
+    var def = G.CARDS[id], c = $('detail-art').getContext('2d');
     c.clearRect(0, 0, 34, 36);
-    var img = SPR[type][0][0]; if (type === 'cannon') img = img.r;
-    c.drawImage(img, Math.round((34 - img.width) / 2), 36 - img.height);
-    $('d-name').textContent = T.name;
-    $('d-text').textContent = T.text;
-    var R = G.Rank.ofStats(G.Battle.towerStats({ type: type, lv: 0 }));
-    $('d-stats').innerHTML = '<dt>エネルギー</dt><dd>' + T.cost + '</dd><dt>攻撃力</dt><dd>' + T.dmg + (T.dmgType === 'magic' ? '（魔法）' : '（物理）') + rk(R.dmg) +
-      '</dd><dt>射程</dt><dd>' + T.range + 'マス' + rk(R.range) + '</dd><dt>攻撃速度</dt><dd>' + perSec(T.rate) + '発/s' + rk(R.speed) + '</dd>' +
-      (T.splash ? '<dt>爆発の広さ</dt><dd>' + T.splash + 'マス' + rk(R.splash) + '</dd>' : '') +
-      '<dt>強化</dt><dd>● ' + T.up.map(function (u) { return u.cost; }).join(' → ● ') + '</dd>';
+    if (def.kind === 'tower') { var img = G.towerImg(def.tower, 0, false); c.drawImage(img, Math.round((34 - img.width) / 2), 36 - img.height); }
+    else c.drawImage(SPR.icon[def.icon], 9, 10);
+    $('d-name').textContent = def.name;
+    $('d-text').textContent = def.text;
+    var h = '<dt>エネルギー</dt><dd>' + def.cost + '</dd><dt>種類</dt><dd>' + (def.kind === 'tower' ? 'タワー' : 'スキル') + '</dd>';
+    if (def.kind === 'tower') {
+      var T = G.TOWERS[def.tower], st = B.baseStats(def.tower, 0), R = G.Rank.ofStats(st);
+      h += '<dt>攻撃力</dt><dd>' + T.dmg + (T.dmgType === 'magic' ? '（魔法）' : '（物理）') + rk(R.dmg) +
+        '</dd><dt>射程</dt><dd>' + T.range + 'マス' + rk(R.range) + '</dd><dt>攻撃速度</dt><dd>' + perSec(T.rate) + '発/s' + rk(R.speed) + '</dd>' +
+        (T.splash ? '<dt>爆発の広さ</dt><dd>' + T.splash + 'マス' + rk(R.splash) + '</dd>' : '') +
+        (T.poison ? '<dt>毒</dt><dd>毎秒' + T.poison.dps + '×' + T.poison.dur + '秒</dd>' : '') +
+        (T.slow ? '<dt>遅くする</dt><dd>' + Math.round(T.slow.pct * 100) + '%×' + T.slow.dur + '秒</dd>' : '') +
+        '<dt>強化</dt><dd>● ' + T.up.map(function (u) { return u.cost; }).join(' → ● ') + '</dd>';
+    } else {
+      h += '<dt>使う相手</dt><dd>' + (def.target === 'tower' ? 'タワー1つ' : 'なし（すぐ効く）') + '</dd>';
+    }
+    $('d-stats').innerHTML = h;
     $('detail').hidden = false;
-    deselect(); renderHand();
+    if (s && G.currentScreen === 'game') { deselect(); renderHand(); }
   }
   $('d-close').addEventListener('click', function () { $('detail').hidden = true; });
   $('detail').addEventListener('click', function (e) { if (e.target === this) this.hidden = true; });
 
   // ---- ボタン ----
   $('btn-go').addEventListener('click', function () {
-    closeGateInfo(); G.Battle.startAttack(s); renderInfo(); renderHud(true);
+    closeGateInfo(); B.startAttack(s); renderInfo(); renderHud(true);
   });
   $('btn-draw').addEventListener('click', function () {
-    var err = G.Battle.extraDraw(s);
+    var err = B.extraDraw(s);
     if (err) toast(err); else { renderHand(); renderHud(true); }
   });
-  // ---- 山札・捨て札の内訳（山札は順番が分からないよう種類ごとの枚数だけ） ----
-  function showPile(which) {
-    var list = which === 'draw' ? s.draw : s.discard, count = {};
-    list.forEach(function (c) { count[c.type] = (count[c.type] || 0) + 1; });
-    $('p-title').textContent = (which === 'draw' ? '山札' : '捨て札') + '（' + list.length + '枚）';
-    $('p-note').textContent = which === 'draw' ? '引く順番は分かりません。山札がなくなると捨て札を混ぜて山札に戻します。' : '使ったカードと、ターンの終わりに残った手札が入ります。';
+  // ---- カードの一覧（山札・捨て札・デッキ）。山札は順番が分からないよう種類ごとの枚数だけ ----
+  function showList(title, ids, note) {
+    var count = {}, order = [];
+    ids.forEach(function (id) { if (!count[id]) order.push(id); count[id] = (count[id] || 0) + 1; });
+    $('p-title').textContent = title + '（' + ids.length + '枚）';
+    $('p-note').textContent = note || '';
     var ul = $('p-list'); ul.innerHTML = '';
-    var types = Object.keys(G.TOWERS).filter(function (k) { return count[k]; });
-    if (!types.length) ul.innerHTML = '<li class="none">カードはありません</li>';
-    types.forEach(function (k) {
+    if (!order.length) ul.innerHTML = '<li class="none">カードはありません</li>';
+    var keys = Object.keys(G.CARDS);
+    order.sort(function (a, b) { return keys.indexOf(a) - keys.indexOf(b); }).forEach(function (k) {
       var li = document.createElement('li');
       li.appendChild(cardArt(k));
-      var nm = document.createElement('span'); nm.textContent = G.TOWERS[k].name; li.appendChild(nm);
+      var nm = document.createElement('span'); nm.textContent = G.CARDS[k].name; li.appendChild(nm);
       var n = document.createElement('b'); n.textContent = '×' + count[k]; li.appendChild(n);
+      li.addEventListener('click', function () { showDetail(k); });
       ul.appendChild(li);
     });
     $('pile').hidden = false;
   }
-  $('btn-pile-draw').addEventListener('click', function () { showPile('draw'); });
-  $('btn-pile-disc').addEventListener('click', function () { showPile('discard'); });
+  $('btn-pile-draw').addEventListener('click', function () {
+    showList('山札', s.draw.map(function (c) { return c.id; }), '引く順番は分かりません。山札がなくなると捨て札を混ぜて山札に戻します。');
+  });
+  $('btn-pile-disc').addEventListener('click', function () {
+    showList('捨て札', s.discard.map(function (c) { return c.id; }),
+      '使ったカードと、ターンの終わりに残った手札が入ります。' + (s.exhaust.length ? '使い切りで消えたカード：' + s.exhaust.length + '枚' : ''));
+  });
   $('p-close').addEventListener('click', function () { $('pile').hidden = true; });
   $('pile').addEventListener('click', function (e) { if (e.target === this) this.hidden = true; });
 
@@ -382,31 +449,31 @@ var G = window.G = window.G || {};
     var evs = s.events.splice(0);
     if (!evs.length) return;
     G.Render.addEvents(evs);
-    var info = false;
+    var inf = false;
     evs.forEach(function (e) {
-      if (e.k === 'prep') { closeTowerSheetIfGone(); deselect(); renderHand(); showBanner('準備ターン', 'prep'); info = true; }
-      else if (e.k === 'attack') { showBanner('攻撃ターン', 'attack'); }
-      else if (e.k === 'kill' || e.k === 'leak') info = true;
+      if (e.k === 'prep') { closeTowerSheetIfGone(); deselect(); renderHand(); showBanner('準備ターン', 'prep'); inf = true; }
+      else if (e.k === 'attack') { showBanner(s.turn === s.totalTurns - 1 ? '最後の攻撃' : '攻撃ターン', 'attack'); }
+      else if (e.k === 'spawn' && e.boss) showBanner('ボス出現！', 'attack');
+      else if (e.k === 'kill' || e.k === 'leak') inf = true;
       else if (e.k === 'reshuffle') toast('捨て札を混ぜて山札に戻しました');
-      else if (e.k === 'win' || e.k === 'lose') showResult(e.k === 'win');
+      else if (e.k === 'win' || e.k === 'lose') finish();
     });
-    if (info) renderInfo();
+    if (inf) renderInfo();
   }
-  function closeTowerSheetIfGone() { if (ui.selTower && !G.Battle.findTower(s, ui.selTower)) closeTowerSheet(); }
-  function showResult(win) {
-    deselect(); closeTowerSheet();
-    $('r-title').textContent = win ? '勝利！' : '敗北…';
-    $('r-title').style.color = win ? 'var(--good)' : 'var(--bad)';
-    $('r-text').innerHTML = (win ? s.totalTurns + '回の攻撃をすべてしのぎました。' : (s.turn + 1) + '回目の攻撃でライフが0になりました。') +
-      '<br>倒した敵 ' + s.stats.killed + '体・通した敵 ' + s.stats.leaked + '体・建てたタワー ' + s.stats.built + '基<br>残りライフ ' + s.life;
-    setTimeout(function () { $('result').hidden = false; }, 700);
+  function closeTowerSheetIfGone() { if (ui.selTower && !B.findTower(s, ui.selTower)) closeTowerSheet(); }
+  function finish() {
+    if (ended) return; ended = true;
+    deselect(); closeTowerSheet(); closeGateInfo();
+    showBanner(s.phase === 'win' ? '勝利！' : '敗北…', s.phase === 'win' ? 'prep' : 'attack');
     renderInfo();
+    setTimeout(function () { if (onEnd) onEnd(s); }, 1200);
   }
 
   // ---- 画面の大きさに合わせてマップを拡大 ----
   function fit() {
     var st = $('stage').getBoundingClientRect();
-    // 手札が1段の時も2段分の高さ（OVERLAP_EXTRA）を見込んでおき、枚数でマップの大きさが変わらないようにする
+    if (!st.width) return;
+    // 手札が1段の時も2段分の高さを見込んでおき、枚数でマップの大きさが変わらないようにする
     var two = $('hand').classList.contains('two');
     var extra = two ? 0 : parseFloat(getComputedStyle($('hand')).getPropertyValue('--row2')) || 0;
     var W = G.Render.W, H = G.Render.H, k = Math.min(st.width / W, (st.height - extra) / H);
@@ -423,11 +490,11 @@ var G = window.G = window.G || {};
   var prev = performance.now();
   function frame(now) {
     var dt = Math.min(0.05, (now - prev) / 1000); prev = now;
-    if (s) {
+    if (s && G.currentScreen === 'game') {
       ui.time += dt;
       // 速度2倍の時も細かく刻んで、弾が敵をすり抜けないようにする
       var left = dt * speed;
-      while (left > 0) { var step = Math.min(left, 1 / 60); G.Battle.update(s, step); left -= step; }
+      while (left > 0) { var step = Math.min(left, 1 / 60); B.update(s, step); left -= step; }
       handleEvents();
       renderHud(false);
       if (s.phase === 'attack' && Math.floor(ui.time * 4) !== Math.floor((ui.time - dt) * 4)) renderInfo();
@@ -435,13 +502,14 @@ var G = window.G = window.G || {};
       ctx.imageSmoothingEnabled = false;
       ctx.drawImage(G.Render.buf, 0, 0, cv.width, cv.height);
       G.Render.drawNums(ctx, cv.width / G.Render.W);
-      if (toastT > 0) { toastT -= dt; if (toastT <= 0) $('toast').classList.remove('show'); }
-      if (bannerT > 0) { bannerT -= dt; if (bannerT <= 0) $('banner').classList.remove('show'); }
     }
+    if (toastT > 0) { toastT -= dt; if (toastT <= 0) $('toast').classList.remove('show'); }
+    if (bannerT > 0) { bannerT -= dt; if (bannerT <= 0) $('banner').classList.remove('show'); }
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
 
+  G.BattleUI = { start: start, cardEl: cardEl, cardArt: cardArt, showDetail: showDetail, showList: showList, fit: fit };
   // 開発用：コンソールから状態を見られるように
   G.debug = { get state() { return s; }, ui: ui };
 })();
