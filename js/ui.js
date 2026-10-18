@@ -266,17 +266,19 @@ var G = window.G = window.G || {};
   // ---- タワーの小窓（強化） ----
   function openTowerSheet(id) { ui.selTower = id; renderTowerSheet(); $('tower-sheet').hidden = false; }
   function closeTowerSheet() { ui.selTower = null; $('tower-sheet').hidden = true; }
+  // 攻撃速度の表示：データは「何秒に1回」なので、1秒あたりの発数に直す（例：0.8秒 → 1.25発/s）
+  function perSec(interval) { return (1 / interval).toFixed(2); }
   function renderTowerSheet() {
     var tw = G.Battle.findTower(s, ui.selTower); if (!tw) { closeTowerSheet(); return; }
     var T = G.TOWERS[tw.type], st = G.Battle.towerStats(tw), c = G.Battle.upgradeCost(tw);
     $('ts-name').textContent = T.name;
     $('ts-lv').textContent = 'Lv' + (tw.lv + 1) + '/' + (T.up.length + 1);
-    var txt = '<span class="now">攻撃力 ' + st.dmg + '・射程 ' + st.range.toFixed(1) + 'マス・' + st.rate.toFixed(1) + '秒ごと' +
+    var txt = '<span class="now">攻撃力 ' + st.dmg + '・射程 ' + st.range.toFixed(1) + 'マス・' + perSec(st.rate) + '発/s' +
       (st.splash ? '・爆発 ' + st.splash.toFixed(2).replace(/0$/, '') + 'マス' : '') + '</span>';
     var n = G.Battle.nextStats(tw);
     if (n) {
       // 変わる数値の後ろに (+4) のように差を書く
-      // 色は「強くなる＝アップの赤／弱くなる＝ダウンの青」。攻撃の間隔は短くなるほど強いので、(-0.1) でも赤
+      // 色は「強くなる＝アップの赤／弱くなる＝ダウンの青」
       var d = function (a, b, dec, lowerIsBetter) {
         var v = +(b - a).toFixed(dec); if (v === 0) return '';
         var good = lowerIsBetter ? v < 0 : v > 0;
@@ -285,7 +287,7 @@ var G = window.G = window.G || {};
       var w = function (x) { return '<span>' + x + '</span>'; };  // 項目の途中で改行しないように
       txt += '<span class="next">強化 → ' + w('攻撃力 ' + n.dmg + d(st.dmg, n.dmg, 0)) +
         '・' + w('射程 ' + n.range.toFixed(1) + d(st.range, n.range, 1)) +
-        '・' + w(n.rate.toFixed(1) + '秒ごと' + d(st.rate, n.rate, 1, true)) +
+        '・' + w(perSec(n.rate) + '発/s' + d(+perSec(st.rate), +perSec(n.rate), 2)) +
         (n.splash ? '・' + w('爆発 ' + n.splash.toFixed(2).replace(/0$/, '') + d(st.splash, n.splash, 2)) : '') + '</span>';
     }
     $('ts-stats').innerHTML = txt;
@@ -313,7 +315,7 @@ var G = window.G = window.G || {};
     $('d-name').textContent = T.name;
     $('d-text').textContent = T.text;
     $('d-stats').innerHTML = '<dt>エネルギー</dt><dd>' + T.cost + '</dd><dt>攻撃力</dt><dd>' + T.dmg + (T.dmgType === 'magic' ? '（魔法）' : '（物理）') +
-      '</dd><dt>射程</dt><dd>' + T.range + 'マス</dd><dt>攻撃の間隔</dt><dd>' + T.rate + '秒</dd>' +
+      '</dd><dt>射程</dt><dd>' + T.range + 'マス</dd><dt>攻撃速度</dt><dd>' + perSec(T.rate) + '発/s</dd>' +
       (T.splash ? '<dt>爆発の広さ</dt><dd>' + T.splash + 'マス</dd>' : '') +
       '<dt>強化</dt><dd>● ' + T.up.map(function (u) { return u.cost; }).join(' → ● ') + '</dd>';
     $('detail').hidden = false;
