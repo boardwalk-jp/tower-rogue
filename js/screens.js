@@ -136,8 +136,9 @@ var G = window.G = window.G || {};
   $('wm-bgm').addEventListener('click', function () { G.Sound.set('bgm', !G.Sound.get('bgm')); soundLabels(); });
   soundLabels();
   $('wm-test').addEventListener('click', function () {
+    if (!G.Sound) { $('wm-sound-state').textContent = '音の仕組みが読み込まれていません。エラー：' + (window.__errs || []).join(' / '); return; }
     G.Sound.test();
-    setTimeout(function () { $('wm-sound-state').textContent = '音の状態：' + G.Sound.state() + '。鳴らない時はマナーモードと音量を確認してください。'; }, 200);
+    setTimeout(function () { var er = (window.__errs || []).slice(-3).join(' / '); $('wm-sound-state').textContent = '音の状態：' + G.Sound.state() + '。' + (er ? 'エラー：' + er : 'エラーなし') + '。鳴らない時はマナーモードと音量を確認してください。'; }, 400);
   });
 
   function newRun(cmdId) {

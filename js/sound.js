@@ -23,39 +23,48 @@ var G = window.G = window.G || {};
     boss = null; bossOut = null;      // ボスの曲は音の準備ごとに作り直す
     tried = false;
   }
-  var tried = false;   // 前のタップで再開を試したか
-  function activeTap() { return !navigator.userActivation || navigator.userActivation.isActive; }
-  function unlock() {
+  // 音の準備は「本当のタップ」の中でだけする。
+  //  ・スワイプ（指が動いた）の終わりはタップとして認められないので使わない
+  //  ・1回のタップで touchend と click が続けて来るので、作り直しは前のタップから時間がたっている時だけ
+  var tried = false, triedAt = 0, rebuilds = 0, touch0 = null;
+  document.addEventListener('touchstart', function (e) { var t = e.touches[0]; touch0 = t ? { x: t.clientX, y: t.clientY } : null; }, { passive: true, capture: true });
+  function unlock(e) {
     var C = window.AudioContext || window.webkitAudioContext;
     if (!C) return;
-    // スワイプ（画面のスクロール）の終わりはタップとして認められないので、音の準備をしない
-    if (!activeTap()) return;
+    if (e && e.isTrusted === false) return;   // プログラムが出したクリック（ダブルタップ対策など）はタップとして認められない
+    if (e && e.type === 'touchend' && touch0 && e.changedTouches && e.changedTouches[0]) {
+      var t = e.changedTouches[0];
+      if (Math.hypot(t.clientX - touch0.x, t.clientY - touch0.y) > 12) return;   // スワイプだった
+    }
     // iOS 17 以降：音楽アプリと同じ扱いにする（消音スイッチの影響を受けにくくする）
-    try { if (navigator.audioSession && navigator.audioSession.type !== 'playback') navigator.audioSession.type = 'playback'; } catch (e) {}
+    try { if (navigator.audioSession && navigator.audioSession.type !== 'playback') navigator.audioSession.type = 'playback'; } catch (e2) {}
+    var now = Date.now();
     if (!ac) build(C);
-    else if (ac.state !== 'running' && tried) {
+    else if (ac.state !== 'running' && tried && now - triedAt > 800 && rebuilds < 3) {
       // 前のタップで再開できなかった（ブラウザを開き直した後など）：音の準備を作り直す
-      try { ac.close(); } catch (e) {}
+      rebuilds++;
+      try { ac.close(); } catch (e3) {}
       build(C);
       if (bossOn) { bossOn = false; bossTheme(true); }
       else if (wantTrack) startTrack(wantTrack);
     }
     if (ac.state !== 'running') {
+      if (!tried) triedAt = now;
       tried = true;
-      try { var pr = ac.resume(); if (pr && pr.then) pr.then(function () { tried = false; }); } catch (e) {}
+      try { var pr = ac.resume(); if (pr && pr.then) pr.then(function () { if (ac.state === 'running') tried = false; }); } catch (e4) {}
       // 無音を1回鳴らす（古い iPhone はこれで音が出るようになる）
-      try { var b = ac.createBuffer(1, 1, 22050), src = ac.createBufferSource(); src.buffer = b; src.connect(ac.destination); src.start(0); } catch (e) {}
+      try { var b = ac.createBuffer(1, 1, 22050), src = ac.createBufferSource(); src.buffer = b; src.connect(ac.destination); src.start(0); } catch (e5) {}
     }
     if (wantTrack && !playing && !bossOn) startTrack(wantTrack);
   }
-  ['touchend', 'pointerup', 'click', 'keydown'].forEach(function (n) { document.addEventListener(n, unlock, { passive: true, capture: true }); });
+  ['touchend', 'click', 'keydown'].forEach(function (n) { document.addEventListener(n, unlock, { passive: true, capture: true }); });
   // 別のアプリに切り替えたら止め、戻ったら再開（だめなら次のタップで作り直す）
   document.addEventListener('visibilitychange', function () {
     if (!ac) return;
     if (document.hidden) ac.suspend(); else try { ac.resume(); } catch (e) {}
   });
   // ブラウザの「戻る」やアプリの切り替えでページがそのまま戻ってきた時も、次のタップで作り直せるように
-  window.addEventListener('pageshow', function (e) { if (e.persisted && ac) tried = true; });
+  window.addEventListener('pageshow', function (e) { if (e.persisted && ac) { tried = true; triedAt = 0; } });
   function ready() { return ac && ac.state === 'running'; }
 
   // ---- 音の部品 ----
@@ -227,7 +236,7 @@ var G = window.G = window.G || {};
     if (kind === 'bgm' && bossOut) bossOut.gain.value = v ? 0.55 : 0;
   }
   // 音の状態（メニューの「音のテスト」で表示）
-  function state() { return (!ac ? 'まだ準備していない（画面をタップすると準備）' : ac.state === 'running' ? '鳴らせる状態' : '止まっている（' + ac.state + '）') + (bossErr ? '・ボス曲のエラー：' + bossErr : '') + '・ボス曲' + (G.makeBossTheme ? 'あり' : 'なし'); }
+ function state() { return (ac ? '［' + ac.state + '・作り直し' + rebuilds + '回］' : '') + (!ac ? 'まだ準備していない（画面をタップすると準備）' : ac.state === 'running' ? '鳴らせる状態' : '止まっている（' + ac.state + '）') + (bossErr ? '・ボス曲のエラー：' + bossErr : '') + '・ボス曲' + (G.makeBossTheme ? 'あり' : 'なし'); }
   function test() { unlock(); var was = cfg.se; cfg.se = true; play('upgrade'); cfg.se = was; }
   // 曲を流したいのに音がまだ出せない時は、画面の下に「タップすると音が出ます」を出す
   setInterval(function () {
