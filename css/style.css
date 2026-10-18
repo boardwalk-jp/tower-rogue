@@ -248,3 +248,25 @@ dt{color:var(--muted);text-align:right} dd{margin:0;text-align:left}
 .relic-get{border-color:#ffd84a}
 .relic-get h3{color:#ffd84a}
 .relic-buy{border-color:#8a7a3a}
+
+/* ---- 鍛えたカード（＋）：名前を緑にして、ふちを光らせる ---- */
+.card.plus .nm{color:#8ff07a}
+.card.plus{box-shadow:inset 0 0 0 1px rgba(143,240,122,.45)}
+.plus-note{color:#8ff07a}
+.cards-grid .card.sold{opacity:.3;pointer-events:none}
+
+/* ---- レアのカード（報酬・商人）は金色に光る ---- */
+.cards-grid .card.r-rare{animation:rareGlow 1.6s ease-in-out infinite}
+@keyframes rareGlow{0%,100%{box-shadow:0 0 0 1px #c79a2a,0 0 4px rgba(255,216,74,.25)}50%{box-shadow:0 0 0 1px #ffd84a,0 0 14px rgba(255,216,74,.7)}}
+@media (prefers-reduced-motion: reduce){.cards-grid .card.r-rare{animation:none}}
+
+/* ---- 指揮官を選ぶ ---- */
+.choice.cmd{flex-direction:row;align-items:center;gap:12px}
+.choice.cmd canvas{width:39px;height:51px;image-rendering:pixelated;flex:0 0 auto}
+.choice.cmd.sel{outline:2px solid #ffd84a}
+.cmd-txt{display:flex;flex-direction:column;gap:3px;min-width:0}
+.cmd-txt .cmd-deck{font-size:12px}
+.cmd-txt .cmd-sub{font-size:12px;color:#b9c2a8}
+.sound-row{display:flex;gap:8px}
+.sound-row button{flex:1}
+.sound-note{font-size:12px;color:var(--muted)}

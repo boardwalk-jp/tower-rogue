@@ -8,7 +8,7 @@ require('../js/run.js');
 var G = global.G, B = G.Battle;
 
 // 置ける場所のうち、射程（2.4マス）の中を通る道の長さが一番長い所を選ぶ（入口が多い道ほど重く数える）
-var coverCache = {};
+var coverCache = {}, LEAK = {};
 function coverage(s) {
   if (coverCache[s.map.id]) return coverCache[s.map.id];
   var pts = [];
@@ -18,6 +18,11 @@ function coverage(s) {
       var n = Math.ceil(Math.hypot(P[i + 1][0] - P[i][0], P[i + 1][1] - P[i][1]) * 3);
       for (var j = 0; j < n; j++) pts.push([P[i][0] + (P[i + 1][0] - P[i][0]) * j / n, P[i][1] + (P[i + 1][1] - P[i][1]) * j / n]);
     }
+  });
+  // 空を飛ぶ敵のまっすぐな道も同じ重さで数える
+  Object.keys(s.map.paths).forEach(function (k) {
+    var P = s.map.paths[k], a = P[0], b = P[P.length - 1], n = Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1]) * 3);
+    for (var j = 0; j < n; j++) pts.push([a[0] + (b[0] - a[0]) * j / n, a[1] + (b[1] - a[1]) * j / n]);
   });
   var score = {};
   for (var ty = 0; ty < s.map.rowsN; ty++) for (var tx = 0; tx < s.map.cols; tx++) {
@@ -58,8 +63,8 @@ function playTurn(s) {
       if (!B.playCard(s, i, target)) { played = true; break; }
     }
   }
-  s.towers.slice().sort(function (a, b) { var pa = G.TOWERS[a.type].place === 'path' ? 500 : 0, pb = G.TOWERS[b.type].place === 'path' ? 500 : 0; return pa + (B.upgradeCost(a) || 999) - pb - (B.upgradeCost(b) || 999); }).forEach(function (tw) {
-    var c = B.upgradeCost(tw); if (c !== null && s.gold >= c + 20) B.upgrade(s, tw.id);
+  s.towers.slice().sort(function (a, b) { var pa = G.TOWERS[a.type].place === 'path' ? 500 : 0, pb = G.TOWERS[b.type].place === 'path' ? 500 : 0; return pa + (B.upgradeCost(a, s) || 999) - pb - (B.upgradeCost(b, s) || 999); }).forEach(function (tw) {
+    var c = B.upgradeCost(tw, s); if (c !== null && s.gold >= c + 20) B.upgrade(s, tw.id);
   });
 }
 
@@ -68,13 +73,21 @@ function fight(opts) {
   while ((s.phase === 'prep' || s.phase === 'attack') && guard++ < 400000) {
     if (s.phase === 'prep') { playTurn(s); B.startAttack(s); }
     B.update(s, 1 / 30);
+    if (process.env.LEAKS) s.events.forEach(function (e) { if (e.k === 'leak') LEAK[e.type] = (LEAK[e.type] || 0) + e.life; });
     s.events.length = 0;
   }
   return s;
 }
 
-function playRun(seed, log) {
-  var run = G.Run.create(seed), steps = [];
+// 休憩：ライフが6割以上なら1枚鍛える（強い順の表の最初の1枚）、それ以外は休む
+var UP_ORDER = ['archer', 'mage', 'thunder', 'fire', 'cannon', 'ballista', 'frost', 'barracks', 'poison', 'bowman', 'sling', 'aim'];
+function upgradeBest(run) {
+  for (var k = 0; k < UP_ORDER.length; k++) { var i = run.deck.indexOf(UP_ORDER[k]); if (i >= 0) return G.Run.upgradeCard(run, i); }
+  for (i = 0; i < run.deck.length; i++) if (G.Run.canUpgradeCard(run.deck[i])) return G.Run.upgradeCard(run, i);
+  return false;
+}
+function playRun(seed, log, cmdId) {
+  var run = G.Run.create(seed, cmdId), steps = [];
   while (!run.over) {
     var opts = G.Run.reachable(run);
     var nid = opts[Math.floor(run.rand() * opts.length)];
@@ -91,7 +104,10 @@ function playRun(seed, log) {
         var cards = G.Run.rollCards(run, 3, n.type === 'elite' ? 'elite' : 'battle');
         G.Run.addCard(run, cards[0]);
       }
-    } else if (n.type === 'rest') { G.Run.rest(run); steps.push(n.floor + 'R'); }
+    } else if (n.type === 'rest') {
+      if (process.env.NOUP || run.life < run.maxLife * 0.6 || !upgradeBest(run)) { G.Run.rest(run); steps.push(n.floor + 'R'); }
+      else steps.push(n.floor + 'U');
+    }
     else if (n.type === 'shop') {
       var st = G.Run.shopStock(run).cards.filter(function (x) { return x.price <= run.gold; })[0];
       if (st) { run.gold -= st.price; G.Run.addCard(run, st.id); }
@@ -100,6 +116,7 @@ function playRun(seed, log) {
       var e = G.Run.rollEvent(run), res = G.Run.eventChoice(run, e.choices[0]);
       if (res.next === 'pickCard') G.Run.addCard(run, res.cards[0]);
       if (res.next === 'pickCopy') G.Run.addCard(run, run.deck[run.deck.length - 1]);
+      if (res.next === 'pickUpgrade') upgradeBest(run);
       if (res.next === 'pickRemove' && run.deck.length > 5) G.Run.removeCard(run, run.deck.indexOf('sling'));
       steps.push(n.floor + 'E');
     }
@@ -108,10 +125,17 @@ function playRun(seed, log) {
   return run;
 }
 
-var N = +process.argv[2] || 10, wins = 0, reached = [];
-for (var i = 1; i <= N; i++) {
-  var r = playRun(i * 7919, true);
-  if (r.won) wins++;
-  reached.push(r.act + '-' + (G.Run.node(r) ? G.Run.node(r).floor : 0));
-}
-console.log('勝率 ' + wins + '/' + N + '、到達した階 ' + reached.join(','));
+// 使い方：node tools/sim.js [回数] [指揮官のid（省略すると全員）]
+var N = +process.argv[2] || 10, only = process.argv[3], total = 0, totalWins = 0;
+Object.keys(G.COMMANDERS).filter(function (c) { return !only || c === only; }).forEach(function (cmdId) {
+  var wins = 0, reached = [];
+  for (var i = 1; i <= N; i++) {
+    var r = playRun(i * 7919, !!process.env.LOG, cmdId);
+    if (r.won) wins++;
+    reached.push(r.act + '-' + (G.Run.node(r) ? G.Run.node(r).floor : 0));
+  }
+  total += N; totalWins += wins;
+  console.log(G.COMMANDERS[cmdId].name + '：勝率 ' + wins + '/' + N + '、到達した階 ' + reached.join(','));
+});
+console.log('合計 ' + totalWins + '/' + total);
+if (process.env.LEAKS) console.log(JSON.stringify(LEAK));

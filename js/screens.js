@@ -22,7 +22,8 @@ var G = window.G = window.G || {};
     document.querySelectorAll('.rb-deck').forEach(function (e) { e.textContent = run.deck.length; });
   }
   function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; }
-  function button(label, cls, fn) { var b = el('button', cls, label); b.type = 'button'; b.addEventListener('click', fn); return b; }
+  function button(label, cls, fn) { var b = el('button', cls, label); b.type = 'button'; b.addEventListener('click', function (e) { if (G.Sound) G.Sound.play('tap'); fn(e); }); return b; }
+  function music(name) { if (G.Sound) G.Sound.music(name); }
 
   // ---- スタート画面 ----
   (function titleArt() {
@@ -59,7 +60,7 @@ var G = window.G = window.G || {};
       var r = d.run, n = r.at ? r.world.nodes[r.at] : null;
       var where = '第' + (r.act || 1) + '層 ' + (!n ? 'スタート地点' : n.type === 'boss' ? 'ボス' : (n.floor + 1) + '階');
       var dt = new Date(d.at);
-      $('t-cont-info').textContent = where + '・ライフ' + r.life + '/' + r.maxLife + '・デッキ' + r.deck.length + '枚・' + (dt.getMonth() + 1) + '/' + dt.getDate() + ' ' + dt.getHours() + ':' + String(dt.getMinutes()).padStart(2, '0');
+      $('t-cont-info').textContent = (G.COMMANDERS[r.cmd] || G.COMMANDERS.captain).name + '・' + where + '・ライフ' + r.life + '/' + r.maxLife + '・デッキ' + r.deck.length + '枚・' + (dt.getMonth() + 1) + '/' + dt.getDate() + ' ' + dt.getHours() + ':' + String(dt.getMinutes()).padStart(2, '0');
     } else $('t-cont-info').textContent = '保存されたデータはありません';
     setChoice(d ? 'cont' : 'new');
   }
@@ -78,7 +79,36 @@ var G = window.G = window.G || {};
     G.started = true;
     $('start').hidden = true;
     var d = titleChoice === 'cont' ? loadSave() : null;
-    if (d) continueRun(d); else newRun();
+    if (d) continueRun(d); else chooseCommander();
+  }
+  // ---- 指揮官を選ぶ（はじめから） ----
+  function chooseCommander() {
+    openPanel('指揮官', function (body, foot) {
+      body.appendChild(el('h2', 'panel-title', '指揮官を選ぶ'));
+      body.appendChild(el('p', 'panel-text', '最初のデッキ・最大ライフ・能力が違う。'));
+      var list = el('div', 'choices cmd-list'), picked = null;
+      var ok = button('この指揮官で始める', 'go', function () { if (picked) newRun(picked); });
+      ok.disabled = true;
+      Object.keys(G.COMMANDERS).forEach(function (id) {
+        var C = G.COMMANDERS[id], b = button('', 'choice cmd', function () {
+          list.querySelectorAll('.cmd').forEach(function (x) { x.classList.remove('sel'); });
+          b.classList.add('sel'); picked = id; ok.disabled = false;
+        });
+        var cv = document.createElement('canvas'), img = G.towerImg(C.icon, 2); cv.width = 26; cv.height = 34;
+        cv.getContext('2d').drawImage(img, Math.round((26 - img.width) / 2), 34 - img.height);
+        b.appendChild(cv);
+        var tx = el('span', 'cmd-txt');
+        tx.appendChild(el('b', '', C.name + '　♥' + C.life));
+        tx.appendChild(el('small', '', '能力：' + C.text));
+        var cnt = {}; C.deck.forEach(function (k) { cnt[k] = (cnt[k] || 0) + 1; });
+        tx.appendChild(el('small', 'cmd-deck', 'デッキ：' + Object.keys(cnt).map(function (k) { return G.CARDS[k].name + '×' + cnt[k]; }).join('、')));
+        tx.appendChild(el('small', 'cmd-sub', C.sub));
+        b.appendChild(tx);
+        list.appendChild(b);
+      });
+      body.appendChild(list);
+      foot.appendChild(ok);
+    });
   }
   // ユーザーが自分でスクロールした時だけアドレスバーが縮むので、スクロールを合図に始める
   window.addEventListener('scroll', function () { if (window.scrollY > 60) start(); }, { passive: true });
@@ -89,17 +119,26 @@ var G = window.G = window.G || {};
     G.started = false;
     document.querySelectorAll('[data-screen]').forEach(function (e) { e.hidden = true; });
     G.currentScreen = 'start';
-    $('start').hidden = false;
+    $('start').hidden = false; music(null);
     refreshTitle();
     window.scrollTo(0, 0);
   }
   $('world-menu-btn').addEventListener('click', function () { $('world-menu').hidden = false; });
   $('wm-close').addEventListener('click', function () { $('world-menu').hidden = true; });
   $('wm-title').addEventListener('click', function () { $('world-menu').hidden = true; backToTitle(); });
+  // 音の切り替え（効果音・BGM。このブラウザに覚えておく）
+  function soundLabels() {
+    if (!G.Sound) return;
+    $('wm-se').textContent = '効果音：' + (G.Sound.get('se') ? 'オン' : 'オフ');
+    $('wm-bgm').textContent = 'BGM：' + (G.Sound.get('bgm') ? 'オン' : 'オフ');
+  }
+  $('wm-se').addEventListener('click', function () { G.Sound.set('se', !G.Sound.get('se')); soundLabels(); });
+  $('wm-bgm').addEventListener('click', function () { G.Sound.set('bgm', !G.Sound.get('bgm')); soundLabels(); });
+  soundLabels();
 
-  function newRun() {
+  function newRun(cmdId) {
     clearSave();
-    run = R.create();
+    run = R.create(null, cmdId || (run && run.cmd) || 'captain');
     G.run = run;
     showWorld();
   }
@@ -127,6 +166,7 @@ var G = window.G = window.G || {};
   function showWorld() {
     lastResume = { type: 'map' }; save(lastResume);
     G.showScreen('world');
+    music('a' + run.act);
     pendingNode = null;
     var box = $('world-map'), svg = $('world-lines'), width = Math.min(box.parentNode.clientWidth || 360, 420);
     var floors = run.world.floors + 1, height = PAD_Y * 2 + (floors - 1) * FLOOR_H;
@@ -174,7 +214,7 @@ var G = window.G = window.G || {};
       pendingNode = k;
       document.querySelectorAll('.node.pick').forEach(function (x) { x.classList.remove('pick'); });
       b.classList.add('pick');
-      $('world-hint').textContent = (n.floor + 1 > run.world.floors ? 'ボス' : (n.floor + 1) + '階 ' + KIND[n.type]) + '：もう一度タップで進む';
+      $('world-hint').textContent = (n.floor + 1 > run.world.floors ? 'ボス「' + R.bossName(run) + '」' : (n.floor + 1) + '階 ' + KIND[n.type]) + '：もう一度タップで進む';
       return;
     }
     R.enter(run, k);
@@ -191,7 +231,7 @@ var G = window.G = window.G || {};
   function showRelic(id) {
     var R2 = G.RELICS[id];
     $('p-title').textContent = R2.name;
-    $('p-note').textContent = R2.text + '（' + (R2.kind === 'change' ? '遊び方が変わる' : '数値が上がる') + '）';
+    $('p-note').textContent = R2.text + '（' + (R2.kind === 'change' ? '遊び方が変わる' : R2.kind === 'combo' ? '組み合わせで強くなる' : '数値が上がる') + '）';
     $('p-list').innerHTML = '';
     $('pile').hidden = false;
   }
@@ -211,6 +251,7 @@ var G = window.G = window.G || {};
   // ============================================================
   function startBattle(n) {
     var opts = R.battleOpts(run);
+    music(n.type === 'boss' ? 'boss' : 'a' + run.act);
     var label = run.act + '層' + (n.type === 'boss' ? 'ボス' : (n.floor + 1) + '階' + (n.type === 'elite' ? 'エリート' : ''));
     UI.start(opts, function (s) {
       R.finishBattle(run, s);
@@ -246,7 +287,7 @@ var G = window.G = window.G || {};
     lastResume = { type: 'actclear' }; save(lastResume);
     openPanel(A.name + 'クリア', function (body, foot) {
       body.appendChild(el('h2', 'panel-title win', A.name + ' ' + A.area + ' クリア！'));
-      body.appendChild(el('p', 'panel-text', A.boss + 'を倒した。次は' + N.name + '「' + N.area + '」。敵が強くなる。' + (G.RULES.actHeal >= 99 ? '進む時にライフが全回復する。' : '進む時にライフが' + G.RULES.actHeal + '回復する。')));
+      body.appendChild(el('p', 'panel-text', R.bossName(run) + 'を倒した。次は' + N.name + '「' + N.area + '」。敵が強くなる。' + (G.RULES.actHeal >= 99 ? '進む時にライフが全回復する。' : '進む時にライフが' + G.RULES.actHeal + '回復する。')));
       foot.appendChild(button(N.name + 'へ進む', 'go', function () { R.nextAct(run); showWorld(); }));
     });
   }
@@ -286,6 +327,7 @@ var G = window.G = window.G || {};
           if (res.fail) { msg.textContent = res.msg; return; }
           if (res.next === 'pickCopy') return pickFromDeck('複製するカードを選ぶ', function (i) { var id = run.deck[i]; R.addCard(run, id); afterEvent('「' + G.CARDS[id].name + '」をもう1枚手に入れた。'); }, true);
           if (res.next === 'pickRemove') return pickFromDeck('手放すカードを選ぶ', function (i) { R.removeCard(run, i); afterEvent('カードを手放した。'); }, true);
+          if (res.next === 'pickUpgrade') return pickFromDeck('鍛えるカードを選ぶ', function (i) { var nm = G.CARDS[run.deck[i]].name; R.upgradeCard(run, i); afterEvent('「' + nm + '」を鍛えて「' + G.CARDS[run.deck[i]].name + '」にした。'); }, true, null, R.canUpgradeCard);
           if (res.next === 'pickCard') {
             return openPanel('イベント', function (b2, f2) {
               b2.appendChild(el('h2', 'panel-title', ev.title));
@@ -383,13 +425,16 @@ var G = window.G = window.G || {};
   function showRest() {
     openPanel('休憩', function (body, foot) {
       body.appendChild(el('h2', 'panel-title', 'たき火'));
-      body.appendChild(el('p', 'panel-text', 'ひと休みできる。どちらか1つを選ぶ。'));
+      body.appendChild(el('p', 'panel-text', 'ひと休みできる。どれか1つを選ぶ。'));
       var list = el('div', 'choices');
       var a = button('', 'choice', function () { var h = R.rest(run); done('ライフが' + h + '回復した。'); });
       a.appendChild(el('b', '', '休む')); a.appendChild(el('small', '', 'ライフ+' + G.RULES.restHeal + '（最大' + run.maxLife + '）'));
+      var u = button('', 'choice', function () { pickFromDeck('鍛えるカードを選ぶ', function (i) { var nm = G.CARDS[run.deck[i]].name; R.upgradeCard(run, i); done('「' + nm + '」を鍛えて「' + G.CARDS[run.deck[i]].name + '」にした。'); }, false, showRest, R.canUpgradeCard); });
+      u.appendChild(el('b', '', '鍛える')); u.appendChild(el('small', '', 'カードを1枚「＋」にする（タワーはLv2で置かれる・スキルは効果アップ）'));
+      u.disabled = !run.deck.some(R.canUpgradeCard);
       var b = button('', 'choice', function () { pickFromDeck('手放すカードを選ぶ', function (i) { R.removeCard(run, i); done('カードを手放した。'); }, false, showRest); });
       b.appendChild(el('b', '', '整理する')); b.appendChild(el('small', '', 'デッキからカードを1枚手放す'));
-      list.appendChild(a); list.appendChild(b);
+      list.appendChild(a); list.appendChild(u); list.appendChild(b);
       body.appendChild(list);
     });
     function done(text) {
@@ -406,13 +451,13 @@ var G = window.G = window.G || {};
   // ランの終わり
   // ============================================================
   function showEnd() {
-    clearSave();
+    clearSave(); music(null);
     openPanel(run.won ? 'クリア' : '敗北', function (body, foot) {
       body.appendChild(el('h2', 'panel-title ' + (run.won ? 'win' : 'lose'), run.won ? '全3層クリア！' : '敗北…'));
       var n = R.node(run);
-      body.appendChild(el('p', 'panel-text', (run.won ? 'ラスボスの火竜を倒した。' : G.ACTS[run.act - 1].name + 'の' + (n ? (n.type === 'boss' ? 'ボス戦' : (n.floor + 1) + '階') : '') + 'で力つきた。') +
+      body.appendChild(el('p', 'panel-text', (run.won ? 'ラスボスの' + R.bossName(run) + 'を倒した。' : G.ACTS[run.act - 1].name + 'の' + (n ? (n.type === 'boss' ? 'ボス戦' : (n.floor + 1) + '階') : '') + 'で力つきた。') +
         ' 勝った戦闘 ' + run.stats.battles + '回（エリート ' + run.stats.elites + '回）、手に入れたカード ' + run.stats.cardsTaken + '枚、最後のデッキ ' + run.deck.length + '枚。'));
-      foot.appendChild(button('新しく始める', 'go', newRun));
+      foot.appendChild(button('新しく始める', 'go', chooseCommander));
       foot.appendChild(button('タイトルに戻る', '', backToTitle));
       foot.appendChild(button('最後のデッキを見る', '', function () { UI.showList('デッキ', run.deck); }));
     });
@@ -430,7 +475,8 @@ var G = window.G = window.G || {};
   }
 
   // ---- デッキから1枚選ぶ ----
-  function pickFromDeck(title, onOk, mustPick, onCancel) {
+  // ok：選べるカードか（省略するとすべて選べる）。選べないカードは暗く出す
+  function pickFromDeck(title, onOk, mustPick, onCancel, ok) {
     var grid = $('pk-grid'), picked = -1;
     $('pk-title').textContent = title;
     var tip = document.createElement('p'); tip.id = 'pk-text'; tip.className = 'pk-text'; tip.textContent = 'カードをタップして選ぶ';
@@ -438,10 +484,12 @@ var G = window.G = window.G || {};
     grid.innerHTML = '';
     run.deck.forEach(function (id, i) {
       var c = UI.cardEl(id);
+      if (ok && !ok(id)) { c.classList.add('sold'); grid.appendChild(c); return; }
       c.addEventListener('click', function () {
         grid.querySelectorAll('.card').forEach(function (x) { x.classList.remove('sel'); });
         c.classList.add('sel'); picked = i; $('pk-ok').disabled = false;
-        var box = UI.detailBox(id); box.id = 'pk-text'; $('pk-text').replaceWith(box);
+        // 鍛える時は、鍛えた後（＋）の中身を見せる
+        var box = ok === R.canUpgradeCard ? UI.detailBox(id + '+', '鍛えると「' + G.CARDS[id + '+'].name + '」になる') : UI.detailBox(id); box.id = 'pk-text'; $('pk-text').replaceWith(box);
       });
       grid.appendChild(c);
     });

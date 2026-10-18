@@ -281,6 +281,33 @@ var G = window.G = window.G || {};
     else { g.rect(1, 6, 6, 2, d); g.rect(11, 6, 6, 2, d); g.px(0, 8, d); g.px(17, 8, d); }
     return both(g.outline(OUT));
   }
+  function shaman(f) {               // ゴブリン呪術師：紫のずきんと光る杖
+    var g = new Grid(16, 19), skin = '#8bc34a';
+    if (f === 0) { g.rect(5, 15, 2, 3, '#4b3621'); g.rect(8, 15, 2, 2, '#4b3621'); } else { g.rect(4, 15, 2, 2, '#4b3621'); g.rect(8, 15, 2, 3, '#4b3621'); }
+    g.rect(3, 9, 8, 6, '#5a3a8a'); g.rect(3, 9, 1, 6, '#7a5aaa');
+    g.ell(7, 6, 3.5, 3.2, skin); g.px(5, 6, '#ffe14d'); g.px(8, 6, '#ffe14d');
+    g.rect(3, 2, 8, 3, '#5a3a8a'); g.px(4, 1, '#5a3a8a'); g.px(7, 0, '#5a3a8a'); g.rect(3, 4, 1, 3, '#5a3a8a'); g.rect(10, 4, 1, 3, '#5a3a8a');
+    g.rect(13, 3, 1, 14, '#7a5230'); g.ell(13.5, 2, 2, 2, f ? '#bfffb0' : '#7fe06a');
+    return both(g.outline(OUT));
+  }
+  function harpy(f) {                // ハーピー：茶色の翼と人の顔
+    var g = new Grid(22, 15), w = '#9a6a3a', d = '#6a4422';
+    g.ell(11, 8, 3, 4, '#c89a6a'); g.ell(11, 4, 2.5, 2.5, '#f0c49a'); g.rect(8, 1, 6, 2, '#5a3a1e'); g.px(10, 4, '#2a1a10'); g.px(12, 4, '#2a1a10');
+    if (f === 0) { g.rect(1, 4, 7, 2, w); g.rect(14, 4, 7, 2, w); g.rect(0, 3, 3, 1, d); g.rect(19, 3, 3, 1, d); }
+    else { g.rect(1, 8, 7, 2, w); g.rect(14, 8, 7, 2, w); g.rect(0, 10, 3, 1, d); g.rect(19, 10, 3, 1, d); }
+    g.rect(10, 12, 1, 2, '#e0b040'); g.rect(12, 12, 1, 2, '#e0b040');
+    return both(g.outline(OUT));
+  }
+  function wyvern(f) {               // ワイバーン：緑の翼のある竜（エリート）
+    var g = new Grid(30, 20), c = '#4a8a3a', d = '#2e5a24', b = '#a8d080';
+    g.ell(15, 11, 6, 3.5, c); g.ell(15, 12, 4, 2, b);
+    g.rect(20, 7, 3, 4, c); g.ell(24, 6, 3, 2.2, c); g.px(25, 5, '#ffd84a'); g.rect(26, 7, 2, 1, '#e0e0d0');
+    g.rect(4, 11, 6, 2, c); g.px(2, 12, c); g.px(3, 11, c);
+    if (f === 0) { g.rect(10, 2, 9, 2, d); g.rect(9, 0, 3, 2, d); g.rect(17, 4, 3, 4, d); g.rect(11, 4, 6, 4, c); }
+    else { g.rect(10, 13, 9, 2, d); g.rect(9, 15, 3, 2, d); g.rect(11, 9, 6, 4, d); }
+    g.rect(13, 14, 2, 3, d); g.rect(17, 14, 2, 3, d);
+    return both(g.outline(OUT));
+  }
   function skeleton(f) {
     var g = new Grid(14, 18), b = '#e8e2d0', d = '#a8a090';
     if (f === 0) { g.rect(5, 13, 1, 4, b); g.rect(8, 13, 1, 3, b); g.px(9, 16, b); } else { g.rect(5, 13, 1, 3, b); g.px(4, 16, b); g.rect(8, 13, 1, 4, b); }
@@ -490,6 +517,10 @@ var G = window.G = window.G || {};
       yeti: [yeti(0), yeti(1)], salamander: [salamander(0), salamander(1)],
       pine: [pine(0), pine(1)], spire: [spire(0), spire(1)],
       ogre: [ogre(0), ogre(1)], soldier: [soldier(0), soldier(1)],
+      shaman: [shaman(0), shaman(1)], harpy: [harpy(0), harpy(1)], wyvern: [wyvern(0), wyvern(1)],
+      goblinlord: [ogre(0, { skin: '#7aa83a', dark: '#4e7a22', belly: '#a8c870' }), ogre(1, { skin: '#7aa83a', dark: '#4e7a22', belly: '#a8c870' })],
+      lich: [ogre(0, { skin: '#8a8aa8', dark: '#4e4e6a', belly: '#c8c8e0' }), ogre(1, { skin: '#8a8aa8', dark: '#4e4e6a', belly: '#c8c8e0' })],
+      demonlord: [ogre(0, { skin: '#7a1e1e', dark: '#3a0a0a', belly: '#b04030' }), ogre(1, { skin: '#7a1e1e', dark: '#3a0a0a', belly: '#b04030' })],
       icon: {}, node: {},
       tree: [tree(0), tree(1)], rock: rock(), gate: gate(), castle: castle(), heart: heart()
     };

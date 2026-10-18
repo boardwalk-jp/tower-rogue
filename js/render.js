@@ -9,6 +9,9 @@ var G = window.G = window.G || {};
   var b = buf.getContext('2d');
   var bgCache = {}, M = G.MAPS.field;   // M：今描いているマップ
   var parts = [], rings = [], floats = [], nums = [], beams = [];
+  // 手ごたえの演出：画面のゆれ（shake：強さ）と白い光（flash：0〜1）
+  var fx = { shake: 0, flash: 0 };
+  function addShake(v) { fx.shake = Math.max(fx.shake, v); }
 
   function sx(x) { return x * TW; }
   function sy(y) { return y * TH + OY; }
@@ -100,17 +103,32 @@ var G = window.G = window.G || {};
         // ダメージの数字（少し左右にばらして重なりにくく）
         if (nums.length < 120) nums.push({ x: sx(e.x) + (Math.random() - 0.5) * 8, y: sy(e.y) - 16, vy: -22,
           text: String(Math.max(1, Math.round(e.amount))), col: G.DMG_COLORS[e.kind] || G.DMG_COLORS.normal,
-          size: e.kind === 'resisted' ? 0.85 : 1, life: 0.7, ml: 0.7 });
+          size: e.kind === 'resisted' ? 0.85 : e.amount >= 60 ? 1.45 : e.amount >= 30 ? 1.2 : e.kind === 'combo' ? 1.15 : 1, life: 0.7, ml: 0.7 });
+      } else if (e.k === 'summon') {
+        burst(e.x, e.y - 0.8, 16, ['#c79bff', '#6f4cc0', '#ffffff'], 40, -10, 0.6);
+        rings.push({ x: sx(e.x), y: sy(e.y), r: 4, max: 26, col: '#c79bff', life: 0.5, ml: 0.5 });
+        addShake(1.5);
+      } else if (e.k === 'healcast') {
+        rings.push({ x: sx(e.x), y: sy(e.y), r: 3, max: e.r * TW, col: '#7fe06a', life: 0.45, ml: 0.45 });
+      } else if (e.k === 'healed') {
+        burst(e.x, e.y - 0.5, 4, ['#7fe06a', '#d8ffd0'], 14, -20, 0.4);
+        if (nums.length < 120) nums.push({ x: sx(e.x), y: sy(e.y) - 18, vy: -16, text: '+' + Math.round(e.amount), col: '#7fe06a', size: 0.85, life: 0.7, ml: 0.7 });
+      } else if (e.k === 'plague') {
+        burst(e.x, e.y - 0.3, 14, ['#a6e85a', '#4a8a2a', '#d8ffb0'], 34, 0, 0.6);
+        rings.push({ x: sx(e.x), y: sy(e.y), r: 2, max: 1.2 * TW, col: '#a6e85a', life: 0.4, ml: 0.4 });
       } else if (e.k === 'kill') {
+        if (e.boss) { addShake(5); fx.flash = 0.8; burst(e.x, e.y - 1, 40, ['#ffffff', '#ffe14d', '#ff9a3a'], 70, 40, 1.0); }
+        else if (e.big) { addShake(2); burst(e.x, e.y - 0.6, 18, ['#ffffff', '#ffe14d'], 44, 60, 0.6); }
         var cols = e.type === 'slime' ? ['#5cc350', '#b6f29a'] : e.type === 'goblin' ? ['#8bc34a', '#7a5230'] : ['#6e9a4e', '#a0a0aa'];
         burst(e.x, e.y - 0.4, 12, cols, 40, 90, 0.6);
         nums.push({ x: sx(e.x), y: sy(e.y) - 22, vy: -14, text: '+' + e.gold, col: '#ffd84a', size: 0.9, life: 0.9, ml: 0.9, coin: true });
       } else if (e.k === 'boom') {
         if (e.small) burst(e.x, e.y, 6, ['#9ca1a7', '#cfc2ab', '#6b5235'], 26, 60, 0.35);
-        else burst(e.x, e.y, 14, ['#ffb347', '#ffe08a', '#ff6b3a', '#5a5048'], 50, 40, 0.5);
+        else { burst(e.x, e.y, 14, ['#ffb347', '#ffe08a', '#ff6b3a', '#5a5048'], 50, 40, 0.5); addShake(e.r >= 1.4 ? 2.5 : 1); }
         rings.push({ x: sx(e.x), y: sy(e.y), r: 2, max: e.r * TW, col: e.small ? '#cfc2ab' : '#ffcf6a', life: 0.3, ml: 0.3 });
       } else if (e.k === 'spawn') { // 洞穴から出てきた時の土ぼこり
         burst(e.x, e.y, 8, ['#8a7a68', '#b0a08a', '#5a5048'], 18, -10, 0.45);
+        if (e.boss) { addShake(4); rings.push({ x: sx(e.x), y: sy(e.y), r: 4, max: 40, col: '#ff4d3a', life: 0.7, ml: 0.7 }); }
       } else if (e.k === 'chain') {
         beams.push({ x0: sx(e.x0), y0: sy(e.y0), x1: sx(e.x1), y1: sy(e.y1), life: 0.18 });
       } else if (e.k === 'flame') {
@@ -136,6 +154,7 @@ var G = window.G = window.G || {};
         burst(e.x, e.y, 6, ['#c79bff', '#ffffff', '#9be7ff'], 30, 0, 0.35);
       } else if (e.k === 'leak') {
         floats.push({ x: sx(e.x), y: sy(e.y) - 20, text: '-' + e.life, col: '#ff5a5a', life: 1.2, heart: true });
+        addShake(e.life >= 3 ? 3.5 : 1.5);
       } else if (e.k === 'build' || e.k === 'upgrade') {
         burst(e.x, e.y, 14, e.k === 'build' ? ['#e8e0c8', '#a39581'] : ['#ffe14d', '#ffffff'], 35, 30, 0.5);
         rings.push({ x: sx(e.x), y: sy(e.y), r: 3, max: 14, col: e.k === 'build' ? '#ffffff' : '#ffe14d', life: 0.4, ml: 0.4 });
@@ -160,7 +179,14 @@ var G = window.G = window.G || {};
     for (i = beams.length - 1; i >= 0; i--) { beams[i].life -= dt; if (beams[i].life <= 0) beams.splice(i, 1); }
     for (i = nums.length - 1; i >= 0; i--) { var n = nums[i]; n.life -= dt; n.y += n.vy * dt; n.vy *= 0.92; if (n.life <= 0) nums.splice(i, 1); }
   }
-  function clearFx() { parts = []; rings = []; floats = []; nums = []; beams = []; }
+  function clearFx() { parts = []; rings = []; floats = []; nums = []; beams = []; fx.shake = 0; fx.flash = 0; }
+  // 画面のゆれの量（ピクセル）を出して少しずつ弱める
+  function shakeOffset(dt) {
+    if (fx.flash > 0) fx.flash = Math.max(0, fx.flash - dt * 2.2);
+    if (fx.shake <= 0.05) { fx.shake = 0; return { x: 0, y: 0 }; }
+    var v = fx.shake; fx.shake *= Math.pow(0.02, dt);
+    return { x: (Math.random() * 2 - 1) * v, y: (Math.random() * 2 - 1) * v };
+  }
 
   function rangeEllipse(x, y, r, col, t) { // 射程（点線のだ円。草の上でも見えるよう下に黒い影をつける）
     var n = Math.max(32, Math.round(r * 26));
@@ -207,6 +233,16 @@ var G = window.G = window.G || {};
       b.globalAlpha = 1;
     }
 
+    // 次の攻撃に空を飛ぶ敵がいれば、飛んでくる線（入口→城のまっすぐ）を点線で出す
+    if (s.phase === 'prep') {
+      var flyG = {};
+      G.Battle.nextWave(s).forEach(function (w) { if (G.ENEMIES[w.type].fly) flyG[w.gate] = true; });
+      Object.keys(flyG).forEach(function (k) {
+        var P = s.map.paths[k], a = P[0], c = P[P.length - 1], L = Math.hypot(c[0] - a[0], c[1] - a[1]), n = Math.round(L * 5);
+        b.fillStyle = '#c79bff';
+        for (var q = 0; q < n; q++) { if ((q + Math.floor(t * 6)) % 3 === 0) continue; var f2 = q / n; b.fillRect(Math.round(sx(a[0] + (c[0] - a[0]) * f2)), Math.round(sy(a[1] + (c[1] - a[1]) * f2)) - 6, 1, 1); }
+      });
+    }
     // 次の攻撃で使われる入口に「！」（タップすると次の敵が見える）
     if (s.phase === 'prep') {
       gatesNext(s).forEach(function (k) {
@@ -270,6 +306,7 @@ var G = window.G = window.G || {};
       var E = G.ENEMIES[o.type], fr = Math.floor(o.walk) % 2, es = S[o.type][fr];
       var img = o.face < 0 ? es.l : es.r, ex = sx(o.x), ey = sy(o.y) + 3;
       b.fillStyle = 'rgba(0,0,0,.35)'; b.fillRect(ex - 5, ey - 1, 10, 2);
+      if (o.fly) ey -= 7 + Math.round(Math.sin(t * 5 + o.id) * 1.5);   // 空を飛ぶ敵は影から浮かせて描く
       blitB(img, ex, ey);
       if (o.flash > 0) {
         b.globalCompositeOperation = 'lighter'; b.globalAlpha = 0.6; blitB(img, ex, ey);
@@ -279,7 +316,7 @@ var G = window.G = window.G || {};
       if (o.slowT > 0 && Math.random() < 0.3) parts.push({ x: ex + (Math.random() - 0.5) * 10, y: ey - Math.random() * img.height, vx: 0, vy: 6, g: 0, life: 0.35, ml: 0.35, col: '#bff0ff' });
       if (o.burnT > 0 && Math.random() < 0.4) parts.push({ x: ex + (Math.random() - 0.5) * 8, y: ey - img.height * 0.5, vx: 0, vy: -16, g: 0, life: 0.4, ml: 0.4, col: Math.random() < 0.5 ? '#ff6a2a' : '#ffd84a' });
       if (o.poisonT > 0 && Math.random() < 0.3) parts.push({ x: ex + (Math.random() - 0.5) * 8, y: ey - img.height * 0.6, vx: 0, vy: -10, g: 0, life: 0.5, ml: 0.5, col: '#a6e85a' });
-      var barW = E.boss ? 28 : (o.type === 'orc' || o.type === 'knight' || o.type === 'yeti' || o.type === 'kingslime') ? 14 : 10;
+      var barW = E.boss ? 28 : (o.type === 'orc' || o.type === 'knight' || o.type === 'yeti' || o.type === 'kingslime' || o.type === 'wyvern' || o.type === 'shaman' || o.type === 'iceknight' || o.type === 'demon') ? 14 : 10;
       if (o.hp < o.max || E.boss) hpBar(ex, ey - img.height - 3, barW, Math.max(0, o.hp / o.max), o.hp / o.max > 0.5 ? '#7fd36a' : '#ffb347');
     }
 
@@ -421,6 +458,6 @@ var G = window.G = window.G || {};
     return best;
   }
 
-  G.Render = { W: W, H: H, buf: buf, draw: draw, addEvents: addEvents, toTile: toTile, towerAt: towerAt, clearFx: clearFx,
+  G.Render = { W: W, H: H, buf: buf, draw: draw, shakeOffset: shakeOffset, fx: fx, addEvents: addEvents, toTile: toTile, towerAt: towerAt, clearFx: clearFx,
                gateAt: gateAt, gatePos: gatePos, drawNums: drawNums };
 })();

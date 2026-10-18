@@ -101,14 +101,25 @@ var G = window.G = window.G || {};
     return false;
   }
 
-  function create(seed) {
+  // cmdId：指揮官（G.COMMANDERS のid）。初期デッキと最大ライフが変わる
+  function create(seed, cmdId) {
     var r = B.rng(seed || (Date.now() & 0xffffff));
+    var C = G.COMMANDERS[cmdId] || G.COMMANDERS.captain;
     var run = {
-      rand: r, world: makeWorld(r), at: null, visited: [],
-      act: 1, deck: G.START_DECK.slice(), life: G.RULES.maxLife, maxLife: G.RULES.maxLife, gold: G.RULES.startGold,
+      rand: r, world: makeWorld(r), at: null, visited: [], cmd: cmdId || 'captain',
+      act: 1, deck: C.deck.slice(), life: C.life, maxLife: C.life, gold: G.RULES.startGold,
       relics: [], stats: { battles: 0, elites: 0, cardsTaken: 0 }, over: false, won: false
     };
+    run.boss = pickBoss(run);
     return run;
+  }
+  // 層のボスをくじで決める（層に入った時に1回）
+  function pickBoss(run) { return Math.floor(run.rand() * G.WAVE_SETS['a' + run.act].boss.length); }
+  // ボスの名前（そのひな形の中のボスの敵）
+  function bossName(run, act, idx) {
+    var W = G.WAVE_SETS['a' + (act || run.act)], tpl = W.boss[idx !== undefined ? idx : (run.boss || 0)], nm = '';
+    tpl.forEach(function (w) { w.forEach(function (g) { if (G.ENEMIES[g[0]].boss) nm = G.ENEMIES[g[0]].name; }); });
+    return nm;
   }
 
   // 今進めるマス
@@ -132,7 +143,7 @@ var G = window.G = window.G || {};
     var mapId = kind === 'elite' || kind === 'boss' ? A.big : pick(A.maps, r);
     var set = kind === 'elite' || kind === 'boss' ? W[kind] : f < 4 ? W.early : W.mid;
     var map = G.MAPS[mapId], gates = Object.keys(map.paths);
-    var tpl = pick(set, r), scale = (1 + f * G.RULES.floorScale) * A.hp;
+    var tpl = kind === 'boss' ? set[run.boss || 0] : pick(set, r), scale = (1 + f * G.RULES.floorScale) * A.hp;
     var waves = tpl.map(function (wave) {
       return wave.map(function (g) {
         var E = G.ENEMIES[g[0]];
@@ -141,7 +152,7 @@ var G = window.G = window.G || {};
       });
     });
     return { map: mapId, theme: A.theme, waves: waves, hpMult: scale, deck: run.deck.slice(), life: run.life, maxLife: run.maxLife,
-             gold: run.gold, seed: Math.floor(r() * 1e9), kind: kind, relics: run.relics.slice() };
+             gold: run.gold, seed: Math.floor(r() * 1e9), kind: kind, relics: run.relics.slice(), cmd: run.cmd };
   }
   // 戦闘の結果をランに戻す
   function finishBattle(run, s) {
@@ -156,12 +167,13 @@ var G = window.G = window.G || {};
     if (n.type === 'elite') run.stats.elites++;
     if (run.relics.indexOf('spring') >= 0) run.life = Math.min(run.maxLife, run.life + 3);
     run.gold += G.RULES.battleGold[n.type] || 0;
+    if (run.cmd === 'captain') run.gold += G.RULES.captainGold;
   }
 
   // ---- カードを選ぶ（報酬・商人・イベント） ----
   var WEIGHT = { battle: { common: 60, uncommon: 32, rare: 8 }, elite: { common: 30, uncommon: 45, rare: 25 },
                  shop: { common: 50, uncommon: 35, rare: 15 }, rare: { common: 0, uncommon: 40, rare: 60 } };
-  function cardPool() { return Object.keys(G.CARDS).filter(function (id) { return G.CARDS[id].rarity !== 'starter'; }); }
+  function cardPool() { return Object.keys(G.CARDS).filter(function (id) { return G.CARDS[id].rarity !== 'starter' && !G.CARDS[id].plus; }); }
   function rollCards(run, n, table) {
     var w = WEIGHT[table] || WEIGHT.battle, out = [], pool = cardPool(), guard = 0;
     while (out.length < n && guard++ < 200) {
@@ -189,6 +201,9 @@ var G = window.G = window.G || {};
   function price(run, base) { return Math.round(base * (run.relics.indexOf('seal') >= 0 ? 0.75 : 1)); }
   function addCard(run, id) { run.deck.push(id); run.stats.cardsTaken++; }
   function removeCard(run, index) { run.deck.splice(index, 1); }
+  // カードを鍛える（＋版にする）。もう＋なら何もしない
+  function canUpgradeCard(id) { return !G.CARDS[id].plus && !!G.CARDS[id + '+']; }
+  function upgradeCard(run, index) { var id = run.deck[index]; if (!canUpgradeCard(id)) return false; run.deck[index] = id + '+'; return true; }
 
   // ---- 商人 ----
   function shopStock(run) {
@@ -205,7 +220,7 @@ var G = window.G = window.G || {};
   // 次の層へ：新しいワールドマップ、ライフ回復
   function nextAct(run) {
     run.act++; run.actClear = false;
-    run.world = makeWorld(run.rand); run.at = null; run.visited = [];
+    run.world = makeWorld(run.rand); run.at = null; run.visited = []; run.boss = pickBoss(run);
     var before = run.life; run.life = Math.min(run.maxLife, run.life + G.RULES.actHeal);
     return run.life - before;
   }
@@ -227,6 +242,7 @@ var G = window.G = window.G || {};
         if (run.rand() < 0.5) { run.gold += choice.win; return { msg: 'うまく取れた！ +' + choice.win + 'G。' }; }
         run.life = Math.max(1, run.life - choice.lose); return { msg: 'やけどをした。ライフ-' + choice.lose + '。' };
       case 'removeCard': return { msg: '手放すカードを選んでください。', next: 'pickRemove' };
+      case 'upgradeCard': return { msg: '鍛えるカードを選んでください。', next: 'pickUpgrade' };
       case 'copyCard': return { msg: '複製するカードを選んでください。', next: 'pickCopy' };
       case 'relic': var rl = rollRelic(run, 'event'); addRelic(run, rl); return { msg: rl ? 'レリック「' + G.RELICS[rl].name + '」を手に入れた。' + G.RELICS[rl].text : 'お礼を言われた。' };
       case 'box':
@@ -240,11 +256,11 @@ var G = window.G = window.G || {};
   // ---- セーブ用：ランを文字にできる形にする／元に戻す ----
   function toSave(run) {
     return { world: run.world, at: run.at, visited: run.visited, deck: run.deck, life: run.life, maxLife: run.maxLife,
-             gold: run.gold, stats: run.stats, rng: run.rand.state(), relics: run.relics, act: run.act };
+             gold: run.gold, stats: run.stats, rng: run.rand.state(), relics: run.relics, act: run.act, cmd: run.cmd, boss: run.boss };
   }
   function fromSave(d) {
     return { rand: B.rng(d.rng), world: d.world, at: d.at, visited: d.visited, deck: d.deck, life: d.life, maxLife: d.maxLife,
-             gold: d.gold, stats: d.stats, relics: d.relics || [], act: d.act || 1, over: false, won: false };
+             gold: d.gold, stats: d.stats, relics: d.relics || [], act: d.act || 1, cmd: d.cmd || 'captain', boss: d.boss || 0, over: false, won: false };
   }
 
   function rest(run) { var before = run.life; run.life = Math.min(run.maxLife, run.life + G.RULES.restHeal); return run.life - before; }
@@ -252,6 +268,6 @@ var G = window.G = window.G || {};
   G.Run = {
     create: create, reachable: reachable, enter: enter, node: node, battleOpts: battleOpts, finishBattle: finishBattle,
     rollCards: rollCards, addCard: addCard, removeCard: removeCard, shopStock: shopStock,
-    rollEvent: rollEvent, eventChoice: eventChoice, nextAct: nextAct, allRoutes: allRoutes, rest: rest, rollRelic: rollRelic, addRelic: addRelic, price: price, toSave: toSave, fromSave: fromSave
+    rollEvent: rollEvent, eventChoice: eventChoice, upgradeCard: upgradeCard, canUpgradeCard: canUpgradeCard, bossName: bossName, nextAct: nextAct, allRoutes: allRoutes, rest: rest, rollRelic: rollRelic, addRelic: addRelic, price: price, toSave: toSave, fromSave: fromSave
   };
 })();

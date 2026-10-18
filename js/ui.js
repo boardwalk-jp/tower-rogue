@@ -45,7 +45,7 @@ var G = window.G = window.G || {};
     if (typeof card === 'string') card = { id: card };
     var def = G.CARDS[card.id], cost = card.cost !== undefined ? card.cost : def.cost;
     var d = document.createElement('div');
-    d.className = 'card ' + (def.kind === 'skill' ? 'skill' : 'tower') + ' r-' + def.rarity;
+    d.className = 'card ' + (def.kind === 'skill' ? 'skill' : 'tower') + ' r-' + def.rarity + (def.plus ? ' plus' : '');
     d.setAttribute('role', 'button'); d.setAttribute('aria-label', def.name + ' エネルギー' + cost);
     d.innerHTML = '<span class="top"><span class="cost">' + cost + '</span><span class="nm"></span></span>';
     d.querySelector('.nm').textContent = def.name;
@@ -58,7 +58,7 @@ var G = window.G = window.G || {};
   // 戦闘の開始
   // ============================================================
   function start(opts, cb, extra) {
-    s = B.create(opts); onEnd = cb; ended = false; info = extra || {};
+    s = B.create(opts); onEnd = cb; ended = false; info = extra || {}; freeze = 0;
     G.Render.clearFx();
     closeGateInfo(); closeTowerSheet(); deselect();
     s.events = [];
@@ -138,6 +138,7 @@ var G = window.G = window.G || {};
   // ============================================================
   function selectCard(i) {
     var card = s.hand[i], def = B.cardDef(card);
+    if (G.Sound) G.Sound.play('card');
     if (ui.selIndex === i) {
       if (def.kind === 'skill' && def.target === 'none') { useSkill(i, null); return; }
       deselect(); renderHand(); return;
@@ -290,7 +291,7 @@ var G = window.G = window.G || {};
     B.nextWave(s).filter(function (g) { return g.gate === k; }).forEach(function (g) {
       var row = document.createElement('div'); row.className = 'row';
       row.appendChild(enemyIcon(g.type));
-      row.appendChild(document.createTextNode(G.ENEMIES[g.type].name + ' ×' + g.n));
+      row.appendChild(document.createTextNode(G.ENEMIES[g.type].name + ' ×' + g.n + (G.ENEMIES[g.type].fly ? '（空）' : '')));
       var sub = document.createElement('span'); sub.className = 'sub';
       sub.textContent = g.delay > 0 ? '（' + g.delay + '秒後から）' : '';
       row.appendChild(sub);
@@ -340,7 +341,7 @@ var G = window.G = window.G || {};
   }
   function renderTowerSheet() {
     var tw = B.findTower(s, ui.selTower); if (!tw) { closeTowerSheet(); return; }
-    var T = G.TOWERS[tw.type], st = B.towerStats(tw, s), c = B.upgradeCost(tw), R = G.Rank.ofStats(st);
+    var T = G.TOWERS[tw.type], st = B.towerStats(tw, s), c = B.upgradeCost(tw, s), R = G.Rank.ofStats(st);
     $('ts-name').textContent = T.name;
     $('ts-lv').textContent = 'Lv' + (tw.lv + 1) + '/' + (T.up.length + 1) + (tw.bonusDmg ? '　研ぎ+' + tw.bonusDmg : '');
     var n = B.nextStats(tw, s), RN = n ? G.Rank.ofStats(n) : null;
@@ -405,27 +406,30 @@ var G = window.G = window.G || {};
   function detailStats(id) {
     var def = G.CARDS[id];
     var h = '<dt>エネルギー</dt><dd>' + def.cost + '</dd><dt>種類</dt><dd>' + (def.kind === 'tower' ? 'タワー' : 'スキル') + '</dd>';
+    if (def.plus && def.plusNote) h += '<dt>＋の効果</dt><dd class="plus-note">' + def.plusNote + '</dd>';
+    else if (def.plus) h += '<dt>＋の効果</dt><dd class="plus-note">鍛えて強くなったカード</dd>';
+    if (def.kind === 'tower' && G.TOWERS[def.tower].noAir) h += '<dt>空の敵</dt><dd>当たらない</dd>';
     if (def.kind === 'tower') {
-      var T = G.TOWERS[def.tower], st = B.baseStats(def.tower, 0), R = G.Rank.ofStats(st);
+      var T = G.TOWERS[def.tower], L0 = def.startLv || 0, st = B.baseStats(def.tower, L0), R = G.Rank.ofStats(st), UPS = T.up.slice(L0);
       if (T.place === 'path') h += '<dt>置ける場所</dt><dd>道の上だけ</dd>';
-      if (T.trap || T.blocker || T.soldiers) {
+      if (st.trap || st.blocker || st.soldiers) {
         var x = '';
-        if (T.trap && T.trap.type === 'spike') x = '<dt>罠のダメージ</dt><dd>' + T.trap.dmg + '（物理）</dd>';
-        if (T.trap && T.trap.type === 'tar') x = '<dt>遅くする</dt><dd>' + Math.round(T.trap.slow * 100) + '%</dd>';
-        if (T.trap && T.trap.type === 'bomb') x = '<dt>爆発</dt><dd>' + T.trap.dmg + 'ダメージ・' + T.trap.splash + 'マス</dd>';
-        if (T.blocker) x = '<dt>体力</dt><dd>' + T.blocker.hp + '</dd>';
-        if (T.soldiers) x = '<dt>兵士</dt><dd>' + T.soldiers.n + '人（体力' + T.soldiers.hp + '・攻撃' + T.soldiers.dmg + '）</dd><dt>戻るまで</dt><dd>' + T.soldiers.respawn + '秒</dd>';
-        return h + x + (T.up.length ? '<dt>強化</dt><dd>● ' + T.up.map(function (u) { return u.cost; }).join(' → ● ') + '</dd>' : '');
+        if (st.trap && st.trap.type === 'spike') x = '<dt>罠のダメージ</dt><dd>' + st.trap.dmg + '（物理）</dd>';
+        if (st.trap && st.trap.type === 'tar') x = '<dt>遅くする</dt><dd>' + Math.round(st.trap.slow * 100) + '%</dd>';
+        if (st.trap && st.trap.type === 'bomb') x = '<dt>爆発</dt><dd>' + st.trap.dmg + 'ダメージ・' + st.trap.splash + 'マス</dd>';
+        if (st.blocker) x = '<dt>体力</dt><dd>' + st.blocker.hp + '</dd>';
+        if (st.soldiers) x = '<dt>兵士</dt><dd>' + st.soldiers.n + '人（体力' + st.soldiers.hp + '・攻撃' + st.soldiers.dmg + '）</dd><dt>戻るまで</dt><dd>' + st.soldiers.respawn + '秒</dd>';
+        return h + x + (UPS.length ? '<dt>強化</dt><dd>● ' + UPS.map(function (u) { return u.cost; }).join(' → ● ') + '</dd>' : '');
       }
-      if (T.noAttack) return h + '<dt>攻撃</dt><dd>しない</dd><dt>収入</dt><dd>攻撃1回ごと ' + T.income + 'G</dd><dt>強化</dt><dd>● ' + T.up.map(function (u) { return u.cost; }).join(' → ● ') + '（収入 ' + T.up.map(function (u) { return u.income; }).join('→') + 'G）</dd>';
-      h += '<dt>攻撃力</dt><dd>' + T.dmg + (T.dmgType === 'magic' ? '（魔法）' : '（物理）') + rk(R.dmg) +
-        '</dd><dt>射程</dt><dd>' + T.range + 'マス' + rk(R.range) + '</dd><dt>攻撃速度</dt><dd>' + perSec(T.rate) + '発/s' + rk(R.speed) + '</dd>' +
-        (T.splash ? '<dt>爆発の広さ</dt><dd>' + T.splash + 'マス' + rk(R.splash) + '</dd>' : '') +
-        (T.poison ? '<dt>毒</dt><dd>毎秒' + T.poison.dps + '×' + T.poison.dur + '秒</dd>' : '') +
-        (T.burn ? '<dt>やけど</dt><dd>毎秒' + T.burn.dps + '×' + T.burn.dur + '秒</dd>' : '') +
-        (T.chain ? '<dt>連鎖</dt><dd>' + T.chain + '体（70%）</dd>' : '') +
-        (T.slow ? '<dt>遅くする</dt><dd>' + Math.round(T.slow.pct * 100) + '%×' + T.slow.dur + '秒</dd>' : '') +
-        '<dt>強化</dt><dd>● ' + T.up.map(function (u) { return u.cost; }).join(' → ● ') + '</dd>';
+      if (T.noAttack) return h + '<dt>攻撃</dt><dd>しない</dd><dt>収入</dt><dd>攻撃1回ごと ' + st.income + 'G</dd><dt>強化</dt><dd>● ' + UPS.map(function (u) { return u.cost; }).join(' → ● ') + '（収入 ' + UPS.map(function (u) { return u.income; }).join('→') + 'G）</dd>';
+      h += '<dt>攻撃力</dt><dd>' + st.dmg + (T.dmgType === 'magic' ? '（魔法）' : '（物理）') + rk(R.dmg) +
+        '</dd><dt>射程</dt><dd>' + st.range + 'マス' + rk(R.range) + '</dd><dt>攻撃速度</dt><dd>' + perSec(st.rate) + '発/s' + rk(R.speed) + '</dd>' +
+        (st.splash ? '<dt>爆発の広さ</dt><dd>' + st.splash + 'マス' + rk(R.splash) + '</dd>' : '') +
+        (st.poison ? '<dt>毒</dt><dd>毎秒' + st.poison.dps + '×' + st.poison.dur + '秒</dd>' : '') +
+        (st.burn ? '<dt>やけど</dt><dd>毎秒' + st.burn.dps + '×' + st.burn.dur + '秒</dd>' : '') +
+        (st.chain ? '<dt>連鎖</dt><dd>' + st.chain + '体（70%）</dd>' : '') +
+        (st.slow ? '<dt>遅くする</dt><dd>' + Math.round(st.slow.pct * 100) + '%×' + st.slow.dur + '秒</dd>' : '') +
+        (UPS.length ? '<dt>強化</dt><dd>● ' + UPS.map(function (u) { return u.cost; }).join(' → ● ') + '</dd>' : '<dt>強化</dt><dd>最大</dd>');
     } else {
       h += '<dt>使う相手</dt><dd>' + (def.target === 'tower' ? 'タワー1つ' : 'なし（すぐ効く）') + '</dd>';
     }
@@ -503,17 +507,47 @@ var G = window.G = window.G || {};
     var evs = s.events.splice(0);
     if (!evs.length) return;
     G.Render.addEvents(evs);
+    playSounds(evs);
     var inf = false;
     evs.forEach(function (e) {
       if (e.k === 'prep') { closeTowerSheetIfGone(); deselect(); renderHand(); showBanner('準備ターン', 'prep'); inf = true; }
       else if (e.k === 'attack') { showBanner(s.turn === s.totalTurns - 1 ? '最後の攻撃' : '攻撃ターン', 'attack'); }
       else if (e.k === 'spawn' && e.boss) showBanner('ボス出現！', 'attack');
-      else if (e.k === 'kill' || e.k === 'leak') inf = true;
+      else if (e.k === 'summon') toast('ボスが手下を呼んだ！');
+      else if (e.k === 'kill' || e.k === 'leak') {
+        inf = true;
+        if (e.k === 'kill' && e.boss) freeze = Math.max(freeze, 0.45);
+        else if (e.k === 'kill' && e.big) freeze = Math.max(freeze, 0.07);
+      }
       else if (e.k === 'reshuffle') toast('捨て札を混ぜて山札に戻しました');
       else if (e.k === 'relic') toast('レリック「' + G.RELICS[e.id].name + '」が働いた');
       else if (e.k === 'win' || e.k === 'lose') finish();
     });
     if (inf) renderInfo();
+  }
+  // 出来事ごとの効果音
+  function playSounds(evs) {
+    var SND = G.Sound; if (!SND) return;
+    evs.forEach(function (e) {
+      switch (e.k) {
+        case 'fire': SND.play(G.TOWERS[e.type].shot || 'arrow'); break;
+        case 'hit': if (e.kind !== 'poison' && e.kind !== 'burn') SND.play('hit'); break;
+        case 'kill': SND.play(e.boss ? 'bossdown' : e.big ? 'bigkill' : 'kill'); if (!e.boss) SND.play('coin'); break;
+        case 'leak': SND.play('leak'); break;
+        case 'build': SND.play('build'); break;
+        case 'upgrade': SND.play('upgrade'); break;
+        case 'skill': SND.play('skill'); break;
+        case 'boom': SND.play(e.small ? 'stone' : 'boom'); break;
+        case 'broken': SND.play('boom'); break;
+        case 'spawn': if (e.boss) SND.play('boss'); break;
+        case 'summon': SND.play('summon'); break;
+        case 'healcast': SND.play('heal'); break;
+        case 'attack': SND.play('attack'); break;
+        case 'income': SND.play('coin'); break;
+        case 'win': SND.play('win'); break;
+        case 'lose': SND.play('lose'); break;
+      }
+    });
   }
   function closeTowerSheetIfGone() { if (ui.selTower && !B.findTower(s, ui.selTower)) closeTowerSheet(); }
   function finish() {
@@ -542,21 +576,28 @@ var G = window.G = window.G || {};
   if (window.visualViewport) window.visualViewport.addEventListener('resize', fit);
 
   // ---- ゲームの時計 ----
-  var prev = performance.now();
+  var prev = performance.now(), freeze = 0;
   function frame(now) {
     var dt = Math.min(0.05, (now - prev) / 1000); prev = now;
     if (s && G.currentScreen === 'game') {
       ui.time += dt;
-      // 速度2倍の時も細かく刻んで、弾が敵をすり抜けないようにする
-      var left = dt * speed;
-      while (left > 0) { var step = Math.min(left, 1 / 60); B.update(s, step); left -= step; }
+      // 手ごたえの演出：大きな敵を倒した瞬間だけ、ほんの少し時間を止める
+      if (freeze > 0) freeze -= dt;
+      else {
+        // 速度2倍の時も細かく刻んで、弾が敵をすり抜けないようにする
+        var left = dt * speed;
+        while (left > 0) { var step = Math.min(left, 1 / 60); B.update(s, step); left -= step; }
+      }
       handleEvents();
       renderHud(false);
       if (s.phase === 'attack' && Math.floor(ui.time * 4) !== Math.floor((ui.time - dt) * 4)) renderInfo();
       G.Render.draw(s, ui, dt);
       ctx.imageSmoothingEnabled = false;
-      ctx.drawImage(G.Render.buf, 0, 0, cv.width, cv.height);
-      G.Render.drawNums(ctx, cv.width / G.Render.W);
+      var k = cv.width / G.Render.W, sh = G.Render.shakeOffset(dt);
+      if (sh.x || sh.y) { ctx.fillStyle = '#0b0d0a'; ctx.fillRect(0, 0, cv.width, cv.height); }
+      ctx.drawImage(G.Render.buf, Math.round(sh.x * k), Math.round(sh.y * k), cv.width, cv.height);
+      if (G.Render.fx.flash > 0) { ctx.fillStyle = 'rgba(255,255,255,' + (G.Render.fx.flash * 0.6).toFixed(3) + ')'; ctx.fillRect(0, 0, cv.width, cv.height); }
+      G.Render.drawNums(ctx, k);
     }
     if (toastT > 0) { toastT -= dt; if (toastT <= 0) $('toast').classList.remove('show'); }
     if (bannerT > 0) { bannerT -= dt; if (bannerT <= 0) $('banner').classList.remove('show'); }

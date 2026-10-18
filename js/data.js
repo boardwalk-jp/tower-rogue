@@ -150,7 +150,7 @@ G.TOWERS = {
     up: [{ cost: 30, dmg: 26, range: 2.5, rate: 1.5 }, { cost: 60, dmg: 42, range: 2.8, rate: 1.4 }]
   },
   cannon: {
-    name: '大砲', muzzle: 0.6, cost: 2, range: 2.4, dmg: 11, rate: 2.0, dmgType: 'physical', shot: 'ball', speed: 4, splash: 0.95,
+    name: '大砲', noAir: true, muzzle: 0.6, cost: 2, range: 2.4, dmg: 11, rate: 2.0, dmgType: 'physical', shot: 'ball', speed: 4, splash: 0.95,
     text: '砲弾が爆発し、まわりの敵もまとめて攻撃。',
     up: [{ cost: 30, dmg: 18, range: 2.6, rate: 1.9, splash: 1.1 }, { cost: 60, dmg: 28, range: 2.8, rate: 1.8, splash: 1.25 }]
   },
@@ -225,7 +225,7 @@ G.TOWERS = {
 G.CARDS = {
   bowman:   { kind: 'tower', tower: 'bowman', rarity: 'starter' },
   sling:    { kind: 'tower', tower: 'sling', rarity: 'starter' },
-  aim:      { kind: 'skill', name: '狙い撃ち', cost: 0, target: 'tower', rarity: 'starter', icon: 'eye',
+  aim:      { kind: 'skill', name: '狙い撃ち', cost: 0, target: 'tower', rarity: 'starter', icon: 'eye', mult: 1.5,
               text: 'タワー1つの攻撃力をこのターンだけ1.5倍。' },
 
   watch:    { kind: 'tower', tower: 'watch', rarity: 'common' },
@@ -244,15 +244,15 @@ G.CARDS = {
   barricade: { kind: 'tower', tower: 'barricade', rarity: 'uncommon' },
   barracks: { kind: 'tower', tower: 'barracks', rarity: 'uncommon' },
 
-  supply:   { kind: 'skill', name: '補給', cost: 0, target: 'none', rarity: 'common', icon: 'bag',
+  supply:   { kind: 'skill', name: '補給', cost: 0, target: 'none', rarity: 'common', icon: 'bag', n: 2,
               text: 'カードを2枚引く。' },
-  whet:     { kind: 'skill', name: '研ぎ石', cost: 0, target: 'tower', rarity: 'common', icon: 'stone',
+  whet:     { kind: 'skill', name: '研ぎ石', cost: 0, target: 'tower', rarity: 'common', icon: 'stone', amount: 3,
               text: 'タワー1つの攻撃力を+3（この戦闘中ずっと）。' },
-  tax:      { kind: 'skill', name: '臨時徴税', cost: 0, target: 'none', rarity: 'common', icon: 'coin', exhaust: true,
+  tax:      { kind: 'skill', name: '臨時徴税', cost: 0, target: 'none', rarity: 'common', icon: 'coin', exhaust: true, gold: 20,
               text: 'お金+20。使い切り（この戦闘中は戻らない）。' },
   forge:    { kind: 'skill', name: '鍛冶仕事', cost: 1, target: 'tower', rarity: 'uncommon', icon: 'hammer',
               text: 'タワー1つをお金を使わずにLv+1（この戦闘中ずっと）。' },
-  warcry:   { kind: 'skill', name: '号令', cost: 1, target: 'none', rarity: 'uncommon', icon: 'horn',
+  warcry:   { kind: 'skill', name: '号令', cost: 1, target: 'none', rarity: 'uncommon', icon: 'horn', mult: 1.5,
               text: 'すべてのタワーの攻撃速度をこのターンだけ1.5倍。' },
   workshop: { kind: 'skill', name: '急造工房', cost: 2, target: 'none', rarity: 'rare', icon: 'saw', exhaust: true,
               text: '「弓兵の塔（エネルギー0・使い切り）」を2枚手札に加える。使い切り。',
@@ -263,14 +263,46 @@ Object.keys(G.CARDS).forEach(function (id) {
   var c = G.CARDS[id]; c.id = id;
   if (c.kind === 'tower') { var T = G.TOWERS[c.tower]; c.name = T.name; c.cost = T.cost; c.text = T.text; }
 });
+// ---- 強化したカード（id の後ろに「+」、名前の後ろに「＋」）。休憩の「鍛える」などで作る ----
+// タワー：強化できるタワーは Lv2 の状態で置かれる。強化のないタワーはエネルギー-1
+// スキル：下の表のとおりに数値が良くなる
+G.PLUS_SKILL = {
+  aim:      { mult: 2, text: 'タワー1つの攻撃力をこのターンだけ2倍。' },
+  supply:   { n: 3, text: 'カードを3枚引く。' },
+  whet:     { amount: 5, text: 'タワー1つの攻撃力を+5（この戦闘中ずっと）。' },
+  tax:      { gold: 32, text: 'お金+32。使い切り（この戦闘中は戻らない）。' },
+  forge:    { cost: 0, text: 'タワー1つをお金を使わずにLv+1（この戦闘中ずっと）。' },
+  warcry:   { mult: 1.8, text: 'すべてのタワーの攻撃速度をこのターンだけ1.8倍。' },
+  workshop: { cost: 1, text: '「弓兵の塔（エネルギー0・使い切り）」を2枚手札に加える。使い切り。' }
+};
+Object.keys(G.CARDS).forEach(function (id) {
+  var c = G.CARDS[id], p = Object.assign({}, c, { id: id + '+', base: id, plus: true, name: c.name + '＋' });
+  if (c.kind === 'tower') {
+    if (G.TOWERS[c.tower].up.length) { p.startLv = 1; p.plusNote = 'Lv2の状態で置かれる'; }
+    else { p.cost = Math.max(0, c.cost - 1); p.plusNote = 'エネルギー' + c.cost + '→' + p.cost; }
+  } else Object.assign(p, G.PLUS_SKILL[id] || { cost: Math.max(0, c.cost - 1) });
+  G.CARDS[id + '+'] = p;
+});
 
 // 初期デッキ（8枚・3種類）：見習い弓兵×4、投石小屋×3、狙い撃ち×1
 G.START_DECK = ['bowman', 'bowman', 'bowman', 'bowman', 'sling', 'sling', 'sling', 'aim'];
+
+// ---- 指揮官（ランの最初に1人選ぶ）。初期デッキ・最大ライフ・固有の能力が違う ----
+G.COMMANDERS = {
+  captain:  { name: '隊長', icon: 'bowman', life: 40, deck: G.START_DECK,
+              text: '戦闘に勝つたびにお金+8。', sub: 'バランス型。弓と投石で戦う' },
+  witch:    { name: '魔女', icon: 'mage', life: 38, deck: ['bowman', 'bowman', 'bowman', 'poison', 'poison', 'frost', 'sling', 'aim'],
+              text: '魔法のタワーの攻撃力+25%。毒とやけどが1秒長く続く。', sub: '毒と氷から始まる。ライフは少なめ' },
+  engineer: { name: '工兵', icon: 'barracks', life: 44, deck: ['bowman', 'bowman', 'bowman', 'sling', 'sling', 'spikes', 'spikes', 'barricade'],
+              text: 'タワーの強化の値段が20%安い。', sub: '罠とバリケードから始まる。ライフは多め' }
+};
 
 // ============================================================
 // 敵
 // speed はマス/秒、armor は物理ダメージを減らす割合、life はゴールに着いた時に減るライフ
 // revive：一度だけ体力半分で起き上がる。split：倒すと分かれる。immune：効かない状態異常。magicResist：魔法・炎を減らす割合
+// fly：空を飛ぶ（道を通らず入口から城へまっすぐ。罠・バリケード・兵士に止められず、大砲は当たらない）
+// heal：近くの仲間の体力を回復する。summon：一定の時間ごとに手下を呼ぶ（ボス）
 // ============================================================
 G.ENEMIES = {
   slime:  { name: 'スライム',   hp: 48,   speed: 0.9,  armor: 0,   life: 1,  gold: 3,   gap: 1.2 },
@@ -278,17 +310,23 @@ G.ENEMIES = {
   wolf:   { name: 'ウルフ',     hp: 28,   speed: 2.1,  armor: 0,   life: 1,  gold: 4,   gap: 0.7 },
   orc:    { name: 'オーク',     hp: 190,  speed: 0.6,  armor: 0.4, life: 2,  gold: 10,  gap: 2.6 },
   knight: { name: '重装オーク', hp: 260,  speed: 0.55, armor: 0.5, life: 3,  gold: 20,  gap: 4.0 },
-  bat:    { name: 'コウモリ',   hp: 20,   speed: 2.5,  armor: 0,   life: 1,  gold: 3,   gap: 0.5 },
+  bat:    { name: 'コウモリ',   hp: 20,   speed: 0.95,  armor: 0,   life: 1,  gold: 3,   gap: 0.5, fly: true },
   skeleton: { name: 'ガイコツ', hp: 60,   speed: 1.0,  armor: 0.2, life: 1,  gold: 6,   gap: 1.4, revive: true },
   kingslime: { name: '大スライム', hp: 150, speed: 0.7, armor: 0,   life: 2,  gold: 8,   gap: 3.0, split: { type: 'slime', n: 3 } },
   yeti:   { name: 'イエティ',   hp: 240,  speed: 0.7,  armor: 0.2, life: 2,  gold: 14,  gap: 3.0, immune: ['slow'] },
   salamander: { name: '火トカゲ', hp: 120, speed: 1.2, armor: 0.1, life: 1, gold: 8,  gap: 1.6, immune: ['burn'], magicResist: 0.3 },
-  icebat:    { name: '氷コウモリ', hp: 24,  speed: 2.4,  armor: 0,   life: 1,  gold: 4,   gap: 0.5 },
+  icebat:    { name: '氷コウモリ', hp: 24,  speed: 0.95,  armor: 0,   life: 1,  gold: 4,   gap: 0.5, fly: true },
+  harpy:     { name: 'ハーピー',   hp: 90, speed: 0.75, armor: 0,   life: 1,  gold: 8,   gap: 1.4, fly: true },
+  wyvern:    { name: 'ワイバーン', hp: 380, speed: 0.48,  armor: 0.2, life: 3,  gold: 24,  gap: 4.0, fly: true, immune: ['burn'] },
+  shaman:    { name: 'ゴブリン呪術師', hp: 150, speed: 0.8, armor: 0, life: 2, gold: 14, gap: 3.0, heal: { r: 1.4, amt: 15, every: 3 } },
+  goblinlord: { name: 'ゴブリン将軍', hp: 1250, speed: 0.42, armor: 0.25, life: 10, gold: 100, gap: 1, boss: true, summon: { type: 'goblin', n: 3, every: 8 } },
+  lich:      { name: '死霊の王',   hp: 1400, speed: 0.4, armor: 0.2, magicResist: 0.2, life: 10, gold: 100, gap: 1, boss: true, summon: { type: 'skeleton', n: 2, every: 8 } },
+  demonlord: { name: '魔王',       hp: 2200, speed: 0.36, armor: 0.3, life: 15, gold: 0, gap: 1, boss: true, final: true, immune: ['burn'], summon: { type: 'bat', n: 3, every: 7 } },
   iceknight: { name: '氷の騎士',   hp: 300, speed: 0.55, armor: 0.5, life: 3,  gold: 22,  gap: 4.0, immune: ['slow'] },
   magma:     { name: '溶岩スライム', hp: 160, speed: 0.7, armor: 0,  life: 2,  gold: 9,   gap: 3.0, immune: ['burn'], split: { type: 'salamander', n: 2 } },
   demon:     { name: '炎の悪魔',   hp: 320, speed: 0.7,  armor: 0.3, life: 3,  gold: 24,  gap: 4.0, immune: ['burn'], magicResist: 0.3 },
   frostgiant: { name: '霜の巨人',  hp: 1700, speed: 0.4, armor: 0.3, life: 10, gold: 100, gap: 1, boss: true, immune: ['slow'] },
-  dragon:    { name: '火竜',       hp: 2600, speed: 0.35, armor: 0.35, life: 15, gold: 0, gap: 1, boss: true, immune: ['burn'], magicResist: 0.25 },
+  dragon:    { name: '火竜',       hp: 2600, speed: 0.35, armor: 0.35, life: 15, gold: 0, gap: 1, boss: true, final: true, immune: ['burn'], magicResist: 0.25 },
   ogre:   { name: 'オーガ王',   hp: 1500, speed: 0.4,  armor: 0.3, life: 10, gold: 100, gap: 1, boss: true }
 };
 
@@ -304,46 +342,60 @@ G.WAVE_SETS = {
       [[['slime', 6, 0]], [['slime', 5, 0], ['goblin', 4, 3]], [['goblin', 6, 0], ['slime', 5, 2]]],
       [[['goblin', 6, 0]], [['slime', 6, 0], ['wolf', 3, 4]], [['orc', 1, 0], ['goblin', 6, 2]]],
       [[['slime', 4, 0], ['slime', 4, 4]], [['wolf', 5, 0]], [['slime', 6, 0], ['orc', 1, 5]]],
-      [[['bat', 6, 0]], [['wolf', 4, 0], ['slime', 4, 3]], [['kingslime', 1, 0], ['goblin', 6, 2]]]
+      [[['bat', 3, 0]], [['wolf', 4, 0], ['slime', 4, 3]], [['kingslime', 1, 0], ['goblin', 6, 2]]]
     ],
     mid: [
       [[['goblin', 7, 0]], [['orc', 2, 0], ['slime', 8, 2]], [['wolf', 8, 0], ['orc', 3, 4]]],
       [[['slime', 8, 0]], [['orc', 2, 0], ['goblin', 7, 4]], [['wolf', 7, 0], ['goblin', 6, 2], ['orc', 2, 6]]],
-      [[['bat', 8, 0]], [['kingslime', 2, 0], ['wolf', 5, 3]], [['orc', 3, 0], ['bat', 8, 3]]]
+      [[['bat', 4, 0]], [['kingslime', 2, 0], ['wolf', 5, 3]], [['orc', 3, 0], ['bat', 4, 3]]]
     ],
-    elite: [[[['goblin', 4, 0], ['wolf', 2, 3]], [['knight', 1, 0], ['slime', 4, 3]], [['orc', 2, 0], ['wolf', 4, 4]], [['knight', 1, 0], ['goblin', 5, 3], ['orc', 1, 8]]]],
+    elite: [[[['goblin', 4, 0], ['wolf', 2, 3]], [['knight', 1, 0], ['slime', 4, 3]], [['orc', 2, 0], ['wolf', 4, 4]], [['knight', 1, 0], ['goblin', 5, 3], ['orc', 1, 8]]],
+            [[['goblin', 5, 0]], [['shaman', 1, 0], ['goblin', 6, 1]], [['orc', 2, 0], ['shaman', 1, 2], ['slime', 5, 4]], [['shaman', 2, 0], ['orc', 2, 1], ['wolf', 4, 5]]],
+            [[['bat', 3, 0]], [['harpy', 2, 0], ['bat', 3, 3]], [['knight', 1, 0], ['harpy', 2, 3]], [['harpy', 3, 0], ['bat', 4, 2], ['orc', 1, 6]]]],
     boss: [[[['slime', 5, 0]], [['goblin', 5, 0], ['wolf', 3, 3]], [['orc', 2, 0], ['slime', 5, 3]],
-            [['knight', 1, 0], ['wolf', 5, 3]], [['ogre', 1, 0], ['goblin', 5, 5], ['wolf', 4, 10]]]]
+            [['knight', 1, 0], ['wolf', 5, 3]], [['ogre', 1, 0], ['goblin', 5, 5], ['wolf', 4, 10]]],
+           [[['goblin', 6, 0]], [['wolf', 5, 0], ['bat', 2, 3]], [['shaman', 1, 0], ['goblin', 6, 1]],
+            [['orc', 2, 0], ['wolf', 5, 3]], [['goblinlord', 1, 0], ['shaman', 1, 3], ['wolf', 4, 10]]]]
   },
   // ---- 第2層 雪山 ----
   a2: {
     early: [
-      [[['wolf', 6, 0]], [['icebat', 6, 0], ['skeleton', 3, 3]], [['yeti', 1, 0], ['wolf', 6, 2]]],
-      [[['skeleton', 4, 0]], [['icebat', 8, 0]], [['yeti', 2, 0], ['skeleton', 4, 3]]],
-      [[['icebat', 5, 0], ['wolf', 4, 3]], [['yeti', 1, 0], ['skeleton', 4, 2]], [['wolf', 8, 0], ['yeti', 1, 4]]]
+      [[['wolf', 6, 0]], [['icebat', 3, 0], ['skeleton', 3, 3]], [['yeti', 1, 0], ['wolf', 6, 2]]],
+      [[['skeleton', 4, 0]], [['icebat', 4, 0]], [['yeti', 2, 0], ['skeleton', 4, 3]]],
+      [[['icebat', 3, 0], ['wolf', 4, 3]], [['yeti', 1, 0], ['skeleton', 4, 2]], [['wolf', 8, 0], ['yeti', 1, 4]]]
     ],
     mid: [
-      [[['wolf', 8, 0]], [['yeti', 2, 0], ['icebat', 6, 3]], [['skeleton', 6, 0], ['yeti', 2, 4]]],
-      [[['skeleton', 6, 0]], [['icebat', 10, 0], ['wolf', 4, 3]], [['yeti', 3, 0], ['skeleton', 5, 4]]]
+      [[['wolf', 8, 0]], [['yeti', 2, 0], ['icebat', 3, 3]], [['skeleton', 6, 0], ['yeti', 2, 4]]],
+      [[['skeleton', 6, 0]], [['icebat', 5, 0], ['wolf', 4, 3]], [['yeti', 3, 0], ['skeleton', 5, 4]]],
+      [[['icebat', 3, 0], ['wolf', 4, 2]], [['harpy', 2, 0], ['skeleton', 5, 2]], [['yeti', 2, 0], ['harpy', 2, 3], ['icebat', 2, 5]]]
     ],
-    elite: [[[['wolf', 5, 0], ['icebat', 4, 3]], [['iceknight', 1, 0], ['skeleton', 4, 3]], [['yeti', 2, 0], ['wolf', 5, 4]], [['iceknight', 1, 0], ['icebat', 6, 3], ['yeti', 1, 8]]]],
-    boss: [[[['wolf', 6, 0]], [['skeleton', 5, 0], ['icebat', 5, 3]], [['yeti', 2, 0], ['wolf', 5, 3]],
-            [['iceknight', 1, 0], ['skeleton', 5, 3]], [['frostgiant', 1, 0], ['icebat', 6, 5], ['yeti', 1, 10]]]]
+    elite: [[[['wolf', 5, 0], ['icebat', 2, 3]], [['iceknight', 1, 0], ['skeleton', 4, 3]], [['yeti', 2, 0], ['wolf', 5, 4]], [['iceknight', 1, 0], ['icebat', 3, 3], ['yeti', 1, 8]]],
+            [[['icebat', 4, 0]], [['harpy', 3, 0], ['icebat', 2, 3]], [['iceknight', 1, 0], ['harpy', 2, 3]], [['harpy', 4, 0], ['yeti', 2, 3]]],
+            [[['skeleton', 5, 0]], [['shaman', 1, 0], ['skeleton', 5, 1]], [['yeti', 2, 0], ['shaman', 1, 2]], [['iceknight', 1, 0], ['shaman', 2, 2], ['skeleton', 5, 4]]]],
+    boss: [[[['wolf', 6, 0]], [['skeleton', 5, 0], ['icebat', 3, 3]], [['yeti', 2, 0], ['wolf', 5, 3]],
+            [['iceknight', 1, 0], ['skeleton', 5, 3]], [['frostgiant', 1, 0], ['icebat', 3, 5], ['yeti', 1, 10]]],
+           [[['skeleton', 6, 0]], [['icebat', 3, 0], ['wolf', 5, 3]], [['harpy', 2, 0], ['skeleton', 5, 3]],
+            [['iceknight', 1, 0], ['harpy', 2, 3]], [['lich', 1, 0], ['icebat', 3, 6], ['yeti', 1, 12]]]]
   },
   // ---- 第3層 火山 ----
   a3: {
     early: [
-      [[['salamander', 4, 0]], [['bat', 8, 0], ['skeleton', 3, 3]], [['magma', 1, 0], ['salamander', 4, 3]]],
-      [[['bat', 8, 0]], [['salamander', 5, 0], ['skeleton', 2, 3]], [['magma', 2, 0], ['bat', 6, 3]]],
-      [[['skeleton', 4, 0]], [['salamander', 6, 0]], [['orc', 2, 0], ['salamander', 4, 3], ['bat', 4, 6]]]
+      [[['salamander', 4, 0]], [['bat', 4, 0], ['skeleton', 3, 3]], [['magma', 1, 0], ['salamander', 4, 3]]],
+      [[['bat', 4, 0]], [['salamander', 5, 0], ['skeleton', 2, 3]], [['magma', 2, 0], ['bat', 3, 3]]],
+      [[['skeleton', 4, 0]], [['salamander', 6, 0]], [['orc', 2, 0], ['salamander', 4, 3], ['bat', 2, 6]]]
     ],
     mid: [
-      [[['salamander', 5, 0], ['bat', 4, 3]], [['magma', 2, 0], ['skeleton', 4, 3]], [['demon', 1, 0], ['salamander', 6, 3]]],
-      [[['bat', 10, 0]], [['skeleton', 6, 0], ['magma', 1, 4]], [['salamander', 8, 0], ['orc', 3, 3]]]
+      [[['salamander', 5, 0], ['bat', 2, 3]], [['magma', 2, 0], ['skeleton', 4, 3]], [['demon', 1, 0], ['salamander', 6, 3]]],
+      [[['bat', 5, 0]], [['skeleton', 6, 0], ['magma', 1, 4]], [['salamander', 8, 0], ['orc', 3, 3]]],
+      [[['salamander', 5, 0]], [['harpy', 3, 0], ['bat', 3, 2]], [['magma', 1, 0], ['harpy', 2, 2], ['salamander', 4, 4]]]
     ],
-    elite: [[[['salamander', 5, 0], ['bat', 4, 3]], [['demon', 1, 0], ['skeleton', 4, 3]], [['magma', 2, 0], ['salamander', 5, 4]], [['demon', 2, 0], ['bat', 6, 3]]]],
-    boss: [[[['salamander', 6, 0]], [['bat', 8, 0], ['skeleton', 4, 3]], [['magma', 2, 0], ['salamander', 5, 3]],
-            [['demon', 1, 0], ['bat', 8, 3]], [['dragon', 1, 0], ['salamander', 6, 6], ['demon', 1, 12]]]]
+    elite: [[[['salamander', 5, 0], ['bat', 2, 3]], [['demon', 1, 0], ['skeleton', 4, 3]], [['magma', 2, 0], ['salamander', 5, 4]], [['demon', 2, 0], ['bat', 3, 3]]],
+            [[['bat', 4, 0]], [['wyvern', 1, 0], ['bat', 3, 2]], [['harpy', 3, 0], ['salamander', 4, 2]], [['wyvern', 2, 0], ['harpy', 2, 4]]],
+            [[['salamander', 6, 0]], [['shaman', 1, 0], ['magma', 1, 1]], [['demon', 1, 0], ['shaman', 1, 2], ['salamander', 4, 3]], [['wyvern', 1, 0], ['demon', 1, 3], ['shaman', 1, 4]]]],
+    boss: [[[['salamander', 6, 0]], [['bat', 4, 0], ['skeleton', 4, 3]], [['magma', 2, 0], ['salamander', 5, 3]],
+            [['demon', 1, 0], ['bat', 4, 3]], [['dragon', 1, 0], ['salamander', 6, 6], ['demon', 1, 12]]],
+           [[['skeleton', 6, 0]], [['harpy', 3, 0], ['salamander', 4, 3]], [['magma', 2, 0], ['bat', 3, 3]],
+            [['wyvern', 1, 0], ['demon', 1, 4]], [['demonlord', 1, 0], ['salamander', 5, 6], ['harpy', 2, 12]]]]
   }
 };
 
@@ -352,9 +404,9 @@ G.WAVE_SETS = {
 // maps：ふつうの戦闘のマップ（theme で色を変えて使い回す）。big：エリート・ボスのマップ
 // ============================================================
 G.ACTS = [
-  { name: '第1層', area: '草原', theme: 'grass',   maps: ['field', 'snake'],              big: 'valley', hp: 1.0, boss: 'オーガ王' },
-  { name: '第2層', area: '雪山', theme: 'snow',    maps: ['snowpass', 'snowpass', 'field', 'snake'], big: 'valley', hp: 1.05, boss: '霜の巨人' },
-  { name: '第3層', area: '火山', theme: 'volcano', maps: ['lavaflow', 'lavaflow', 'snake', 'field'], big: 'valley', hp: 1.2, boss: '火竜' }
+  { name: '第1層', area: '草原', theme: 'grass',   maps: ['field', 'snake'],              big: 'valley', hp: 1.0 },
+  { name: '第2層', area: '雪山', theme: 'snow',    maps: ['snowpass', 'snowpass', 'field', 'snake'], big: 'valley', hp: 1.05 },
+  { name: '第3層', area: '火山', theme: 'volcano', maps: ['lavaflow', 'lavaflow', 'snake', 'field'], big: 'valley', hp: 1.2 }
 ];
 
 // ============================================================
@@ -362,7 +414,8 @@ G.ACTS = [
 // ============================================================
 G.EVENTS = [
   { id: 'smith', acts: [1, 2, 3], title: '旅の鍛冶屋', text: '道ばたで鍛冶屋が店を広げている。「いらない道具を引き取ろうか？」',
-    choices: [{ label: 'カードを1枚手放す', note: '-30G', effect: 'removeCard', gold: -30 },
+    choices: [{ label: 'カードを1枚鍛える', note: '-40G、カードを＋にする', effect: 'upgradeCard', gold: -40 },
+              { label: 'カードを1枚手放す', note: '-30G', effect: 'removeCard', gold: -30 },
               { label: '立ち去る', effect: 'none' }] },
   { id: 'spring', acts: [1], title: '不思議な泉', text: '澄んだ水がわき出ている。底には金貨が光っている。',
     choices: [{ label: '水を飲む', note: 'ライフ+8', effect: 'heal', amount: 8 },
@@ -418,13 +471,18 @@ G.RELICS = {
   seal:      { name: '商人の印',   kind: 'number', rarity: 'uncommon', text: '商人の値段が25%安くなる。' },
   blueprint: { name: '設計図の束', kind: 'change', rarity: 'uncommon', text: 'タワーを建てると、1ターンに1回だけカードを1枚引く。' },
   wall:      { name: '応急の石壁', kind: 'change', rarity: 'rare',     text: '攻撃1回ごとに、城に着いた最初の敵ではライフが減らない。' },
-  stone:     { name: 'エネルギー石', kind: 'change', rarity: 'rare',   text: '毎ターンのエネルギー+1。' }
+  stone:     { name: 'エネルギー石', kind: 'change', rarity: 'rare',   text: '毎ターンのエネルギー+1。' },
+  // ---- 組み合わせのレリック（2つの効果が重なると強くなる） ----
+  conductor: { name: '導電の氷',   kind: 'combo', rarity: 'uncommon', text: '遅くなっている敵（氷・沼）が受ける雷のダメージが2倍。' },
+  oil:       { name: '油の壺',     kind: 'combo', rarity: 'uncommon', text: '沼で遅くなっている敵に炎が当たると、ダメージ1.5倍・やけどの時間2倍。' },
+  brittle:   { name: '砕ける霜',   kind: 'combo', rarity: 'common',   text: '遅くなっている敵（氷・沼）への物理ダメージ+25%。' },
+  plague:    { name: '疫病の灰',   kind: 'combo', rarity: 'rare',     text: '毒の敵が倒れると、周り1.2マスの敵に同じ毒がうつる。' }
 };
 Object.keys(G.RELICS).forEach(function (k) { G.RELICS[k].id = k; });
 
 // ---- ダメージ数字の色 ----
 // normal：ふつう / resisted：よろい・耐性で減った / poison：毒 / burn：やけど（今後）
-G.DMG_COLORS = { normal: '#ffffff', resisted: '#8fa6bd', poison: '#a6e85a', burn: '#ff9a3a' };
+G.DMG_COLORS = { normal: '#ffffff', resisted: '#8fa6bd', poison: '#a6e85a', burn: '#ff9a3a', combo: '#ffd84a' };
 
 // アップ・ダウンの色（ゲーム全体で統一）
 // アップ＝強くなる（強化ボタン、強化後の射程、強くなる数値の差）＝赤
@@ -450,6 +508,7 @@ G.RULES = {
   floorScale: 0.04,   // 1階進むごとに敵の体力が4%ずつ増える（数はひな形どおり）
   battleGold: { battle: 10, elite: 30 },   // 戦闘に勝った時のおまけのお金
   restHeal: 12,
+  captainGold: 8,     // 隊長：戦闘に勝つたびのお金
   shop: { price: { common: 35, uncommon: 55, rare: 80 }, remove: 50, heal: 30, healAmount: 10,
           relicPrice: { common: 90, uncommon: 120, rare: 160 } }
 };
