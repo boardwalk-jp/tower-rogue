@@ -30,7 +30,7 @@
 <main id="game" hidden>
   <header class="hud">
     <span class="hud-life" title="ライフ">♥ <b id="h-life">20</b></span>
-    <span class="hud-turn"><b id="h-phase">準備</b> <span id="h-turn">1/5</span></span>
+    <span class="hud-turn"><b id="h-phase">準備</b> <span id="h-turn">1/5</span> <span id="h-left" class="hud-left"></span></span>
     <span class="hud-gold" title="お金">● <b id="h-gold">20</b></span>
   </header>
 
@@ -41,7 +41,6 @@
     <div class="bubble" id="gate-info" hidden></div>
   </div>
 
-  <div class="info" id="info"></div>
 
   <div class="actions">
     <button type="button" id="btn-draw">ドロー <small>● <span id="draw-cost">15</span></small></button>
@@ -59,10 +58,7 @@
   <div class="sheet" id="tower-sheet" hidden>
     <div class="sheet-head"><b id="ts-name"></b> <span id="ts-lv"></span></div>
     <p id="ts-stats"></p>
-    <div class="sheet-btns">
-      <button type="button" id="ts-up" class="go">強化</button>
-      <button type="button" id="ts-close">閉じる</button>
-    </div>
+    <button type="button" id="ts-up" class="up">強化</button>
   </div>
 </main>
 

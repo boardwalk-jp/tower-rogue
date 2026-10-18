@@ -83,6 +83,9 @@ G.WAVES = [
 // normal：ふつう / resisted：よろい・耐性で減った / poison：毒（今後） / burn：やけど（今後）
 G.DMG_COLORS = { normal: '#ffffff', resisted: '#8fa6bd', poison: '#a6e85a', burn: '#ff9a3a' };
 
+// 強化の色（強化ボタンと、強化後の射程の線をそろえる）
+G.UP_COLOR = '#ff7ad9';   // 草の緑の上でも見えるピンク
+
 // ---- ルール（仮の数値） ----
 G.RULES = {
   life: 20,

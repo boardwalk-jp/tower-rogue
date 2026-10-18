@@ -2,7 +2,7 @@
 :root{
   --bg:#121815; --panel:#1b231f; --panel2:#232e28; --line:#33453b;
   --fg:#eef2ea; --muted:#a3b5a6; --accent:#e6b84a; --good:#7fd36a; --bad:#ff6b5b;
-  --energy:#5fc8ff; --gold:#ffd84a;
+  --energy:#5fc8ff; --gold:#ffd84a; --up:#ff7ad9;
   --font:"DotGothic16","Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif;
   color-scheme:dark;
 }
@@ -48,6 +48,7 @@ h1 span{font-size:18px;color:var(--muted)}
 .hud-life{color:#ff7a7a}
 .hud-gold{color:var(--gold)}
 .hud-turn #h-phase{color:var(--accent)}
+.hud-left{color:var(--fg);margin-left:4px}
 #h-energy{display:flex;gap:6px;align-items:center}
 .gem{width:13px;height:13px;transform:rotate(45deg);border:1px solid #4f8fae;background:#16303c}
 .en-num{color:var(--energy);margin-left:4px;font-size:17px}
@@ -70,8 +71,6 @@ h1 span{font-size:18px;color:var(--muted)}
   border-radius:8px;padding:6px 12px;font-size:14px;pointer-events:none;opacity:0;transition:opacity .2s;white-space:nowrap}
 .toast.show{opacity:1}
 
-.info{min-height:34px;padding:4px 10px;font-size:13px;color:var(--muted);display:flex;flex-wrap:wrap;gap:4px 10px;align-items:center}
-.info .lbl{color:var(--fg)}
 .chip{display:inline-flex;align-items:center;gap:2px;color:var(--fg)}
 .chip canvas{width:22px;height:18px;image-rendering:pixelated}
 .gate{color:var(--accent)}
@@ -96,27 +95,33 @@ h1 span{font-size:18px;color:var(--muted)}
 #btn-go{min-width:100px}
 
 /* 手札：4枚までは1段、5枚以上は4枚×2段。1枚の幅は約85pt */
-.hand{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:4px 8px 0}
-.card{position:relative;height:98px;border-radius:9px;border:2px solid #4a5a50;background:linear-gradient(#2b3a31,#1d2621);
-  display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding:4px 2px 5px;
-  transition:transform .12s, border-color .12s;touch-action:none;cursor:pointer}
-.hand.two .card{height:90px}
+/* 手札：4枚までは1段。5枚以上は4枚×2段で、1段目の上側（名前とコスト）だけ見えるように2段目を重ねる。
+   --row2 は2段目で増える高さ。マップの大きさはこの分をいつも見込んで計算する（ui.js の fit） */
+.hand{--card-h:76px;--peek:36px;--row2:var(--peek);
+  display:grid;grid-template-columns:repeat(4,1fr);column-gap:6px;padding:8px 8px 0}
+.card{position:relative;height:var(--card-h);border-radius:9px;border:2px solid #4a5a50;background:linear-gradient(#2b3a31,#1d2621);
+  display:flex;flex-direction:column;align-items:center;padding:3px 3px 4px;gap:1px;
+  transition:transform .12s, border-color .12s;touch-action:none;cursor:pointer;box-shadow:0 -3px 8px rgba(0,0,0,.35)}
+.hand.two .card:nth-child(n+5){margin-top:calc(var(--peek) - var(--card-h))}
+.card .top{display:flex;align-items:center;gap:3px;width:100%;min-height:22px}
+.card .nm{font-size:12px;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:clip;flex:1 1 auto;min-width:0;text-align:center;padding-right:4px}
 .card canvas{image-rendering:pixelated;flex:1 1 auto;min-height:0;max-width:100%;object-fit:contain}
-.card .nm{font-size:13px;line-height:1.2;white-space:nowrap}
-.card .cost{position:absolute;left:4px;top:4px;width:22px;height:22px;display:flex;align-items:center;justify-content:center;
-  font-size:14px;color:#08202c}
+.card .cost{position:relative;flex:0 0 auto;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:13px;color:#08202c;z-index:0}
 .card .cost::before{content:"";position:absolute;inset:3px;transform:rotate(45deg);background:var(--energy);border:1px solid #b8ecff;z-index:-1}
-.card .cost{z-index:0}
-.card.sel{border-color:var(--accent);transform:translateY(-8px);box-shadow:0 6px 0 rgba(0,0,0,.4)}
+.card.sel{border-color:var(--accent);transform:translateY(-8px);z-index:3}
 .card.poor{opacity:.45}
-.card.empty{border-style:dashed;border-color:#2b3a31;background:none;cursor:default}
+.card.empty{border-style:dashed;border-color:#2b3a31;background:none;cursor:default;box-shadow:none}
 .ghost{position:fixed;z-index:30;pointer-events:none;opacity:.85;transform:translate(-50%,-90%) scale(1.05)}
 
 .sheet{position:absolute;left:8px;right:8px;bottom:calc(max(22px,calc(env(safe-area-inset-bottom) + 10px)) + 4px);z-index:20;
   background:var(--panel);border:1px solid var(--accent);border-radius:12px;padding:10px 12px;box-shadow:0 -6px 20px rgba(0,0,0,.5)}
 .sheet-head{font-size:17px} .sheet-head span{color:var(--accent);font-size:14px}
 .sheet p{margin:6px 0 10px;font-size:14px;color:var(--muted);line-height:1.6}
-.sheet-btns{display:flex;gap:8px} .sheet-btns button{flex:1}
+.sheet #ts-up{width:100%}
+.sheet .now{display:block;color:var(--fg)}
+.sheet .next{display:block;color:var(--up)}
+.sheet p span span{white-space:nowrap}
+button.up{background:var(--up);color:#2a0820;border-color:var(--up)}
 
 .modal{position:fixed;inset:0;z-index:40;background:rgba(5,8,6,.72);display:flex;align-items:center;justify-content:center;padding:16px}
 .modal-box{width:100%;max-width:340px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 16px;

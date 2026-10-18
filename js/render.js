@@ -129,13 +129,21 @@ var G = window.G = window.G || {};
   }
   function clearFx() { parts = []; rings = []; floats = []; nums = []; }
 
-  function rangeEllipse(x, y, r, col, t) { // 射程（点線のだ円）
-    var n = Math.max(24, Math.round(r * 18));
-    for (var i = 0; i < n; i++) {
-      if ((i + Math.floor(t * 8)) % 3 === 0) continue;
-      var a = i / n * Math.PI * 2;
-      b.fillStyle = col; b.fillRect(Math.round(sx(x) + Math.cos(a) * r * TW), Math.round(sy(y) + Math.sin(a) * r * TH), 1, 1);
+  function rangeEllipse(x, y, r, col, t) { // 射程（点線のだ円。草の上でも見えるよう下に黒い影をつける）
+    var n = Math.max(32, Math.round(r * 26));
+    for (var pass = 0; pass < 2; pass++) {
+      b.fillStyle = pass ? col : 'rgba(10,14,10,.7)';
+      for (var i = 0; i < n; i++) {
+        if ((i + Math.floor(t * 8)) % 4 === 0) continue;
+        var a = i / n * Math.PI * 2;
+        b.fillRect(Math.round(sx(x) + Math.cos(a) * r * TW) + (pass ? 0 : 1), Math.round(sy(y) + Math.sin(a) * r * TH) + (pass ? 0 : 1), 1, 1);
+      }
     }
+  }
+  function fillEllipse(x, y, r, col, a) {
+    b.globalAlpha = a; b.fillStyle = col;
+    b.beginPath(); b.ellipse(sx(x), sy(y), r * TW, r * TH, 0, 0, Math.PI * 2); b.fill();
+    b.globalAlpha = 1;
   }
   function hpBar(x, y, w, r, col) {
     x = Math.round(x - w / 2); y = Math.round(y);
@@ -189,10 +197,6 @@ var G = window.G = window.G || {};
         if (o.type === 'cannon') spr = o.aim < 0 ? spr.l : spr.r;
         b.fillStyle = 'rgba(0,0,0,.35)'; b.fillRect(sx(o.x) - 7, sy(o.y) + 3, 14, 2);
         blitB(spr, sx(o.x), sy(o.y) + 5);
-        if (ui.selTower === o.id) {
-          var st = G.Battle.towerStats(o);
-          rangeEllipse(o.x, o.y, st.range, '#ffe14d', t);
-        }
         for (var l = 0; l < o.lv; l++) { b.fillStyle = '#ffe14d'; b.fillRect(sx(o.x) - 3 + l * 4, sy(o.y) + 3, 2, 2); }
         continue;
       }
@@ -206,6 +210,16 @@ var G = window.G = window.G || {};
         b.globalAlpha = 1; b.globalCompositeOperation = 'source-over';
       }
       if (o.hp < o.max) hpBar(ex, ey - img.height - 3, o.type === 'orc' ? 14 : 10, o.hp / o.max, o.hp / o.max > 0.5 ? '#7fd36a' : '#ffb347');
+    }
+
+    // 選んだタワーの射程：今の射程＝白、強化後の射程＝緑（強化ボタンと同じ色）
+    var selTw = ui.selTower ? G.Battle.findTower(s, ui.selTower) : null;
+    if (selTw) {
+      var cur = G.Battle.towerStats(selTw).range, nx = G.Battle.nextStats(selTw);
+      if (nx) fillEllipse(selTw.x, selTw.y, nx.range, G.UP_COLOR, 0.16);
+      fillEllipse(selTw.x, selTw.y, cur, '#ffffff', 0.16);
+      rangeEllipse(selTw.x, selTw.y, cur, '#ffffff', t);
+      if (nx) rangeEllipse(selTw.x, selTw.y, nx.range, G.UP_COLOR, t);
     }
 
     // 弾
@@ -232,9 +246,7 @@ var G = window.G = window.G || {};
       var pv = ui.preview, ok = G.Battle.canPlaceAt(s, pv.tx, pv.ty);
       var T = G.TOWERS[ui.selType];
       // 射程の内側をうすく塗る
-      b.globalAlpha = 0.2; b.fillStyle = ok ? '#ffffff' : '#ff5a5a';
-      b.beginPath(); b.ellipse(sx(pv.tx + 0.5), sy(pv.ty + 0.5), T.range * TW, T.range * TH, 0, 0, Math.PI * 2); b.fill();
-      b.globalAlpha = 1;
+      fillEllipse(pv.tx + 0.5, pv.ty + 0.5, T.range, ok ? '#ffffff' : '#ff5a5a', 0.2);
       rangeEllipse(pv.tx + 0.5, pv.ty + 0.5, T.range, ok ? '#ffffff' : '#ff5a5a', t);
       var ps = S[ui.selType][0][0]; if (ui.selType === 'cannon') ps = ps.r;
       b.globalAlpha = ui.pending ? 0.75 : 0.6; blitB(ps, sx(pv.tx + 0.5), sy(pv.ty + 0.5) + 5); b.globalAlpha = 1;

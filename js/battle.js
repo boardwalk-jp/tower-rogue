@@ -125,6 +125,10 @@ var G = window.G = window.G || {};
     }
     return st;
   }
+  function nextStats(tw) { // 次のレベルの強さ（最大なら null）
+    if (tw.lv >= G.TOWERS[tw.type].up.length) return null;
+    return towerStats({ type: tw.type, lv: tw.lv + 1 });
+  }
   function upgradeCost(tw) {
     var T = G.TOWERS[tw.type];
     return tw.lv < T.up.length ? T.up[tw.lv].cost : null;
@@ -279,7 +283,7 @@ var G = window.G = window.G || {};
 
   G.Battle = {
     create: create, update: update, startAttack: startAttack, playCard: playCard,
-    canPlaceAt: canPlaceAt, upgrade: upgrade, upgradeCost: upgradeCost, towerStats: towerStats,
+    canPlaceAt: canPlaceAt, upgrade: upgrade, upgradeCost: upgradeCost, towerStats: towerStats, nextStats: nextStats,
     extraDraw: extraDraw, nextWave: nextWave, findTower: findTower, tileAt: tileAt
   };
 })();

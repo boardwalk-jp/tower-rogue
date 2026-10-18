@@ -84,14 +84,9 @@ var G = window.G = window.G || {};
     c.width = 22; c.height = 18; c.getContext('2d').drawImage(img, Math.round((22 - img.width) / 2), 18 - img.height);
     return c;
   }
+  // 攻撃中の残りの敵の数は上の帯に出す
   function renderInfo() {
-    var el = $('info'); el.innerHTML = '';
-    if (s.phase === 'prep') {
-      el.innerHTML = '<span>入口の <b style="color:var(--bad)">！</b> をタップすると次に来る敵が見えます</span>';
-    } else if (s.phase === 'attack') {
-      var left = s.spawnQueue.length + s.enemies.length;
-      el.innerHTML = '<span class="lbl">残り ' + left + '体</span><span>攻撃中もカードを使えます</span>';
-    }
+    $('h-left').textContent = s.phase === 'attack' ? '残り' + (s.spawnQueue.length + s.enemies.length) + '体' : '';
   }
 
   function cardArt(type, big) {
@@ -108,9 +103,10 @@ var G = window.G = window.G || {};
       d.className = 'card' + (i === ui.selIndex ? ' sel' : '');
       d.dataset.index = i;
       d.setAttribute('role', 'button'); d.setAttribute('aria-label', T.name + ' エネルギー' + T.cost);
-      d.innerHTML = '<span class="cost">' + T.cost + '</span>';
+      // 上の段：コストと名前（2段で重なっても見えるように）
+      d.innerHTML = '<span class="top"><span class="cost">' + T.cost + '</span><span class="nm"></span></span>';
+      d.querySelector('.nm').textContent = T.name;
       d.appendChild(cardArt(card.type));
-      var nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = T.name; d.appendChild(nm);
       bindCard(d, i);
       el.appendChild(d);
     });
@@ -275,10 +271,17 @@ var G = window.G = window.G || {};
     var T = G.TOWERS[tw.type], st = G.Battle.towerStats(tw), c = G.Battle.upgradeCost(tw);
     $('ts-name').textContent = T.name;
     $('ts-lv').textContent = 'Lv' + (tw.lv + 1) + '/' + (T.up.length + 1);
-    var txt = '攻撃力 ' + st.dmg + '・射程 ' + st.range.toFixed(1) + 'マス・' + st.rate.toFixed(1) + '秒ごと';
-    if (c !== null) {
-      var n = T.up[tw.lv];
-      txt += '<br>強化すると → 攻撃力 ' + n.dmg + '・射程 ' + n.range.toFixed(1);
+    var txt = '<span class="now">攻撃力 ' + st.dmg + '・射程 ' + st.range.toFixed(1) + 'マス・' + st.rate.toFixed(1) + '秒ごと' +
+      (st.splash ? '・爆発 ' + st.splash.toFixed(2).replace(/0$/, '') + 'マス' : '') + '</span>';
+    var n = G.Battle.nextStats(tw);
+    if (n) {
+      // 変わる数値の後ろに (+4) のように差を書く
+      var d = function (a, b, dec) { var v = +(b - a).toFixed(dec); return v === 0 ? '' : '(' + (v > 0 ? '+' : '') + v + ')'; };
+      var w = function (x) { return '<span>' + x + '</span>'; };  // 項目の途中で改行しないように
+      txt += '<span class="next">強化 → ' + w('攻撃力 ' + n.dmg + d(st.dmg, n.dmg, 0)) +
+        '・' + w('射程 ' + n.range.toFixed(1) + d(st.range, n.range, 1)) +
+        '・' + w(n.rate.toFixed(1) + '秒ごと' + d(st.rate, n.rate, 1)) +
+        (n.splash ? '・' + w('爆発 ' + n.splash.toFixed(2).replace(/0$/, '') + d(st.splash, n.splash, 2)) : '') + '</span>';
     }
     $('ts-stats').innerHTML = txt;
     var up = $('ts-up');
@@ -289,7 +292,12 @@ var G = window.G = window.G || {};
     var err = G.Battle.upgrade(s, ui.selTower);
     if (err) toast(err); renderTowerSheet(); renderHud(true);
   });
-  $('ts-close').addEventListener('click', closeTowerSheet);
+  // 閉じるボタンはなし：小窓の外（マップ以外も含む）をタップすると閉じる
+  document.addEventListener('pointerdown', function (e) {
+    if ($('tower-sheet').hidden) return;
+    if ($('tower-sheet').contains(e.target) || e.target === cv) return;
+    closeTowerSheet();
+  }, true);
 
   // ---- 詳細（長押し） ----
   function showDetail(type) {
@@ -374,7 +382,10 @@ var G = window.G = window.G || {};
   // ---- 画面の大きさに合わせてマップを拡大 ----
   function fit() {
     var st = $('stage').getBoundingClientRect();
-    var W = G.Render.W, H = G.Render.H, k = Math.min(st.width / W, st.height / H);
+    // 手札が1段の時も2段分の高さ（OVERLAP_EXTRA）を見込んでおき、枚数でマップの大きさが変わらないようにする
+    var two = $('hand').classList.contains('two');
+    var extra = two ? 0 : parseFloat(getComputedStyle($('hand')).getPropertyValue('--row2')) || 0;
+    var W = G.Render.W, H = G.Render.H, k = Math.min(st.width / W, (st.height - extra) / H);
     var cw = Math.floor(W * k), ch = Math.floor(H * k);
     cv.style.width = cw + 'px'; cv.style.height = ch + 'px';
     var d = Math.min(window.devicePixelRatio || 1, 3);
