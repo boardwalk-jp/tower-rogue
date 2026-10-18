@@ -132,6 +132,21 @@ var G = window.G = window.G || {};
     run.boss = pickBoss(run);
     return run;
   }
+  // ひな形の強さの目安：敵の体力×数（よろいは多め、空の敵は1.4倍、復活・分かれる敵は多め）
+  function tplScore(tpl) {
+    var t = 0;
+    tpl.forEach(function (w) { w.forEach(function (g) {
+      var E = G.ENEMIES[g[0]], v = E.hp * (1 + E.armor) * (E.fly ? 1.4 : 1) * (E.revive ? 1.5 : 1);
+      if (E.split) v += G.ENEMIES[E.split.type].hp * E.split.n;
+      t += v * g[1];
+    }); });
+    return t;
+  }
+  // その層の通常戦闘（early と mid）のひな形を弱い順に並べ、最初の easyPool 個
+  function easyTemplates(act) {
+    var W = G.WAVE_SETS['a' + act];
+    return W.early.concat(W.mid).slice().sort(function (a, b) { return tplScore(a) - tplScore(b); }).slice(0, G.RULES.easyPool);
+  }
   // 層のボスをくじで決める（層に入った時に1回）
   function pickBoss(run) { return Math.floor(run.rand() * G.WAVE_SETS['a' + run.act].boss.length); }
   // ボスの名前（そのひな形の中のボスの敵）
@@ -159,10 +174,15 @@ var G = window.G = window.G || {};
     var n = node(run), kind = n.type, f = n.floor, r = run.rand;
     // 層ごとの地域：マップと敵の組み合わせ（G.ACTS・G.WAVE_SETS.a1〜a3）。エリートとボスは大きいマップ
     var A = G.ACTS[run.act - 1], W = G.WAVE_SETS['a' + run.act];
-    var mapId = kind === 'elite' || kind === 'boss' ? A.big : pick(A.maps, r);
+    // マップ：前の戦闘と同じ形にならないように選ぶ
+    var pool = (kind === 'elite' || kind === 'boss' ? A.big : A.maps).filter(function (m) { return m !== run.lastMap; });
+    var mapId = pick(pool.length ? pool : A.maps, r); run.lastMap = mapId;
     var set = kind === 'elite' || kind === 'boss' ? W[kind] : f < 4 ? W.early : W.mid;
+    // 各層の最初の数回の通常戦闘は、その層の通常戦闘のひな形のうち弱い方から（同じひな形は続けない）
+    if (kind === 'battle' && (run.actBattles || 0) < G.RULES.easyBattles) set = easyTemplates(run.act).filter(function (t) { return t !== run.lastTpl; });
     var map = G.MAPS[mapId], gates = Object.keys(map.paths);
     var tpl = kind === 'boss' ? set[run.boss || 0] : pick(set, r), scale = (1 + f * G.RULES.floorScale) * A.hp;
+    if (kind === 'battle') run.lastTpl = tpl;
     var waves = tpl.map(function (wave) {
       return wave.map(function (g) {
         var E = G.ENEMIES[g[0]];
@@ -184,6 +204,7 @@ var G = window.G = window.G || {};
       run.actClear = true; return;      // 次の層へ（screens.js が nextAct を呼ぶ）
     }
     if (n.type === 'elite') run.stats.elites++;
+    if (n.type === 'battle') run.actBattles = (run.actBattles || 0) + 1;
     if (run.relics.indexOf('spring') >= 0) run.life = Math.min(run.maxLife, run.life + 3);
     run.gold += G.RULES.battleGold[n.type] || 0;
     if (run.cmd === 'captain') run.gold += G.RULES.captainGold;
@@ -239,7 +260,7 @@ var G = window.G = window.G || {};
   // 次の層へ：新しいワールドマップ、ライフ回復
   function nextAct(run) {
     run.act++; run.actClear = false;
-    run.world = makeWorld(run.rand); run.at = null; run.visited = []; run.boss = pickBoss(run);
+    run.world = makeWorld(run.rand); run.at = null; run.visited = []; run.boss = pickBoss(run); run.actBattles = 0;
     var before = run.life; run.life = Math.min(run.maxLife, run.life + G.RULES.actHeal);
     return run.life - before;
   }
@@ -275,11 +296,11 @@ var G = window.G = window.G || {};
   // ---- セーブ用：ランを文字にできる形にする／元に戻す ----
   function toSave(run) {
     return { world: run.world, at: run.at, visited: run.visited, deck: run.deck, life: run.life, maxLife: run.maxLife,
-             gold: run.gold, stats: run.stats, rng: run.rand.state(), relics: run.relics, act: run.act, cmd: run.cmd, boss: run.boss };
+             gold: run.gold, stats: run.stats, rng: run.rand.state(), relics: run.relics, act: run.act, cmd: run.cmd, boss: run.boss, actBattles: run.actBattles || 0, lastMap: run.lastMap || null };
   }
   function fromSave(d) {
     return { rand: B.rng(d.rng), world: d.world, at: d.at, visited: d.visited, deck: d.deck, life: d.life, maxLife: d.maxLife,
-             gold: d.gold, stats: d.stats, relics: d.relics || [], act: d.act || 1, cmd: d.cmd || 'captain', boss: d.boss || 0, over: false, won: false };
+             gold: d.gold, stats: d.stats, relics: d.relics || [], act: d.act || 1, cmd: d.cmd || 'captain', boss: d.boss || 0, actBattles: d.actBattles || 0, lastMap: d.lastMap || null, over: false, won: false };
   }
 
   function rest(run) { var before = run.life; run.life = Math.min(run.maxLife, run.life + G.RULES.restHeal); return run.life - before; }
@@ -287,6 +308,6 @@ var G = window.G = window.G || {};
   G.Run = {
     create: create, reachable: reachable, enter: enter, node: node, battleOpts: battleOpts, finishBattle: finishBattle,
     rollCards: rollCards, addCard: addCard, removeCard: removeCard, shopStock: shopStock,
-    rollEvent: rollEvent, eventChoice: eventChoice, upgradeCard: upgradeCard, canUpgradeCard: canUpgradeCard, bossName: bossName, nextAct: nextAct, allRoutes: allRoutes, rest: rest, rollRelic: rollRelic, addRelic: addRelic, price: price, toSave: toSave, fromSave: fromSave
+    rollEvent: rollEvent, eventChoice: eventChoice, easyTemplates: easyTemplates, tplScore: tplScore, upgradeCard: upgradeCard, canUpgradeCard: canUpgradeCard, bossName: bossName, nextAct: nextAct, allRoutes: allRoutes, rest: rest, rollRelic: rollRelic, addRelic: addRelic, price: price, toSave: toSave, fromSave: fromSave
   };
 })();

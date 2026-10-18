@@ -102,6 +102,47 @@ G.MAPS = {
     gateName: { A: '入口' }
   }
 };
+// ---- 道の曲がり角（マスの座標）だけを書いて、マップを自動で作る ----
+// gates：入口ごとの曲がり角 [[x,y],...]（最初は0行目の入口、最後は14行目の城）。縦か横にまっすぐつなぐ
+// 木と岩は、決まった数から計算した場所に置く（毎回同じ形になる）
+function buildMap(name, gates, gateName, seed) {
+  var W = 11, H = 15, g = [], k, i;
+  for (var y = 0; y < H; y++) { g.push([]); for (var x = 0; x < W; x++) g[y].push('.'); }
+  var paths = {}, castle = null;
+  Object.keys(gates).forEach(function (key) {
+    var P = gates[key];
+    for (i = 0; i < P.length - 1; i++) {
+      var a = P[i], b = P[i + 1], dx = Math.sign(b[0] - a[0]), dy = Math.sign(b[1] - a[1]), cx = a[0], cy = a[1];
+      g[cy][cx] = '#';
+      while (cx !== b[0] || cy !== b[1]) { cx += dx; cy += dy; g[cy][cx] = '#'; }
+    }
+    castle = P[P.length - 1];
+    paths[key] = P.map(function (q, j) { return [q[0] + 0.5, j === 0 ? 0.8 : j === P.length - 1 ? 14.6 : q[1] + 0.5]; });
+  });
+  Object.keys(gates).forEach(function (key) { g[0][gates[key][0][0]] = key; });
+  for (var yy = 13; yy <= 14; yy++) for (var xx = castle[0] - 1; xx <= castle[0] + 1; xx++) g[yy][xx] = 'X';
+  g[14][castle[0]] = 'G'; g[13][castle[0]] = '#';
+  // 木と岩（道・城の近く・入口の列は避ける）
+  var h = seed;
+  function rnd() { h = (h * 1103515245 + 12345) & 0x7fffffff; return h / 0x7fffffff; }
+  for (y = 1; y < H; y++) for (x = 0; x < W; x++) {
+    if (g[y][x] !== '.') continue;
+    var r = rnd();
+    if (r < 0.085) g[y][x] = 'T'; else if (r < 0.11) g[y][x] = 'R';
+  }
+  return { name: name, rows: g.map(function (row) { return row.join(''); }), paths: paths, gateName: gateName };
+}
+var ONE = { A: '入口' }, TWO = { A: '左の入口', B: '右の入口' };
+G.MAPS.zigzag = buildMap('ジグザグ坂', { A: [[1, 0], [1, 3], [9, 3], [9, 6], [1, 6], [1, 9], [9, 9], [9, 12], [5, 12], [5, 14]] }, ONE, 11);
+G.MAPS.cross  = buildMap('交わる道', { A: [[1, 0], [1, 5], [9, 5], [9, 10], [5, 10], [5, 14]], B: [[9, 0], [9, 2], [3, 2], [3, 8], [7, 8], [7, 10], [5, 10], [5, 14]] }, TWO, 23);
+G.MAPS.ushape = buildMap('U字の谷', { A: [[2, 0], [2, 3], [3, 3], [3, 10], [5, 10], [5, 14]], B: [[8, 0], [8, 3], [7, 3], [7, 10], [5, 10], [5, 14]] }, TWO, 37);
+G.MAPS.stairs = buildMap('階段の道', { A: [[1, 0], [1, 2], [3, 2], [3, 4], [5, 4], [5, 6], [7, 6], [7, 8], [9, 8], [9, 11], [5, 11], [5, 14]] }, ONE, 41);
+G.MAPS.twin   = buildMap('二本の並木道', { A: [[2, 0], [2, 6], [4, 6], [4, 10], [5, 10], [5, 14]], B: [[8, 0], [8, 6], [6, 6], [6, 10], [5, 10], [5, 14]] }, TWO, 53);
+G.MAPS.hook   = buildMap('釣り針の道', { A: [[8, 0], [8, 9], [2, 9], [2, 4], [5, 4], [5, 14]] }, ONE, 67);
+G.MAPS.wave   = buildMap('波打つ道', { A: [[3, 0], [3, 3], [8, 3], [8, 7], [2, 7], [2, 11], [6, 11], [6, 14]], B: [[8, 0], [8, 7], [2, 7], [2, 11], [6, 11], [6, 14]] }, TWO, 79);
+// エリート・ボス用（入口3つ）：中央の道が曲がりくねる
+G.MAPS.crown  = buildMap('王冠の谷', { A: [[1, 0], [1, 4], [3, 4], [3, 9], [5, 9], [5, 14]], B: [[9, 0], [9, 4], [7, 4], [7, 9], [5, 9], [5, 14]], C: [[5, 0], [5, 14]] },
+                          { A: '左の入口', B: '右の入口', C: '中央の入口' }, 97);
 Object.keys(G.MAPS).forEach(function (k) {
   var m = G.MAPS[k];
   m.id = k; m.cols = m.rows[0].length; m.rowsN = m.rows.length;
@@ -340,6 +381,8 @@ G.WAVE_SETS = {
   // ---- 第1層 草原 ----
   a1: {
     early: [
+      [[['slime', 4, 0]], [['slime', 4, 0], ['goblin', 2, 3]], [['goblin', 4, 0], ['slime', 3, 2]]],
+      [[['slime', 5, 0]], [['goblin', 4, 0]], [['slime', 4, 0], ['wolf', 2, 3]]],
       [[['slime', 6, 0]], [['slime', 5, 0], ['goblin', 4, 3]], [['goblin', 6, 0], ['slime', 5, 2]]],
       [[['goblin', 6, 0]], [['slime', 6, 0], ['wolf', 3, 4]], [['orc', 1, 0], ['goblin', 6, 2]]],
       [[['slime', 4, 0], ['slime', 4, 4]], [['wolf', 5, 0]], [['slime', 6, 0], ['orc', 1, 5]]],
@@ -361,6 +404,8 @@ G.WAVE_SETS = {
   // ---- 第2層 雪山 ----
   a2: {
     early: [
+      [[['wolf', 4, 0]], [['skeleton', 2, 0], ['wolf', 3, 2]], [['wolf', 5, 0], ['skeleton', 2, 3]]],
+      [[['skeleton', 3, 0]], [['wolf', 5, 0]], [['icebat', 3, 0], ['skeleton', 3, 2]]],
       [[['wolf', 6, 0]], [['icebat', 3, 0], ['skeleton', 3, 3]], [['yeti', 1, 0], ['wolf', 6, 2]]],
       [[['skeleton', 4, 0]], [['icebat', 4, 0]], [['yeti', 2, 0], ['skeleton', 4, 3]]],
       [[['icebat', 3, 0], ['wolf', 4, 3]], [['yeti', 1, 0], ['skeleton', 4, 2]], [['wolf', 8, 0], ['yeti', 1, 4]]]
@@ -381,6 +426,8 @@ G.WAVE_SETS = {
   // ---- 第3層 火山 ----
   a3: {
     early: [
+      [[['salamander', 3, 0]], [['skeleton', 3, 0], ['salamander', 2, 3]], [['salamander', 4, 0], ['skeleton', 2, 3]]],
+      [[['skeleton', 3, 0]], [['salamander', 4, 0]], [['bat', 3, 0], ['salamander', 3, 2]]],
       [[['salamander', 4, 0]], [['bat', 4, 0], ['skeleton', 3, 3]], [['magma', 1, 0], ['salamander', 4, 3]]],
       [[['bat', 4, 0]], [['salamander', 5, 0], ['skeleton', 2, 3]], [['magma', 2, 0], ['bat', 3, 3]]],
       [[['skeleton', 4, 0]], [['salamander', 6, 0]], [['orc', 2, 0], ['salamander', 4, 3], ['bat', 2, 6]]]
@@ -405,9 +452,9 @@ G.WAVE_SETS = {
 // maps：ふつうの戦闘のマップ（theme で色を変えて使い回す）。big：エリート・ボスのマップ
 // ============================================================
 G.ACTS = [
-  { name: '第1層', area: '草原', theme: 'grass',   maps: ['field', 'snake'],              big: 'valley', hp: 1.0 },
-  { name: '第2層', area: '雪山', theme: 'snow',    maps: ['snowpass', 'snowpass', 'field', 'snake'], big: 'valley', hp: 1.05 },
-  { name: '第3層', area: '火山', theme: 'volcano', maps: ['lavaflow', 'lavaflow', 'snake', 'field'], big: 'valley', hp: 1.2 }
+  { name: '第1層', area: '草原', theme: 'grass',   maps: ['field', 'snake', 'zigzag', 'cross', 'ushape', 'stairs', 'twin', 'hook', 'wave'], big: ['valley', 'crown'], hp: 1.0 },
+  { name: '第2層', area: '雪山', theme: 'snow',    maps: ['snowpass', 'snowpass', 'field', 'snake', 'zigzag', 'cross', 'ushape', 'stairs', 'twin', 'hook', 'wave'], big: ['valley', 'crown'], hp: 1.05 },
+  { name: '第3層', area: '火山', theme: 'volcano', maps: ['lavaflow', 'lavaflow', 'snake', 'field', 'zigzag', 'cross', 'ushape', 'stairs', 'twin', 'hook', 'wave'], big: ['valley', 'crown'], hp: 1.2 }
 ];
 
 // ============================================================
@@ -509,6 +556,8 @@ G.RULES = {
   floorScale: 0.04,   // 1階進むごとに敵の体力が4%ずつ増える（数はひな形どおり）
   battleGold: { battle: 10, elite: 30 },   // 戦闘に勝った時のおまけのお金
   restHeal: 12,
+  easyBattles: 3,     // 各層の最初の3回の通常戦闘は、その層で弱い方の攻撃のひな形から選ぶ
+  easyPool: 3,        // 弱い順に何個のひな形から選ぶか
   captainGold: 8,     // 隊長：戦闘に勝つたびのお金
   shop: { price: { common: 35, uncommon: 55, rare: 80 }, remove: 50, heal: 30, healAmount: 10,
           relicPrice: { common: 90, uncommon: 120, rare: 160 } }
