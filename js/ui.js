@@ -276,11 +276,16 @@ var G = window.G = window.G || {};
     var n = G.Battle.nextStats(tw);
     if (n) {
       // 変わる数値の後ろに (+4) のように差を書く
-      var d = function (a, b, dec) { var v = +(b - a).toFixed(dec); return v === 0 ? '' : '(' + (v > 0 ? '+' : '') + v + ')'; };
+      // 色は「強くなる＝アップの赤／弱くなる＝ダウンの青」。攻撃の間隔は短くなるほど強いので、(-0.1) でも赤
+      var d = function (a, b, dec, lowerIsBetter) {
+        var v = +(b - a).toFixed(dec); if (v === 0) return '';
+        var good = lowerIsBetter ? v < 0 : v > 0;
+        return '<b class="' + (good ? 'd-up' : 'd-down') + '">(' + (v > 0 ? '+' : '') + v + ')</b>';
+      };
       var w = function (x) { return '<span>' + x + '</span>'; };  // 項目の途中で改行しないように
       txt += '<span class="next">強化 → ' + w('攻撃力 ' + n.dmg + d(st.dmg, n.dmg, 0)) +
         '・' + w('射程 ' + n.range.toFixed(1) + d(st.range, n.range, 1)) +
-        '・' + w(n.rate.toFixed(1) + '秒ごと' + d(st.rate, n.rate, 1)) +
+        '・' + w(n.rate.toFixed(1) + '秒ごと' + d(st.rate, n.rate, 1, true)) +
         (n.splash ? '・' + w('爆発 ' + n.splash.toFixed(2).replace(/0$/, '') + d(st.splash, n.splash, 2)) : '') + '</span>';
     }
     $('ts-stats').innerHTML = txt;

@@ -212,14 +212,16 @@ var G = window.G = window.G || {};
       if (o.hp < o.max) hpBar(ex, ey - img.height - 3, o.type === 'orc' ? 14 : 10, o.hp / o.max, o.hp / o.max > 0.5 ? '#7fd36a' : '#ffb347');
     }
 
-    // 選んだタワーの射程：今の射程＝白、強化後の射程＝緑（強化ボタンと同じ色）
+    // 選んだタワーの射程：今の射程＝白、強化後の射程＝アップの赤（強化ボタンと同じ色）
     var selTw = ui.selTower ? G.Battle.findTower(s, ui.selTower) : null;
     if (selTw) {
       var cur = G.Battle.towerStats(selTw).range, nx = G.Battle.nextStats(selTw);
-      if (nx) fillEllipse(selTw.x, selTw.y, nx.range, G.UP_COLOR, 0.16);
+      // 強化後に射程が広がるならアップの赤、縮むならダウンの青
+      var nc = nx && (nx.range >= cur ? G.UP_COLOR : G.DOWN_COLOR);
+      if (nx) fillEllipse(selTw.x, selTw.y, nx.range, nc, 0.16);
       fillEllipse(selTw.x, selTw.y, cur, '#ffffff', 0.16);
       rangeEllipse(selTw.x, selTw.y, cur, '#ffffff', t);
-      if (nx) rangeEllipse(selTw.x, selTw.y, nx.range, G.UP_COLOR, t);
+      if (nx) rangeEllipse(selTw.x, selTw.y, nx.range, nc, t);
     }
 
     // 弾

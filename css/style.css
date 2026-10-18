@@ -2,7 +2,7 @@
 :root{
   --bg:#121815; --panel:#1b231f; --panel2:#232e28; --line:#33453b;
   --fg:#eef2ea; --muted:#a3b5a6; --accent:#e6b84a; --good:#7fd36a; --bad:#ff6b5b;
-  --energy:#5fc8ff; --gold:#ffd84a; --up:#ff7ad9;
+  --energy:#5fc8ff; --gold:#ffd84a; --up:#ff5b4a; --down:#4ea8ff;
   --font:"DotGothic16","Hiragino Kaku Gothic ProN","Yu Gothic",system-ui,sans-serif;
   color-scheme:dark;
 }
@@ -119,9 +119,11 @@ h1 span{font-size:18px;color:var(--muted)}
 .sheet p{margin:6px 0 10px;font-size:14px;color:var(--muted);line-height:1.6}
 .sheet #ts-up{width:100%}
 .sheet .now{display:block;color:var(--fg)}
-.sheet .next{display:block;color:var(--up)}
+.sheet .next{display:block;color:var(--fg)}
+.d-up,.d-down{font-weight:400}
+.d-up{color:var(--up)} .d-down{color:var(--down)}
 .sheet p span span{white-space:nowrap}
-button.up{background:var(--up);color:#2a0820;border-color:var(--up)}
+button.up{background:var(--up);color:#fff;border-color:var(--up);text-shadow:0 1px 0 rgba(0,0,0,.35)}
 
 .modal{position:fixed;inset:0;z-index:40;background:rgba(5,8,6,.72);display:flex;align-items:center;justify-content:center;padding:16px}
 .modal-box{width:100%;max-width:340px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 16px;

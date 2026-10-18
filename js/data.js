@@ -83,8 +83,11 @@ G.WAVES = [
 // normal：ふつう / resisted：よろい・耐性で減った / poison：毒（今後） / burn：やけど（今後）
 G.DMG_COLORS = { normal: '#ffffff', resisted: '#8fa6bd', poison: '#a6e85a', burn: '#ff9a3a' };
 
-// 強化の色（強化ボタンと、強化後の射程の線をそろえる）
-G.UP_COLOR = '#ff7ad9';   // 草の緑の上でも見えるピンク
+// アップ・ダウンの色（ゲーム全体で統一）
+// アップ＝強くなる（強化ボタン、強化後の射程、強くなる数値の差）＝赤
+// ダウン＝弱くなる（弱体、射程が縮む、弱くなる数値の差）＝青
+G.UP_COLOR = '#ff5b4a';
+G.DOWN_COLOR = '#4ea8ff';
 
 // ---- ルール（仮の数値） ----
 G.RULES = {
