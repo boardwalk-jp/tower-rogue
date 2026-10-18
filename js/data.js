@@ -176,6 +176,38 @@ G.TOWERS = {
     text: '攻撃しない。攻撃を1回しのぐたびにお金+8。',
     up: [{ cost: 25, income: 14 }, { cost: 50, income: 22 }]
   },
+  // ---- 道にだけ置ける物（place: 'path'）。攻撃はせず、上を通った敵に効く ----
+  spikes: {
+    name: 'トゲの罠', place: 'path', muzzle: 0, cost: 1, range: 0, dmg: 0, rate: 1, dmgType: 'none', noAttack: true,
+    trap: { type: 'spike', dmg: 20 },
+    text: '道に置く。上を通った敵1体ずつに20ダメージ（物理）。何度でも使える。',
+    up: [{ cost: 20, trap: { type: 'spike', dmg: 32 } }, { cost: 40, trap: { type: 'spike', dmg: 48 } }]
+  },
+  tar: {
+    name: '粘着の沼', place: 'path', muzzle: 0, cost: 1, range: 0, dmg: 0, rate: 1, dmgType: 'none', noAttack: true,
+    trap: { type: 'tar', slow: 0.5 },
+    text: '道に置く。踏んだ敵を50%遅くする。離れても1.5秒続く（遅くならない敵には効かない）。',
+    up: [{ cost: 20, trap: { type: 'tar', slow: 0.6 } }, { cost: 40, trap: { type: 'tar', slow: 0.7 } }]
+  },
+  barrel: {
+    name: '爆弾樽', place: 'path', muzzle: 0, cost: 1, range: 0, dmg: 0, rate: 1, dmgType: 'none', noAttack: true,
+    trap: { type: 'bomb', dmg: 120, splash: 1.5 },
+    text: '道に置く。最初に敵が乗ると爆発し、周り1.5マスに120ダメージ。1回で無くなる。',
+    up: []
+  },
+  barricade: {
+    name: 'バリケード', place: 'path', muzzle: 0, cost: 1, range: 0, dmg: 0, rate: 1, dmgType: 'none', noAttack: true,
+    blocker: { hp: 250 },
+    text: '道に置く。こわされるまで敵を止める（体力250）。ボスは止められない。',
+    up: [{ cost: 25, blocker: { hp: 420 } }, { cost: 50, blocker: { hp: 650 } }]
+  },
+  // ---- 兵舎：道に兵士を出して敵を足止めする ----
+  barracks: {
+    name: '兵舎', muzzle: 0, cost: 2, range: 2.0, dmg: 0, rate: 1, dmgType: 'none', noAttack: true,
+    soldiers: { n: 2, hp: 80, dmg: 8, rate: 1.0, respawn: 8 },
+    text: '近くの道に兵士2人を出す。兵士は敵1体ずつを止めて戦う。倒れても8秒で戻る。ボスは止められない。',
+    up: [{ cost: 30, soldiers: { n: 2, hp: 120, dmg: 12, rate: 1.0, respawn: 7 } }, { cost: 60, soldiers: { n: 3, hp: 160, dmg: 16, rate: 0.9, respawn: 6 } }]
+  },
   ballista: {
     name: '大型弩砲', muzzle: 0.9, cost: 3, range: 3.6, dmg: 40, rate: 2.4, dmgType: 'physical', shot: 'bolt', speed: 14,
     text: '遠くまで届く重い矢。1発が大きい。',
@@ -206,6 +238,11 @@ G.CARDS = {
   fire:     { kind: 'tower', tower: 'fire', rarity: 'uncommon' },
   thunder:  { kind: 'tower', tower: 'thunder', rarity: 'uncommon' },
   mine:     { kind: 'tower', tower: 'mine', rarity: 'common' },
+  spikes:   { kind: 'tower', tower: 'spikes', rarity: 'common' },
+  tar:      { kind: 'tower', tower: 'tar', rarity: 'common' },
+  barrel:   { kind: 'tower', tower: 'barrel', rarity: 'common', exhaust: true },
+  barricade: { kind: 'tower', tower: 'barricade', rarity: 'uncommon' },
+  barracks: { kind: 'tower', tower: 'barracks', rarity: 'uncommon' },
 
   supply:   { kind: 'skill', name: '補給', cost: 0, target: 'none', rarity: 'common', icon: 'bag',
               text: 'カードを2枚引く。' },

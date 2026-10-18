@@ -399,6 +399,60 @@ var G = window.G = window.G || {};
     g.px(4, 5, '#9a8e80'); g.px(15, 6, '#9a8e80');
     return g.bake();
   }
+  // ---- 道に置く物と兵舎 ----
+  function spikesTower(lv) {        // トゲの罠：地面の板から金属のトゲ
+    var g = new Grid(14, 8);
+    g.rect(1, 5, 12, 3, '#5a4632'); g.rect(1, 5, 12, 1, '#7a6046');
+    var tip = lv >= 2 ? '#ffe9a0' : '#e8ecf0';
+    for (var i = 2; i < 13; i += 3) { g.rect(i, 2, 1, 3, '#9aa2ac'); g.px(i, 1, tip); }
+    if (lv >= 1) for (var k = 3; k < 12; k += 3) { g.rect(k, 3, 1, 2, '#9aa2ac'); g.px(k, 2, tip); }
+    return g.outline(OUT).bake();
+  }
+  function tarTower(lv) {           // 粘着の沼：黒いどろどろの水たまり
+    var g = new Grid(16, 7);
+    g.ell(8, 3.5, 7.5, 3, '#1e1a22'); g.ell(8, 3.2, 6, 2.2, '#2e2a36');
+    g.px(5, 2, '#6a6478'); g.px(11, 3, '#6a6478'); g.px(8, 4, '#4a4458');
+    if (lv >= 1) g.px(12, 1, '#6a6478');
+    if (lv >= 2) { g.px(3, 3, '#b07ad0'); g.px(9, 2, '#b07ad0'); }
+    return g.bake();
+  }
+  function barrelTower() {          // 爆弾樽：導火線つきの樽
+    var g = new Grid(10, 13);
+    g.rect(1, 3, 8, 10, '#8a5a2b'); g.rect(2, 3, 1, 10, '#b07a40');
+    g.rect(1, 5, 8, 1, '#4a4f5c'); g.rect(1, 10, 8, 1, '#4a4f5c');
+    g.rect(3, 7, 4, 2, '#d94a3a');
+    g.rect(5, 1, 1, 2, '#e0d8c0'); g.px(6, 0, '#ffd84a');
+    return g.outline(OUT).bake();
+  }
+  function barricadeTower(lv) {     // バリケード：とがった杭を組んだ柵
+    var g = new Grid(16, 14);
+    var wood = lv >= 2 ? '#7a6a5a' : '#8a5a2b', hi = lv >= 2 ? '#a8a8b0' : '#b07a40';
+    for (var i = 1; i < 15; i += 3) { g.rect(i, 3, 2, 11, wood); g.px(i, 3, hi); g.px(i + 1, 2, hi); }
+    g.rect(0, 6, 16, 2, '#5a3a1e'); g.rect(0, 10, 16, 2, '#5a3a1e');
+    if (lv >= 1) { g.rect(0, 8, 16, 1, '#4a4f5c'); }
+    return g.outline(OUT).bake();
+  }
+  function barracksTower(lv) {      // 兵舎：木の小屋と旗
+    var g = new Grid(22, 22);
+    stoneBase(g, 3, 13, 16, 8);
+    g.rect(4, 8, 14, 6, '#8a5a2b'); g.rect(4, 8, 14, 1, '#b07a40');
+    for (var r = 0; r < 5; r++) g.rect(3 + r, 7 - r, 16 - r * 2, 1, r % 2 ? '#a8402a' : '#c8503a');
+    g.rect(9, 10, 4, 4, '#3b2a1a');
+    g.rect(16, 0, 1, 8, '#5b4632'); g.rect(17, 0, 4, 3, FLAG[lv]);
+    g.rect(5, 11, 2, 2, '#ffe9a0');
+    return g.outline(OUT).bake();
+  }
+  function soldier(f) {             // 兵士：青い服に兜と剣。コマ1は剣をふり下ろす
+    var g = new Grid(10, 12);
+    g.rect(3, 1, 4, 2, '#9aa2ac'); g.px(3, 0, '#c0c8d0'); g.px(4, 0, '#c0c8d0');
+    g.rect(3, 3, 4, 2, '#f0c49a'); g.px(5, 3, '#2a1a10');
+    g.rect(2, 5, 6, 4, '#3a6ad0'); g.rect(2, 5, 1, 4, '#5a8af0');
+    g.rect(3, 9, 1, 3, '#4a3a2a'); g.rect(6, 9, 1, 3, '#4a3a2a');
+    g.rect(0, 5, 2, 3, '#c0c8d8');
+    if (f) g.rect(8, 6, 2, 1, '#e8ecf0'); else g.rect(8, 2, 1, 5, '#e8ecf0');
+    g.px(8, 7, '#8a6a2a');
+    return both(g.outline(OUT));
+  }
   function castle() {
     var g = new Grid(28, 26);
     stoneBase(g, 3, 10, 22, 15);
@@ -435,13 +489,14 @@ var G = window.G = window.G || {};
       dragon: [dragon(0), dragon(1)], skeleton: [skeleton(0), skeleton(1)], kingslime: [kingslime(0), kingslime(1)],
       yeti: [yeti(0), yeti(1)], salamander: [salamander(0), salamander(1)],
       pine: [pine(0), pine(1)], spire: [spire(0), spire(1)],
-      ogre: [ogre(0), ogre(1)],
+      ogre: [ogre(0), ogre(1)], soldier: [soldier(0), soldier(1)],
       icon: {}, node: {},
       tree: [tree(0), tree(1)], rock: rock(), gate: gate(), castle: castle(), heart: heart()
     };
     var makers = { archer: archerTower, mage: mageTower, cannon: cannonTower, bowman: bowmanTower, sling: slingTower,
                    watch: watchTower, poison: poisonTower, frost: frostTower, ballista: ballistaTower,
-                   fire: fireTower, thunder: thunderTower, mine: mineTower };
+                   fire: fireTower, thunder: thunderTower, mine: mineTower,
+                   spikes: spikesTower, tar: tarTower, barrel: barrelTower, barricade: barricadeTower, barracks: barracksTower };
     Object.keys(makers).forEach(function (k) {
       S[k] = [];
       for (var lv = 0; lv < 3; lv++) S[k].push([makers[k](lv, false), makers[k](lv, true)]);

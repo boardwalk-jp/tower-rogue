@@ -26,10 +26,10 @@ function coverage(s) {
   }
   return (coverCache[s.map.id] = score);
 }
-function bestSpot(s) {
+function bestSpot(s, type) {
   var sc = coverage(s), best = null;
   for (var ty = 0; ty < s.map.rowsN; ty++) for (var tx = 0; tx < s.map.cols; tx++) {
-    if (!B.canPlaceAt(s, tx, ty)) continue;
+    if (!B.canPlaceAt(s, tx, ty, type)) continue;
     var n = sc[tx + ',' + ty];
     if (!best || n > best.n) best = { tx: tx, ty: ty, n: n };
   }
@@ -50,7 +50,7 @@ function playTurn(s) {
       var c = s.hand[i], def = B.cardDef(c);
       if (B.cardCost(c) > s.energy) continue;
       var target = null;
-      if (def.kind === 'tower') { target = bestSpot(s); if (!target) continue; }
+      if (def.kind === 'tower') { target = bestSpot(s, def.tower); if (!target) continue; }
       else if (def.target === 'tower') {
         var tw = def.id === 'forge' ? s.towers.filter(function (t) { return t.lv < G.TOWERS[t.type].up.length; })[0] : strongest(s);
         if (!tw) continue; target = { tower: tw.id };
@@ -58,7 +58,7 @@ function playTurn(s) {
       if (!B.playCard(s, i, target)) { played = true; break; }
     }
   }
-  s.towers.slice().sort(function (a, b) { return (B.upgradeCost(a) || 999) - (B.upgradeCost(b) || 999); }).forEach(function (tw) {
+  s.towers.slice().sort(function (a, b) { var pa = G.TOWERS[a.type].place === 'path' ? 500 : 0, pb = G.TOWERS[b.type].place === 'path' ? 500 : 0; return pa + (B.upgradeCost(a) || 999) - pb - (B.upgradeCost(b) || 999); }).forEach(function (tw) {
     var c = B.upgradeCost(tw); if (c !== null && s.gold >= c + 20) B.upgrade(s, tw.id);
   });
 }

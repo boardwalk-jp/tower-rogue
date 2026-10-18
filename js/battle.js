@@ -75,7 +75,7 @@ var G = window.G = window.G || {};
       towers: [], enemies: [], shots: [], events: [],
       buff: { speedMult: 1 },     // 全タワーへのこのターンだけの強化（号令など）
       relics: opts.relics || [],  // 持っているレリックのid
-      bpUsed: false, wallUsed: false, pendingSpawn: [],
+      bpUsed: false, wallUsed: false, pendingSpawn: [], soldiers: [],
       spawnQueue: [], time: 0, nextId: 1, uid: 1,
       stats: { killed: 0, leaked: 0, built: 0, goldEarned: 0 }
     };
@@ -110,6 +110,8 @@ var G = window.G = window.G || {};
     // 「このターンだけ」の強化を外す
     s.buff.speedMult = 1;
     s.towers.forEach(function (tw) { tw.turnDmgMult = 1; });
+    // 兵士は準備ターンの始めに全員元気になって持ち場に戻る
+    s.soldiers.forEach(function (u) { u.dead = 0; u.hp = u.max; u.eng = null; u.x = u.hx; u.y = u.hy; });
     // 前のターンの手札は捨て札へ（使い切りの一時カードは消える）
     while (s.hand.length) { var c = s.hand.pop(); if (c.temp) s.exhaust.push(c); else s.discard.push(c); }
     for (var i = 0; i < G.RULES.drawPerTurn; i++) drawOne(s);
@@ -118,11 +120,13 @@ var G = window.G = window.G || {};
 
   function nextWave(s) { return s.waves[s.turn] || []; }
 
-  function canPlaceAt(s, tx, ty) {
+  // type：置こうとしているタワーの種類。道に置く物（place: 'path'）は道のマスだけ、ほかは道以外の地面だけ
+  function canPlaceAt(s, tx, ty, type) {
     var c = tileAt(s, tx, ty);
     if (c === null) return false;
     for (var i = 0; i < s.towers.length; i++) if (s.towers[i].tx === tx && s.towers[i].ty === ty) return false;
-    return c === '.';   // 道・木・岩・城の敷地以外ならどこでも
+    if (type && G.TOWERS[type].place === 'path') return c === '#' && ty > 0;
+    return c === '.';
   }
 
   // スキルが今そのタワーに使えるか（使えない理由を返す。使えるなら null）
@@ -143,7 +147,7 @@ var G = window.G = window.G || {};
     if (s.energy < cost) return 'エネルギーが足りません';
     var tw = null;
     if (def.kind === 'tower') {
-      if (!target || !canPlaceAt(s, target.tx, target.ty)) return 'そこには置けません';
+      if (!target || !canPlaceAt(s, target.tx, target.ty, def.tower)) return G.TOWERS[def.tower].place === 'path' ? '道の上に置いてください' : 'そこには置けません';
     } else {
       tw = target && target.tower ? findTower(s, target.tower) : null;
       var why = skillBlocked(s, def, tw); if (why) return why;
@@ -155,7 +159,11 @@ var G = window.G = window.G || {};
     if (def.kind === 'tower') {
       var t = { id: s.nextId++, type: def.tower, tx: target.tx, ty: target.ty, x: target.tx + 0.5, y: target.ty + 0.5,
                 lv: 0, bonusDmg: 0, turnDmgMult: 1, cd: 0.2, aim: 0, fire: 0, target: 'first' };
+      var TD = G.TOWERS[def.tower];
+      if (TD.blocker) t.hp = t.maxHp = TD.blocker.hp;
+      if (TD.trap) t.hitSet = {};
       s.towers.push(t);
+      if (TD.soldiers) makeSoldiers(s, t);
       s.stats.built++;
       ev(s, { k: 'build', x: t.x, y: t.y });
       if (has(s, 'blueprint') && !s.bpUsed) { s.bpUsed = true; drawOne(s); ev(s, { k: 'relic', id: 'blueprint' }); }
@@ -187,7 +195,8 @@ var G = window.G = window.G || {};
   function baseStats(type, lv) {
     var T = G.TOWERS[type];
     var st = { range: T.range, dmg: T.dmg, rate: T.rate, splash: T.splash || 0, poison: T.poison || null, slow: T.slow || null,
-               burn: T.burn || null, chain: T.chain || 0, income: T.income || 0 };
+               burn: T.burn || null, chain: T.chain || 0, income: T.income || 0,
+               trap: T.trap || null, blocker: T.blocker || null, soldiers: T.soldiers || null };
     if (lv > 0) { var u = T.up[lv - 1]; for (var k in u) if (k !== 'cost') st[k] = u[k]; }
     return st;
   }
@@ -223,9 +232,40 @@ var G = window.G = window.G || {};
     if (c === null) return 'これ以上強化できません';
     if (s.gold < c) return 'お金が足りません';
     s.gold -= c; tw.lv++;
+    var bs = baseStats(tw.type, tw.lv);
+    if (bs.blocker) { var add = bs.blocker.hp - tw.maxHp; tw.maxHp = bs.blocker.hp; tw.hp += add; }
+    if (bs.soldiers) makeSoldiers(s, tw);
     ev(s, { k: 'upgrade', x: tw.x, y: tw.y });
     return null;
   }
+  // ---- 兵士：兵舎から一番近い道の上に立つ ----
+  function nearestPathPoint(s, x, y) {
+    var best = null, bd = 1e9;
+    Object.keys(s.paths).forEach(function (k) {
+      s.paths[k].segs.forEach(function (sg) {
+        var n = Math.max(1, Math.ceil(sg.l * 4));
+        for (var i = 0; i <= n; i++) {
+          var px = sg.a[0] + (sg.b[0] - sg.a[0]) * i / n, py = sg.a[1] + (sg.b[1] - sg.a[1]) * i / n;
+          if (py < 1) continue;
+          var d = Math.hypot(px - x, py - y); if (d < bd) { bd = d; best = { x: px, y: py, d: d }; }
+        }
+      });
+    });
+    return best;
+  }
+  function makeSoldiers(s, tw) {
+    var st = baseStats(tw.type, tw.lv).soldiers, home = nearestPathPoint(s, tw.x, tw.y) || { x: tw.x, y: tw.y };
+    tw.rally = home;
+    var mine = s.soldiers.filter(function (u) { return u.tower === tw.id; });
+    for (var i = mine.length; i < st.n; i++) {
+      var ang = i * 2.1;
+      s.soldiers.push({ id: s.nextId++, tower: tw.id, hx: home.x + Math.cos(ang) * 0.3, hy: home.y + Math.sin(ang) * 0.22,
+                        x: tw.x, y: tw.y, hp: st.hp, max: st.hp, cd: 0, eng: null, dead: 0, face: 1, flash: 0 });
+    }
+    s.soldiers.forEach(function (u) { if (u.tower === tw.id && u.dead <= 0) { var add = st.hp - u.max; u.max = st.hp; u.hp += Math.max(0, add); } else if (u.tower === tw.id) u.max = st.hp; });
+  }
+  function enemyAtk(E) { return E.atk || (5 + E.life * 3); }
+
   function findTowerAt(s, tx, ty) {
     for (var i = 0; i < s.towers.length; i++) if (s.towers[i].tx === tx && s.towers[i].ty === ty) return s.towers[i];
     return null;
@@ -324,17 +364,91 @@ var G = window.G = window.G || {};
   ];
   function setTarget(s, towerId, mode) { var tw = findTower(s, towerId); if (tw && TARGET_SCORE[mode]) tw.target = mode; }
 
+  // ---- 罠・バリケード・兵士（敵が動く前に、止める・ダメージを与える） ----
+  function updateBlockers(s, dt) {
+    var i, j, e, E;
+    s.enemies.forEach(function (en) { en.blockedBy = null; });
+    // 罠
+    for (i = s.towers.length - 1; i >= 0; i--) {
+      var tw = s.towers[i], st = baseStats(tw.type, tw.lv);
+      if (st.trap) {
+        for (j = 0; j < s.enemies.length; j++) {
+          e = s.enemies[j]; if (e.hp <= 0) continue;
+          var on = Math.abs(e.x - tw.x) < 0.55 && Math.abs(e.y - tw.y) < 0.55;
+          if (!on) continue;
+          if (st.trap.type === 'spike' && !tw.hitSet[e.id]) { tw.hitSet[e.id] = 1; hurt(s, e, st.trap.dmg, 'physical'); ev(s, { k: 'pin', x: e.x, y: e.y }); }
+          if (st.trap.type === 'tar') { e.tarT = 1.5; e.tarSlow = st.trap.slow; }
+          if (st.trap.type === 'bomb') {
+            for (var k = 0; k < s.enemies.length; k++) { var be = s.enemies[k]; if (be.hp > 0 && Math.hypot(be.x - tw.x, be.y - tw.y) <= st.trap.splash) hurt(s, be, st.trap.dmg, 'physical'); }
+            ev(s, { k: 'boom', x: tw.x, y: tw.y, r: st.trap.splash });
+            s.towers.splice(i, 1); break;
+          }
+        }
+      } else if (st.blocker) {
+        // バリケード：上に来た敵（ボス以外）を止め、止めた敵から攻撃される
+        for (j = 0; j < s.enemies.length; j++) {
+          e = s.enemies[j]; E = G.ENEMIES[e.type];
+          if (e.hp <= 0 || E.boss) continue;
+          if (Math.hypot(e.x - tw.x, e.y - tw.y) < 0.6) { e.blockedBy = 'b' + tw.id; tw.hp -= enemyAtk(E) * dt; }
+        }
+        if (tw.hp <= 0) { ev(s, { k: 'broken', x: tw.x, y: tw.y }); s.towers.splice(i, 1); s.enemies.forEach(function (en) { if (en.blockedBy === 'b' + tw.id) en.blockedBy = null; }); }
+      }
+    }
+    // 兵士：近くの敵1体と戦う（ボスは止められないが攻撃はする）
+    var engaged = {};
+    s.soldiers.forEach(function (u) { if (u.dead <= 0 && u.eng) engaged[u.eng] = (engaged[u.eng] || 0) + 1; });
+    for (i = 0; i < s.soldiers.length; i++) {
+      var u = s.soldiers[i];
+      var owner = findTower(s, u.tower); if (!owner) { s.soldiers.splice(i--, 1); continue; }
+      var ss = baseStats(owner.type, owner.lv).soldiers;
+      if (u.flash > 0) u.flash -= dt;
+      if (u.swing > 0) u.swing -= dt;
+      if (u.dead > 0) { u.dead -= dt; if (u.dead <= 0) { u.hp = u.max; u.x = owner.x; u.y = owner.y; } continue; }
+      var tgt = null;
+      if (u.eng) { for (j = 0; j < s.enemies.length; j++) if (s.enemies[j].id === u.eng) tgt = s.enemies[j]; }
+      if (tgt && (tgt.hp <= 0 || Math.hypot(tgt.x - u.hx, tgt.y - u.hy) > 1.1)) tgt = null;
+      if (!tgt) {
+        u.eng = null;
+        var bd = 0.9;
+        for (j = 0; j < s.enemies.length; j++) {
+          e = s.enemies[j]; if (e.hp <= 0 || e.y < 1) continue;
+          var d = Math.hypot(e.x - u.hx, e.y - u.hy);
+          if (d < bd && !engaged[e.id]) { bd = d; tgt = e; }
+        }
+        if (tgt) { u.eng = tgt.id; engaged[tgt.id] = 1; }
+      }
+      // 動く：戦っている敵の横へ、いなければ持ち場へ
+      var gx = tgt ? tgt.x - 0.25 * (tgt.face || 1) : u.hx, gy = tgt ? tgt.y : u.hy;
+      var dx = gx - u.x, dy = gy - u.y, dd = Math.hypot(dx, dy), step = 2.2 * dt;
+      if (dd > step) { u.x += dx / dd * step; u.y += dy / dd * step; } else { u.x = gx; u.y = gy; }
+      if (Math.abs(dx) > 0.02) u.face = dx > 0 ? 1 : -1;
+      if (tgt && dd < 0.35) {
+        E = G.ENEMIES[tgt.type];
+        if (!E.boss) tgt.blockedBy = 's' + u.id;
+        u.cd -= dt;
+        if (u.cd <= 0) { u.cd = ss.rate; hurt(s, tgt, ss.dmg, 'physical'); u.swing = 0.2; }
+        if (!E.boss || dd < 0.35) { u.hp -= enemyAtk(E) * dt; u.flash = 0.05; }
+        if (u.hp <= 0) { u.dead = ss.respawn; u.eng = null; ev(s, { k: 'soldierDown', x: u.x, y: u.y }); }
+      }
+      if (u.swing > 0) u.swing -= dt;
+    }
+  }
+
   function update(s, dt) {
     if (s.phase !== 'attack') return;
     s.time += dt;
     while (s.spawnQueue.length && s.spawnQueue[0].t <= s.time) spawn(s, s.spawnQueue.shift());
     while (s.pendingSpawn.length) spawn(s, s.pendingSpawn.shift());
 
+    updateBlockers(s, dt);
+
     // 敵が進む・毒のダメージ
     for (var i = 0; i < s.enemies.length; i++) {
       var e = s.enemies[i], E = G.ENEMIES[e.type];
       if (e.hp <= 0) continue;
       var sp = E.speed * (has(s, 'frostbell') ? 0.9 : 1);
+      if (e.tarT > 0) { e.tarT -= dt; if ((E.immune || []).indexOf('slow') < 0) sp *= (1 - e.tarSlow); }
+      if (e.blockedBy) { sp = 0; }   // 兵士・バリケードに止められている
       if (e.slowT > 0) { sp *= (1 - e.slowPct); e.slowT -= dt; if (e.slowT <= 0) e.slowPct = 0; }
       e.d += sp * dt;
       e.walk += dt * sp * 4;
@@ -505,6 +619,6 @@ var G = window.G = window.G || {};
     create: create, update: update, startAttack: startAttack, playCard: playCard, skillBlocked: skillBlocked,
     canPlaceAt: canPlaceAt, upgrade: upgrade, upgradeCost: upgradeCost, towerStats: towerStats, nextStats: nextStats,
     baseStats: baseStats, extraDraw: extraDraw, nextWave: nextWave, findTower: findTower, tileAt: tileAt,
-    cardCost: cardCost, cardDef: cardDef, rng: rng, shuffle: shuffle, TARGET_MODES: TARGET_MODES, setTarget: setTarget, findTowerAt: findTowerAt
+    cardCost: cardCost, cardDef: cardDef, nearestPathPoint: nearestPathPoint, rng: rng, shuffle: shuffle, TARGET_MODES: TARGET_MODES, setTarget: setTarget, findTowerAt: findTowerAt
   };
 })();

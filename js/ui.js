@@ -213,7 +213,7 @@ var G = window.G = window.G || {};
         if (ui.selType) {
           var t = cancel ? null : tileFromClient(e.clientX, e.clientY);
           // ドラッグで離した場所も仮置き。確定はタップで
-          if (t && B.canPlaceAt(s, t.tx, t.ty)) { renderHand(); setPending(t); }
+          if (t && B.canPlaceAt(s, t.tx, t.ty, ui.selType)) { renderHand(); setPending(t); }
           else if (t) { ui.preview = null; renderHand(); toast('そこには置けません'); }
           else { deselect(); renderHand(); }
         } else {
@@ -259,7 +259,7 @@ var G = window.G = window.G || {};
     if (ui.selType) {
       var t = tileFromClient(e.clientX, e.clientY);
       // タワーを置くカードを選んでいる間は、タワーの絵をタップしても小窓は開かない（後ろのマスをねらった誤タップを防ぐ）
-      if (t && B.canPlaceAt(s, t.tx, t.ty)) {
+      if (t && B.canPlaceAt(s, t.tx, t.ty, ui.selType)) {
         if (ui.pending && ui.pending.tx === t.tx && ui.pending.ty === t.ty) tryPlace(ui.selIndex, t.tx, t.ty);
         else setPending(t);
         return;
@@ -333,6 +333,11 @@ var G = window.G = window.G || {};
     var v = +(b - a).toFixed(dec); if (v === 0) return '';
     return ' <b class="' + (v > 0 ? 'd-up' : 'd-down') + '">(' + (v > 0 ? '+' : '') + v + ')</b>';
   }
+  // 短くなるほど良い数値（兵士が戻るまでの秒数）：減ったらアップの色で (-1) と出す
+  function backDiff(a, b) {
+    var v = b - a; if (v === 0) return '';
+    return ' <b class="' + (v < 0 ? 'd-up' : 'd-down') + '">(' + (v > 0 ? '+' : '') + v + ')</b>';
+  }
   function renderTowerSheet() {
     var tw = B.findTower(s, ui.selTower); if (!tw) { closeTowerSheet(); return; }
     var T = G.TOWERS[tw.type], st = B.towerStats(tw, s), c = B.upgradeCost(tw), R = G.Rank.ofStats(st);
@@ -352,7 +357,15 @@ var G = window.G = window.G || {};
     if (st.burn) rows.push(['やけど', '毎秒' + st.burn.dps + '×' + st.burn.dur + '秒',
       n && ('毎秒' + n.burn.dps + '×' + n.burn.dur + '秒' + diff(st.burn.dps, n.burn.dps, 0))]);
     if (st.chain) rows.push(['連鎖', st.chain + '体', n && (n.chain + '体' + diff(st.chain, n.chain, 0))]);
-    if (T.noAttack) rows = [['収入', '攻撃1回ごと ' + st.income + 'G', n && (n.income + 'G' + diff(st.income, n.income, 0))]];
+    if (T.income) rows = [['収入', '攻撃1回ごと ' + st.income + 'G', n && (n.income + 'G' + diff(st.income, n.income, 0))]];
+    if (T.trap && T.trap.type === 'spike') rows = [['罠のダメージ', st.trap.dmg + '（通った敵ごと）', n && (n.trap.dmg + diff(st.trap.dmg, n.trap.dmg, 0))]];
+    if (T.trap && T.trap.type === 'tar') rows = [['遅くする', Math.round(st.trap.slow * 100) + '%（離れても1.5秒）', n && (Math.round(n.trap.slow * 100) + '%' + diff(st.trap.slow * 100, n.trap.slow * 100, 0))]];
+    if (T.trap && T.trap.type === 'bomb') rows = [['爆発', st.trap.dmg + 'ダメージ・' + st.trap.splash + 'マス', null]];
+    if (T.blocker) rows = [['体力', Math.ceil(tw.hp) + '/' + tw.maxHp, n && (n.blocker.hp + diff(st.blocker.hp, n.blocker.hp, 0))]];
+    if (T.soldiers) rows = [['兵士', st.soldiers.n + '人', n && (n.soldiers.n + '人' + diff(st.soldiers.n, n.soldiers.n, 0))],
+      ['兵士の体力', st.soldiers.hp, n && (n.soldiers.hp + diff(st.soldiers.hp, n.soldiers.hp, 0))],
+      ['兵士の攻撃', st.soldiers.dmg, n && (n.soldiers.dmg + diff(st.soldiers.dmg, n.soldiers.dmg, 0))],
+      ['戻るまで', st.soldiers.respawn + '秒', n && (n.soldiers.respawn + '秒' + backDiff(st.soldiers.respawn, n.soldiers.respawn))]];
     if (st.slow) rows.push(['遅くする', Math.round(st.slow.pct * 100) + '%×' + st.slow.dur + '秒',
       n && (Math.round(n.slow.pct * 100) + '%×' + n.slow.dur + '秒' + diff(st.slow.pct * 100, n.slow.pct * 100, 0))]);
     var txt = rows.map(function (r) {
@@ -394,6 +407,16 @@ var G = window.G = window.G || {};
     var h = '<dt>エネルギー</dt><dd>' + def.cost + '</dd><dt>種類</dt><dd>' + (def.kind === 'tower' ? 'タワー' : 'スキル') + '</dd>';
     if (def.kind === 'tower') {
       var T = G.TOWERS[def.tower], st = B.baseStats(def.tower, 0), R = G.Rank.ofStats(st);
+      if (T.place === 'path') h += '<dt>置ける場所</dt><dd>道の上だけ</dd>';
+      if (T.trap || T.blocker || T.soldiers) {
+        var x = '';
+        if (T.trap && T.trap.type === 'spike') x = '<dt>罠のダメージ</dt><dd>' + T.trap.dmg + '（物理）</dd>';
+        if (T.trap && T.trap.type === 'tar') x = '<dt>遅くする</dt><dd>' + Math.round(T.trap.slow * 100) + '%</dd>';
+        if (T.trap && T.trap.type === 'bomb') x = '<dt>爆発</dt><dd>' + T.trap.dmg + 'ダメージ・' + T.trap.splash + 'マス</dd>';
+        if (T.blocker) x = '<dt>体力</dt><dd>' + T.blocker.hp + '</dd>';
+        if (T.soldiers) x = '<dt>兵士</dt><dd>' + T.soldiers.n + '人（体力' + T.soldiers.hp + '・攻撃' + T.soldiers.dmg + '）</dd><dt>戻るまで</dt><dd>' + T.soldiers.respawn + '秒</dd>';
+        return h + x + (T.up.length ? '<dt>強化</dt><dd>● ' + T.up.map(function (u) { return u.cost; }).join(' → ● ') + '</dd>' : '');
+      }
       if (T.noAttack) return h + '<dt>攻撃</dt><dd>しない</dd><dt>収入</dt><dd>攻撃1回ごと ' + T.income + 'G</dd><dt>強化</dt><dd>● ' + T.up.map(function (u) { return u.cost; }).join(' → ● ') + '（収入 ' + T.up.map(function (u) { return u.income; }).join('→') + 'G）</dd>';
       h += '<dt>攻撃力</dt><dd>' + T.dmg + (T.dmgType === 'magic' ? '（魔法）' : '（物理）') + rk(R.dmg) +
         '</dd><dt>射程</dt><dd>' + T.range + 'マス' + rk(R.range) + '</dd><dt>攻撃速度</dt><dd>' + perSec(T.rate) + '発/s' + rk(R.speed) + '</dd>' +
@@ -543,5 +566,5 @@ var G = window.G = window.G || {};
 
   G.BattleUI = { start: start, cardEl: cardEl, cardArt: cardArt, showDetail: showDetail, showList: showList, detailBox: detailBox, fit: fit };
   // 開発用：コンソールから状態を見られるように
-  G.debug = { get state() { return s; }, ui: ui };
+  G.debug = { get state() { return s; }, ui: ui, renderHand: function () { renderHand(); }, openSheet: openTowerSheet };
 })();

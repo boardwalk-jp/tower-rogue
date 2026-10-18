@@ -128,6 +128,10 @@ var G = window.G = window.G || {};
         burst(e.x, e.y, 5, ['#a6e85a', '#4a8a2a'], 20, 40, 0.35);
       } else if (e.k === 'skill') {
         if (e.x !== null) { burst(e.x, e.y - 0.8, 14, [G.UP_COLOR, '#ffffff', '#ffd0c0'], 30, -20, 0.6); rings.push({ x: sx(e.x), y: sy(e.y), r: 3, max: 16, col: G.UP_COLOR, life: 0.45, ml: 0.45 }); }
+      } else if (e.k === 'broken') {
+        burst(e.x, e.y, 14, ['#8a5a2b', '#c08a4a', '#5a3a1e'], 40, 80, 0.6);
+      } else if (e.k === 'soldierDown') {
+        burst(e.x, e.y - 0.3, 8, ['#c0c8d8', '#ff6b5b'], 26, 60, 0.5);
       } else if (e.k === 'zap') {
         burst(e.x, e.y, 6, ['#c79bff', '#ffffff', '#9be7ff'], 30, 0, 0.35);
       } else if (e.k === 'leak') {
@@ -191,10 +195,12 @@ var G = window.G = window.G || {};
 
     // 置ける場所の表示（カード選択中）
     if (ui.selType && !ui.pending && (s.phase === 'prep' || s.phase === 'attack')) {
-      b.globalAlpha = 0.45 + 0.25 * Math.sin(t * 6);
+      // 道に置く物は明るい道の上でも見えるように、白く濃いめに出す
+      var onPath = G.TOWERS[ui.selType].place === 'path';
+      b.globalAlpha = (onPath ? 0.75 : 0.45) + 0.25 * Math.sin(t * 6);
       for (var ty = 0; ty < M.rowsN; ty++) for (var tx = 0; tx < M.cols; tx++) {
-        if (!G.Battle.canPlaceAt(s, tx, ty)) continue;
-        b.fillStyle = '#fff3b0';
+        if (!G.Battle.canPlaceAt(s, tx, ty, ui.selType)) continue;
+        b.fillStyle = onPath ? '#ffffff' : '#fff3b0';
         b.fillRect(tx * TW + 1, sy(ty) + 1, 2, 1); b.fillRect(tx * TW + TW - 3, sy(ty) + 1, 2, 1);
         b.fillRect(tx * TW + 1, sy(ty) + TH - 2, 2, 1); b.fillRect(tx * TW + TW - 3, sy(ty) + TH - 2, 2, 1);
       }
@@ -214,7 +220,8 @@ var G = window.G = window.G || {};
 
     // 奥（画面の上）から順に並べて重なりを正しく
     var list = [];
-    s.towers.forEach(function (tw) { list.push({ y: tw.y + 0.2, k: 'tower', o: tw }); });
+    s.towers.forEach(function (tw) { list.push({ y: tw.y + (G.TOWERS[tw.type].trap ? -0.45 : 0.2), k: 'tower', o: tw }); });
+    s.soldiers.forEach(function (u) { if (u.dead <= 0) list.push({ y: u.y + 0.05, k: 'soldier', o: u }); });
     s.enemies.forEach(function (e) { list.push({ y: e.y, k: 'enemy', o: e }); });
     var castleAt = null;
     M.rows.forEach(function (r, y) { var x = r.indexOf('G'); if (x >= 0) castleAt = { x: x + 0.5, y: y }; });
@@ -224,14 +231,24 @@ var G = window.G = window.G || {};
     for (var i = 0; i < list.length; i++) {
       var it = list[i], o = it.o;
       if (it.k === 'castle') { blitB(S.castle, sx(castleAt.x), sy(castleAt.y + 1) + 4); continue; }
+      if (it.k === 'soldier') {
+        var simg = S.soldier[o.swing > 0 ? 1 : 0], sximg = o.face < 0 ? simg.l : simg.r;
+        b.fillStyle = 'rgba(0,0,0,.35)'; b.fillRect(sx(o.x) - 3, sy(o.y) + 2, 7, 1);
+        blitB(sximg, sx(o.x), sy(o.y) + 3);
+        if (o.flash > 0) { b.globalCompositeOperation = 'lighter'; b.globalAlpha = 0.4; blitB(sximg, sx(o.x), sy(o.y) + 3); b.globalAlpha = 1; b.globalCompositeOperation = 'source-over'; }
+        if (o.hp < o.max) hpBar(sx(o.x), sy(o.y) + 3 - sximg.height - 3, 8, Math.max(0, o.hp / o.max), '#5fc8ff');
+        continue;
+      }
       if (it.k === 'tower') {
         var fire = o.fire > 0.12 ? 1 : 0, spr = S[o.type][Math.min(2, o.lv)][fire];
         if (spr.r) spr = o.aim < 0 ? spr.l : spr.r;
-        b.fillStyle = 'rgba(0,0,0,.35)'; b.fillRect(sx(o.x) - 7, sy(o.y) + 3, 14, 2);
+        var flat = G.TOWERS[o.type].trap;
+        if (!flat) { b.fillStyle = 'rgba(0,0,0,.35)'; b.fillRect(sx(o.x) - 7, sy(o.y) + 3, 14, 2); }
         // タワーを置くカードを選んでいる間は、後ろのマスが見えるようにタワーを半透明にする
         if (ui.selType) b.globalAlpha = 0.45;
         blitB(spr, sx(o.x), sy(o.y) + 5);
         b.globalAlpha = 1;
+        if (o.maxHp && o.hp < o.maxHp) hpBar(sx(o.x), sy(o.y) + 5 - spr.height - 3, 12, Math.max(0, o.hp / o.maxHp), '#c8a060');
         for (var l = 0; l < o.lv; l++) { b.fillStyle = '#ffe14d'; b.fillRect(sx(o.x) - 3 + l * 4, sy(o.y) + 3, 2, 2); }
         // スキルで強くなっている間は、タワーの上に赤い↑（アップの色）
         if (o.bonusDmg > 0 || o.turnDmgMult > 1 || s.buff.speedMult > 1) {
@@ -320,7 +337,7 @@ var G = window.G = window.G || {};
 
     // 置く前の見本（ドラッグ中・選択中に指している場所）
     if (ui.selType && ui.preview) {
-      var pv = ui.preview, ok = G.Battle.canPlaceAt(s, pv.tx, pv.ty);
+      var pv = ui.preview, ok = G.Battle.canPlaceAt(s, pv.tx, pv.ty, ui.selType);
       var T = G.TOWERS[ui.selType];
       // 射程の内側をうすく塗る
       fillEllipse(pv.tx + 0.5, pv.ty + 0.5, T.range, ok ? '#ffffff' : '#ff5a5a', 0.2);
