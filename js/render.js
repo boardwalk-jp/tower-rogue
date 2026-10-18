@@ -8,7 +8,7 @@ var G = window.G = window.G || {};
   var buf = document.createElement('canvas'); buf.width = W; buf.height = H;
   var b = buf.getContext('2d');
   var bgCache = {}, M = G.MAPS.field;   // M：今描いているマップ
-  var parts = [], rings = [], floats = [], nums = [];
+  var parts = [], rings = [], floats = [], nums = [], beams = [];
 
   function sx(x) { return x * TW; }
   function sy(y) { return y * TH + OY; }
@@ -44,7 +44,13 @@ var G = window.G = window.G || {};
   function buildBg() {
     var cv = document.createElement('canvas'); cv.width = W; cv.height = H;
     var g = cv.getContext('2d'), S = G.SPR;
-    g.fillStyle = '#2f5a2a'; g.fillRect(0, 0, W, H);
+    // 地域ごとの色：[地面の4色], [道の4色], 道のふち
+    var TH_ = {
+      grass:   { g: ['#4f8a3d', '#264d24', '#3c7232', '#33642d'], p: ['#a3804f', '#7e6038', '#6b5235', '#94744a'], e: ['#5e4a2e', '#4a3a22'], fl: ['#f4e36a', '#f0f0f0'] },
+      snow:    { g: ['#ffffff', '#c8d4e2', '#dfe8f2', '#e9f0f7'], p: ['#9aa6b4', '#7c8796', '#6b7584', '#8c97a6'], e: ['#5c6676', '#4a5262'], fl: ['#b8d8f0', '#ffffff'] },
+      volcano: { g: ['#5a4440', '#2a201e', '#46363a', '#3a2e2c'], p: ['#7a5a3a', '#5a4028', '#4a3420', '#6a4c30'], e: ['#2a1a10', '#1e120a'], fl: ['#ff8a2a', '#ffd84a'] }
+    }[M.theme || 'grass'];
+    g.fillStyle = TH_.g[3]; g.fillRect(0, 0, W, H);
     function charAt(tx, ty) { return (ty < 0 || ty >= M.rowsN || tx < 0 || tx >= M.cols) ? null : M.rows[ty][tx]; }
     function isGate(c) { return c === 'A' || c === 'B' || c === 'C'; }
     function isPath(tx, ty) {
@@ -55,29 +61,31 @@ var G = window.G = window.G || {};
       var x0 = tx * TW, y0 = sy(ty), path = isPath(tx, ty);
       for (var py = 0; py < TH; py++) for (var px = 0; px < TW; px++) {
         var h = hash(tx * TW + px, ty * TH + py + 99), col;
-        if (path) col = h < 0.1 ? '#a3804f' : h < 0.2 ? '#7e6038' : h < 0.24 ? '#6b5235' : '#94744a';
-        else col = h < 0.07 ? '#4f8a3d' : h < 0.16 ? '#264d24' : h < 0.2 ? '#3c7232' : '#33642d';
+        var cc = charAt(tx, ty);
+        if (cc === 'L') col = M.theme === 'volcano' ? (h < 0.15 ? '#ffd84a' : h < 0.5 ? '#ff6a2a' : '#e04a1a') : (h < 0.1 ? '#ffffff' : h < 0.4 ? '#9fd0f0' : '#7fb8e0');
+        else if (path) col = h < 0.1 ? TH_.p[0] : h < 0.2 ? TH_.p[1] : h < 0.24 ? TH_.p[2] : TH_.p[3];
+        else col = h < 0.07 ? TH_.g[0] : h < 0.16 ? TH_.g[1] : h < 0.2 ? TH_.g[2] : TH_.g[3];
         g.fillStyle = col; g.fillRect(x0 + px, y0 + py, 1, 1);
       }
-      if (!path && hash(tx, ty) < 0.3) { // 小さな花
+      if (!path && charAt(tx, ty) !== 'L' && hash(tx, ty) < 0.3) { // 小さな花
         var fx = x0 + 3 + Math.floor(hash(ty, tx) * 10), fy = y0 + 2 + Math.floor(hash(tx + 7, ty) * 8);
-        g.fillStyle = hash(tx, ty + 3) < 0.5 ? '#f4e36a' : '#f0f0f0'; g.fillRect(fx, fy, 1, 1);
+        g.fillStyle = hash(tx, ty + 3) < 0.5 ? TH_.fl[0] : TH_.fl[1]; g.fillRect(fx, fy, 1, 1);
       }
     }
     // 道のふち（草とのさかい目を暗く）
     for (ty = 0; ty < M.rowsN; ty++) for (tx = 0; tx < M.cols; tx++) {
       if (!isPath(tx, ty)) continue;
       x0 = tx * TW; y0 = sy(ty);
-      g.fillStyle = '#5e4a2e';
+      g.fillStyle = TH_.e[0];
       if (!isPath(tx - 1, ty)) g.fillRect(x0, y0, 1, TH);
       if (!isPath(tx + 1, ty)) g.fillRect(x0 + TW - 1, y0, 1, TH);
       if (!isPath(tx, ty - 1) && ty > 0) g.fillRect(x0, y0, TW, 1);
-      if (!isPath(tx, ty + 1) && ty < M.rowsN - 1) { g.fillStyle = '#4a3a22'; g.fillRect(x0, y0 + TH - 1, TW, 1); }
+      if (!isPath(tx, ty + 1) && ty < M.rowsN - 1) { g.fillStyle = TH_.e[1]; g.fillRect(x0, y0 + TH - 1, TW, 1); }
     }
     // 台座・木・岩・入口・城（上の行から順に描いて重なりを正しくする）
     for (ty = 0; ty < M.rowsN; ty++) for (tx = 0; tx < M.cols; tx++) {
       var c = M.rows[ty][tx], cx = tx * TW + TW / 2, by = sy(ty + 1);
-      if (c === 'T') g.drawImage(S.tree[(tx + ty) % 2], cx - 8, by - 20);
+      if (c === 'T') g.drawImage((M.theme === 'snow' ? S.pine : M.theme === 'volcano' ? S.spire : S.tree)[(tx + ty) % 2], cx - 8, by - 20);
       if (c === 'R') g.drawImage(S.rock, cx - 7, by - 10);
       if (isGate(c)) g.drawImage(S.gate, cx - 10, sy(0) - 6);
     }
@@ -103,6 +111,17 @@ var G = window.G = window.G || {};
         rings.push({ x: sx(e.x), y: sy(e.y), r: 2, max: e.r * TW, col: e.small ? '#cfc2ab' : '#ffcf6a', life: 0.3, ml: 0.3 });
       } else if (e.k === 'spawn') { // 洞穴から出てきた時の土ぼこり
         burst(e.x, e.y, 8, ['#8a7a68', '#b0a08a', '#5a5048'], 18, -10, 0.45);
+      } else if (e.k === 'chain') {
+        beams.push({ x0: sx(e.x0), y0: sy(e.y0), x1: sx(e.x1), y1: sy(e.y1), life: 0.18 });
+      } else if (e.k === 'flame') {
+        burst(e.x, e.y, 10, ['#ff6a2a', '#ffd84a', '#ff3a1a'], 34, -30, 0.45);
+      } else if (e.k === 'revive') {
+        burst(e.x, e.y - 0.5, 12, ['#e8e2d0', '#bff0ff'], 30, -10, 0.6);
+        nums.push({ x: sx(e.x), y: sy(e.y) - 24, vy: -12, text: '復活', col: '#e8e2d0', size: 0.9, life: 1, ml: 1 });
+      } else if (e.k === 'income') {
+        nums.push({ x: sx(e.x), y: sy(e.y) - 14, vy: -14, text: '+' + e.gold, col: '#ffd84a', size: 1, life: 1.2, ml: 1.2 });
+      } else if (e.k === 'relic' && e.x !== undefined) {
+        nums.push({ x: sx(e.x), y: sy(e.y) - 22, vy: -12, text: G.RELICS[e.id].name, col: '#ffd84a', size: 0.85, life: 1.2, ml: 1.2 });
       } else if (e.k === 'frost') {
         burst(e.x, e.y, 6, ['#bff0ff', '#ffffff', '#5fc8ff'], 26, 10, 0.35);
       } else if (e.k === 'splat') {
@@ -134,9 +153,10 @@ var G = window.G = window.G || {};
     }
     for (i = rings.length - 1; i >= 0; i--) { rings[i].life -= dt; if (rings[i].life <= 0) rings.splice(i, 1); }
     for (i = floats.length - 1; i >= 0; i--) { floats[i].life -= dt; floats[i].y -= dt * 14; if (floats[i].life <= 0) floats.splice(i, 1); }
+    for (i = beams.length - 1; i >= 0; i--) { beams[i].life -= dt; if (beams[i].life <= 0) beams.splice(i, 1); }
     for (i = nums.length - 1; i >= 0; i--) { var n = nums[i]; n.life -= dt; n.y += n.vy * dt; n.vy *= 0.92; if (n.life <= 0) nums.splice(i, 1); }
   }
-  function clearFx() { parts = []; rings = []; floats = []; nums = []; }
+  function clearFx() { parts = []; rings = []; floats = []; nums = []; beams = []; }
 
   function rangeEllipse(x, y, r, col, t) { // 射程（点線のだ円。草の上でも見えるよう下に黒い影をつける）
     var n = Math.max(32, Math.round(r * 26));
@@ -240,8 +260,9 @@ var G = window.G = window.G || {};
       }
       // 状態異常：遅い＝青い粒、毒＝緑の泡
       if (o.slowT > 0 && Math.random() < 0.3) parts.push({ x: ex + (Math.random() - 0.5) * 10, y: ey - Math.random() * img.height, vx: 0, vy: 6, g: 0, life: 0.35, ml: 0.35, col: '#bff0ff' });
+      if (o.burnT > 0 && Math.random() < 0.4) parts.push({ x: ex + (Math.random() - 0.5) * 8, y: ey - img.height * 0.5, vx: 0, vy: -16, g: 0, life: 0.4, ml: 0.4, col: Math.random() < 0.5 ? '#ff6a2a' : '#ffd84a' });
       if (o.poisonT > 0 && Math.random() < 0.3) parts.push({ x: ex + (Math.random() - 0.5) * 8, y: ey - img.height * 0.6, vx: 0, vy: -10, g: 0, life: 0.5, ml: 0.5, col: '#a6e85a' });
-      var barW = E.boss ? 28 : (o.type === 'orc' || o.type === 'knight') ? 14 : 10;
+      var barW = E.boss ? 28 : (o.type === 'orc' || o.type === 'knight' || o.type === 'yeti' || o.type === 'kingslime') ? 14 : 10;
       if (o.hp < o.max || E.boss) hpBar(ex, ey - img.height - 3, barW, Math.max(0, o.hp / o.max), o.hp / o.max > 0.5 ? '#7fd36a' : '#ffb347');
     }
 
@@ -266,6 +287,13 @@ var G = window.G = window.G || {};
           b.fillStyle = k === 0 ? '#ffffff' : sh.kind === 'bolt' ? '#8a8f99' : '#c08a4a';
           b.fillRect(Math.round(x - ca * k), Math.round(y - sa * k * 0.75), sh.kind === 'bolt' ? 2 : 1, 1);
         }
+      } else if (sh.kind === 'flame') {
+        b.fillStyle = '#e04a1a'; b.fillRect(Math.round(x) - 2, Math.round(y) - 2, 5, 5);
+        b.fillStyle = '#ffd84a'; b.fillRect(Math.round(x) - 1, Math.round(y) - 1, 3, 3);
+        if (Math.random() < 0.6) parts.push({ x: x, y: y, vx: 0, vy: -8, g: 0, life: 0.25, ml: 0.25, col: '#ff8a2a' });
+      } else if (sh.kind === 'spark') {
+        b.fillStyle = '#ffffff'; b.fillRect(Math.round(x) - 1, Math.round(y) - 1, 3, 3);
+        b.fillStyle = '#ffe14d'; b.fillRect(Math.round(x) - 2, Math.round(y), 5, 1); b.fillRect(Math.round(x), Math.round(y) - 2, 1, 5);
       } else if (sh.kind === 'ice') {
         b.fillStyle = '#5fc8ff'; b.fillRect(Math.round(x) - 1, Math.round(y) - 2, 3, 5); b.fillRect(Math.round(x) - 2, Math.round(y) - 1, 5, 3);
         b.fillStyle = '#ffffff'; b.fillRect(Math.round(x), Math.round(y), 1, 1);
@@ -314,6 +342,13 @@ var G = window.G = window.G || {};
       b.globalAlpha = 1 - p; b.fillStyle = r.col;
       for (var k = 0; k < n; k++) { var a = k / n * Math.PI * 2; b.fillRect(Math.round(r.x + Math.cos(a) * rr), Math.round(r.y + Math.sin(a) * rr * 0.75), 1, 1); }
       b.globalAlpha = 1;
+    });
+    beams.forEach(function (bm) {   // 雷が飛び移る線（ジグザグ）
+      var n = 6; b.fillStyle = Math.random() < 0.5 ? '#ffffff' : '#ffe14d';
+      for (var k = 0; k <= n * 3; k++) {
+        var t2 = k / (n * 3), jx = (k % 3 === 1) ? (Math.random() - 0.5) * 4 : 0;
+        b.fillRect(Math.round(bm.x0 + (bm.x1 - bm.x0) * t2 + jx), Math.round(bm.y0 + (bm.y1 - bm.y0) * t2 + jx), 1, 1);
+      }
     });
     parts.forEach(function (p) {
       b.globalAlpha = Math.min(1, p.life / p.ml * 1.6); b.fillStyle = p.col;

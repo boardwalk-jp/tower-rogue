@@ -349,6 +349,10 @@ var G = window.G = window.G || {};
       n && (fmtSplash(n.splash) + 'マス' + rkNext(R.splash, RN.splash) + diff(st.splash, n.splash, 2))]);
     if (st.poison) rows.push(['毒', '毎秒' + st.poison.dps + '×' + st.poison.dur + '秒',
       n && ('毎秒' + n.poison.dps + '×' + n.poison.dur + '秒' + diff(st.poison.dps, n.poison.dps, 0))]);
+    if (st.burn) rows.push(['やけど', '毎秒' + st.burn.dps + '×' + st.burn.dur + '秒',
+      n && ('毎秒' + n.burn.dps + '×' + n.burn.dur + '秒' + diff(st.burn.dps, n.burn.dps, 0))]);
+    if (st.chain) rows.push(['連鎖', st.chain + '体', n && (n.chain + '体' + diff(st.chain, n.chain, 0))]);
+    if (T.noAttack) rows = [['収入', '攻撃1回ごと ' + st.income + 'G', n && (n.income + 'G' + diff(st.income, n.income, 0))]];
     if (st.slow) rows.push(['遅くする', Math.round(st.slow.pct * 100) + '%×' + st.slow.dur + '秒',
       n && (Math.round(n.slow.pct * 100) + '%×' + n.slow.dur + '秒' + diff(st.slow.pct * 100, n.slow.pct * 100, 0))]);
     var txt = rows.map(function (r) {
@@ -360,6 +364,7 @@ var G = window.G = window.G || {};
     $('ts-stats').innerHTML = txt;
     var mode = B.TARGET_MODES.filter(function (m) { return m.id === (tw.target || 'first'); })[0];
     $('ts-target').innerHTML = '<small>狙う敵（タップで変更）</small><b>' + mode.name + '</b>';
+    $('ts-target').hidden = !!T.noAttack;
     var up = $('ts-up');
     if (c === null) { up.textContent = '最大まで強化済み'; up.disabled = true; }
     else { up.textContent = '強化 ● ' + c; up.disabled = s.gold < c; }
@@ -389,10 +394,13 @@ var G = window.G = window.G || {};
     var h = '<dt>エネルギー</dt><dd>' + def.cost + '</dd><dt>種類</dt><dd>' + (def.kind === 'tower' ? 'タワー' : 'スキル') + '</dd>';
     if (def.kind === 'tower') {
       var T = G.TOWERS[def.tower], st = B.baseStats(def.tower, 0), R = G.Rank.ofStats(st);
+      if (T.noAttack) return h + '<dt>攻撃</dt><dd>しない</dd><dt>収入</dt><dd>攻撃1回ごと ' + T.income + 'G</dd><dt>強化</dt><dd>● ' + T.up.map(function (u) { return u.cost; }).join(' → ● ') + '（収入 ' + T.up.map(function (u) { return u.income; }).join('→') + 'G）</dd>';
       h += '<dt>攻撃力</dt><dd>' + T.dmg + (T.dmgType === 'magic' ? '（魔法）' : '（物理）') + rk(R.dmg) +
         '</dd><dt>射程</dt><dd>' + T.range + 'マス' + rk(R.range) + '</dd><dt>攻撃速度</dt><dd>' + perSec(T.rate) + '発/s' + rk(R.speed) + '</dd>' +
         (T.splash ? '<dt>爆発の広さ</dt><dd>' + T.splash + 'マス' + rk(R.splash) + '</dd>' : '') +
         (T.poison ? '<dt>毒</dt><dd>毎秒' + T.poison.dps + '×' + T.poison.dur + '秒</dd>' : '') +
+        (T.burn ? '<dt>やけど</dt><dd>毎秒' + T.burn.dps + '×' + T.burn.dur + '秒</dd>' : '') +
+        (T.chain ? '<dt>連鎖</dt><dd>' + T.chain + '体（70%）</dd>' : '') +
         (T.slow ? '<dt>遅くする</dt><dd>' + Math.round(T.slow.pct * 100) + '%×' + T.slow.dur + '秒</dd>' : '') +
         '<dt>強化</dt><dd>● ' + T.up.map(function (u) { return u.cost; }).join(' → ● ') + '</dd>';
     } else {
@@ -479,6 +487,7 @@ var G = window.G = window.G || {};
       else if (e.k === 'spawn' && e.boss) showBanner('ボス出現！', 'attack');
       else if (e.k === 'kill' || e.k === 'leak') inf = true;
       else if (e.k === 'reshuffle') toast('捨て札を混ぜて山札に戻しました');
+      else if (e.k === 'relic') toast('レリック「' + G.RELICS[e.id].name + '」が働いた');
       else if (e.k === 'win' || e.k === 'lose') finish();
     });
     if (inf) renderInfo();

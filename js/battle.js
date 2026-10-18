@@ -72,6 +72,8 @@ var G = window.G = window.G || {};
       draw: [], hand: [], discard: [], exhaust: [],
       towers: [], enemies: [], shots: [], events: [],
       buff: { speedMult: 1 },     // 全タワーへのこのターンだけの強化（号令など）
+      relics: opts.relics || [],  // 持っているレリックのid
+      bpUsed: false, wallUsed: false, pendingSpawn: [],
       spawnQueue: [], time: 0, nextId: 1, uid: 1,
       stats: { killed: 0, leaked: 0, built: 0, goldEarned: 0 }
     };
@@ -82,6 +84,7 @@ var G = window.G = window.G || {};
   }
 
   function ev(s, e) { s.events.push(e); }
+  function has(s, id) { return s && s.relics && s.relics.indexOf(id) >= 0; }
 
   function cardDef(card) { return G.CARDS[card.id]; }
   function cardCost(card) { return card.cost !== undefined ? card.cost : cardDef(card).cost; }
@@ -100,7 +103,8 @@ var G = window.G = window.G || {};
 
   function startPrep(s) {
     s.phase = 'prep';
-    s.energy = G.RULES.energyPerTurn;
+    s.energy = G.RULES.energyPerTurn + (has(s, 'stone') ? 1 : 0) + (has(s, 'banner') && s.turn === 0 ? 2 : 0);
+    s.bpUsed = false;
     // 「このターンだけ」の強化を外す
     s.buff.speedMult = 1;
     s.towers.forEach(function (tw) { tw.turnDmgMult = 1; });
@@ -152,6 +156,7 @@ var G = window.G = window.G || {};
       s.towers.push(t);
       s.stats.built++;
       ev(s, { k: 'build', x: t.x, y: t.y });
+      if (has(s, 'blueprint') && !s.bpUsed) { s.bpUsed = true; drawOne(s); ev(s, { k: 'relic', id: 'blueprint' }); }
       return null;
     }
     applySkill(s, def, tw);
@@ -179,14 +184,24 @@ var G = window.G = window.G || {};
   // 強化レベルだけの強さ（カードや一時強化は入れない）。ランクの基準はこれ
   function baseStats(type, lv) {
     var T = G.TOWERS[type];
-    var st = { range: T.range, dmg: T.dmg, rate: T.rate, splash: T.splash || 0, poison: T.poison || null, slow: T.slow || null };
+    var st = { range: T.range, dmg: T.dmg, rate: T.rate, splash: T.splash || 0, poison: T.poison || null, slow: T.slow || null,
+               burn: T.burn || null, chain: T.chain || 0, income: T.income || 0 };
     if (lv > 0) { var u = T.up[lv - 1]; for (var k in u) if (k !== 'cost') st[k] = u[k]; }
     return st;
   }
   // 今の強さ：強化レベル＋スキルの強化（研ぎ石・狙い撃ち・号令）
   function towerStats(tw, s) {
     var st = baseStats(tw.type, tw.lv || 0);
+    var T = G.TOWERS[tw.type];
     st.dmg = (st.dmg + (tw.bonusDmg || 0)) * (tw.turnDmgMult || 1);
+    // レリックの数値アップ
+    if (has(s, 'sharp') && T.dmgType === 'physical') st.dmg *= 1.15;
+    if (has(s, 'crystal') && T.dmgType === 'magic') st.dmg *= 1.2;
+    if (has(s, 'oldmap') && st.range > 0) st.range = Math.round((st.range + 0.3) * 10) / 10;
+    if (has(s, 'vial')) {
+      if (st.poison) st.poison = { dps: st.poison.dps, dur: st.poison.dur + 2 };
+      if (st.burn) st.burn = { dps: st.burn.dps, dur: st.burn.dur + 2 };
+    }
     st.dmg = Math.round(st.dmg * 10) / 10;
     if (s && s.buff.speedMult !== 1) st.rate = st.rate / s.buff.speedMult;
     return st;
@@ -232,6 +247,7 @@ var G = window.G = window.G || {};
     if (s.phase !== 'prep') return;
     s.phase = 'attack';
     s.time = 0;
+    s.wallUsed = false;
     s.spawnQueue = [];
     nextWave(s).forEach(function (g) {
       for (var i = 0; i < g.n; i++) s.spawnQueue.push({ t: g.delay + i * g.gap, gate: g.gate, type: g.type });
@@ -242,9 +258,9 @@ var G = window.G = window.G || {};
 
   function spawn(s, q) {
     var E = G.ENEMIES[q.type], hp = Math.round(E.hp * s.hpMult);
-    var e = { id: s.nextId++, type: q.type, gate: q.gate, hp: hp, max: hp, d: 0,
-              off: E.boss ? 0 : (s.rand() - 0.5) * 0.3, x: 0, y: 0, face: 1, walk: s.rand() * 10, flash: 0,
-              slowPct: 0, slowT: 0, poisonDps: 0, poisonT: 0, poisonTick: 0 };
+    var e = { id: s.nextId++, type: q.type, gate: q.gate, hp: hp, max: hp, d: q.d || 0,
+              off: E.boss ? 0 : (s.rand() - 0.5) * (q.d ? 0.5 : 0.3), x: 0, y: 0, face: 1, walk: s.rand() * 10, flash: 0,
+              slowPct: 0, slowT: 0, poisonDps: 0, poisonT: 0, poisonTick: 0, burnDps: 0, burnT: 0, burnTick: 0 };
     place(s, e);
     s.enemies.push(e);
     ev(s, { k: 'spawn', x: e.x, y: e.y, boss: !!E.boss });
@@ -258,25 +274,34 @@ var G = window.G = window.G || {};
     if (Math.abs(p.dx) > 0.01) e.face = p.dx > 0 ? 1 : -1;
   }
 
-  // type：physical（よろいで減る）/ magic / poison（どちらもよろい無視）
+  // type：physical（よろいで減る）/ magic（魔法に強い敵で減る）/ burn（やけど、魔法と同じ）/ poison（何でも通る）
   function hurt(s, e, dmg, type) {
     if (e.hp <= 0) return;
-    var E = G.ENEMIES[e.type];
-    var real = type === 'physical' ? dmg * (1 - E.armor) : dmg;
-    e.hp -= real; if (type !== 'poison') e.flash = 0.12;
-    var kind = type === 'poison' ? 'poison' : (type === 'physical' && E.armor > 0) ? 'resisted' : 'normal';
+    var E = G.ENEMIES[e.type], cut = 0;
+    if (type === 'physical') cut = E.armor;
+    else if ((type === 'magic' || type === 'burn') && E.magicResist) cut = E.magicResist;
+    var real = dmg * (1 - cut);
+    e.hp -= real; if (type !== 'poison' && type !== 'burn') e.flash = 0.12;
+    var kind = type === 'poison' ? 'poison' : type === 'burn' ? 'burn' : cut > 0 ? 'resisted' : 'normal';
     ev(s, { k: 'hit', x: e.x, y: e.y, amount: real, kind: kind });
     if (e.hp <= 0) {
-      s.gold += E.gold; s.stats.goldEarned += E.gold; s.stats.killed++;
-      ev(s, { k: 'kill', x: e.x, y: e.y, type: e.type, gold: E.gold });
+      // ガイコツ：一度だけ体力半分で起き上がる
+      if (E.revive && !e.revived) { e.revived = true; e.hp = e.max * 0.5; e.poisonT = e.burnT = 0; ev(s, { k: 'revive', x: e.x, y: e.y }); return; }
+      var gold = E.gold + (has(s, 'scale') ? 1 : 0);
+      s.gold += gold; s.stats.goldEarned += gold; s.stats.killed++;
+      ev(s, { k: 'kill', x: e.x, y: e.y, type: e.type, gold: gold });
+      // 大スライム：倒すと小さいスライムに分かれる（同じ場所から）
+      if (E.split) for (var i = 0; i < E.split.n; i++) s.pendingSpawn.push({ gate: e.gate, type: E.split.type, d: Math.max(0, e.d - 0.15 * i) });
     }
   }
   // 弾が当たった時の追加効果（毒・遅くする）
   function applyOnHit(s, e, sh) {
     if (e.hp <= 0) return;
     var E = G.ENEMIES[e.type];
+    var imm = E.immune || [];
     if (sh.poison) { e.poisonDps = Math.max(e.poisonDps, sh.poison.dps); e.poisonT = Math.max(e.poisonT, sh.poison.dur); }
-    if (sh.slow) {
+    if (sh.burn && imm.indexOf('burn') < 0) { e.burnDps = Math.max(e.burnDps, sh.burn.dps); e.burnT = Math.max(e.burnT, sh.burn.dur); }
+    if (sh.slow && imm.indexOf('slow') < 0) {
       var pct = E.boss ? sh.slow.pct / 2 : sh.slow.pct;   // ボスには半分しか効かない
       e.slowPct = Math.max(e.slowPct, pct); e.slowT = Math.max(e.slowT, sh.slow.dur);
     }
@@ -301,12 +326,13 @@ var G = window.G = window.G || {};
     if (s.phase !== 'attack') return;
     s.time += dt;
     while (s.spawnQueue.length && s.spawnQueue[0].t <= s.time) spawn(s, s.spawnQueue.shift());
+    while (s.pendingSpawn.length) spawn(s, s.pendingSpawn.shift());
 
     // 敵が進む・毒のダメージ
     for (var i = 0; i < s.enemies.length; i++) {
       var e = s.enemies[i], E = G.ENEMIES[e.type];
       if (e.hp <= 0) continue;
-      var sp = E.speed;
+      var sp = E.speed * (has(s, 'frostbell') ? 0.9 : 1);
       if (e.slowT > 0) { sp *= (1 - e.slowPct); e.slowT -= dt; if (e.slowT <= 0) e.slowPct = 0; }
       e.d += sp * dt;
       e.walk += dt * sp * 4;
@@ -317,17 +343,25 @@ var G = window.G = window.G || {};
         if (e.poisonT <= 0) { e.poisonDps = 0; e.poisonTick = 0; }
         if (e.hp <= 0) continue;
       }
+      if (e.burnT > 0) {
+        e.burnT -= dt; e.burnTick += dt;
+        if (e.burnTick >= 0.5) { e.burnTick -= 0.5; hurt(s, e, e.burnDps * 0.5, 'burn'); }
+        if (e.burnT <= 0) { e.burnDps = 0; e.burnTick = 0; }
+        if (e.hp <= 0) continue;
+      }
       place(s, e);
       if (e.d >= s.paths[e.gate].len) {
-        e.hp = 0; e.leaked = true;
-        s.life = Math.max(0, s.life - E.life); s.stats.leaked++;
-        ev(s, { k: 'leak', x: e.x, y: e.y, life: E.life });
+        e.hp = 0; e.leaked = true; s.stats.leaked++;
+        if (has(s, 'wall') && !s.wallUsed && !E.boss) { s.wallUsed = true; ev(s, { k: 'relic', id: 'wall', x: e.x, y: e.y }); }
+        else { s.life = Math.max(0, s.life - E.life); ev(s, { k: 'leak', x: e.x, y: e.y, life: E.life }); }
       }
     }
 
     // タワーが撃つ（射程内で一番ゴールに近い敵をねらう）
     for (i = 0; i < s.towers.length; i++) {
-      var tw = s.towers[i], st = towerStats(tw, s), T = G.TOWERS[tw.type];
+      var tw = s.towers[i], T = G.TOWERS[tw.type];
+      if (T.noAttack) continue;
+      var st = towerStats(tw, s);
       tw.cd -= dt; if (tw.fire > 0) tw.fire -= dt;
       var best = null, bestScore = 0, score = TARGET_SCORE[tw.target] || TARGET_SCORE.first;
       for (var j = 0; j < s.enemies.length; j++) {
@@ -344,7 +378,7 @@ var G = window.G = window.G || {};
         var sy = tw.y - (T.muzzle !== undefined ? T.muzzle : 1.5);
         s.shots.push({ kind: T.shot, x: tw.x, y: sy, sx: tw.x, sy: sy, target: best.id,
                        tx: best.x, ty: best.y, speed: T.speed, dmg: st.dmg, dmgType: T.dmgType,
-                       splash: st.splash, poison: st.poison, slow: st.slow, t: 0 });
+                       splash: st.splash, poison: st.poison, slow: st.slow, burn: st.burn, chain: st.chain, t: 0 });
         ev(s, { k: 'fire', type: tw.type, x: tw.x, y: sy });
       }
     }
@@ -374,8 +408,28 @@ var G = window.G = window.G || {};
       var dx = sh.tx - sh.x, dy = sh.ty - sh.y, dist = Math.hypot(dx, dy), step = sh.speed * dt;
       sh.ang = Math.atan2(dy, dx);
       if (dist <= step) {
-        if (tgt && tgt.hp > 0) { hurt(s, tgt, sh.dmg, sh.dmgType); applyOnHit(s, tgt, sh); }
-        ev(s, { k: sh.kind === 'orb' ? 'zap' : sh.kind === 'ice' ? 'frost' : sh.kind === 'drip' ? 'splat' : 'pin', x: sh.tx, y: sh.ty });
+        if (sh.splash) {   // 炎：当たった所の周りにもダメージとやけど
+          for (j = 0; j < s.enemies.length; j++) {
+            var se = s.enemies[j];
+            if (se.hp > 0 && Math.hypot(se.x - sh.tx, se.y - (sh.ty + 0.3)) <= sh.splash) { hurt(s, se, sh.dmg, sh.dmgType); applyOnHit(s, se, sh); }
+          }
+        } else if (tgt && tgt.hp > 0) { hurt(s, tgt, sh.dmg, sh.dmgType); applyOnHit(s, tgt, sh); }
+        // 雷：近くの敵へ順に飛び移る（70%のダメージ）
+        if (sh.chain && tgt) {
+          var hit = [tgt.id], from = tgt;
+          for (var c = 0; c < sh.chain; c++) {
+            var nx = null, nd = 1.6;
+            for (j = 0; j < s.enemies.length; j++) {
+              var ce = s.enemies[j];
+              if (ce.hp <= 0 || hit.indexOf(ce.id) >= 0) continue;
+              var cd = Math.hypot(ce.x - from.x, ce.y - from.y); if (cd < nd) { nd = cd; nx = ce; }
+            }
+            if (!nx) break;
+            ev(s, { k: 'chain', x0: from.x, y0: from.y - 0.4, x1: nx.x, y1: nx.y - 0.4 });
+            hurt(s, nx, sh.dmg * 0.7, sh.dmgType); hit.push(nx.id); from = nx;
+          }
+        }
+        ev(s, { k: sh.kind === 'orb' ? 'zap' : sh.kind === 'ice' ? 'frost' : sh.kind === 'drip' ? 'splat' : sh.kind === 'flame' ? 'flame' : sh.kind === 'spark' ? 'zap' : 'pin', x: sh.tx, y: sh.ty });
         s.shots.splice(i, 1);
       } else { sh.x += dx / dist * step; sh.y += dy / dist * step; }
     }
@@ -383,8 +437,13 @@ var G = window.G = window.G || {};
     s.enemies = s.enemies.filter(function (e) { return e.hp > 0; });
 
     if (s.life <= 0) { s.phase = 'lose'; s.shots = []; ev(s, { k: 'lose' }); return; }
-    if (!s.spawnQueue.length && !s.enemies.length) {
+    if (!s.spawnQueue.length && !s.enemies.length && !s.pendingSpawn.length) {
       s.shots = [];
+      // 金鉱：攻撃を1回しのぐたびにお金
+      s.towers.forEach(function (tw) {
+        var inc = G.TOWERS[tw.type].noAttack ? baseStats(tw.type, tw.lv).income : 0;
+        if (inc) { s.gold += inc; s.stats.goldEarned += inc; ev(s, { k: 'income', x: tw.x, y: tw.y, gold: inc }); }
+      });
       s.turn++;
       if (s.turn >= s.totalTurns) { s.phase = 'win'; ev(s, { k: 'win' }); }
       else startPrep(s);
@@ -408,6 +467,7 @@ var G = window.G = window.G || {};
     Object.keys(RANK_STATS).forEach(function (key) {
       var vals = [], types = 0;
       Object.keys(G.TOWERS).forEach(function (type) {
+        if (G.TOWERS[type].noAttack) return;   // 攻撃しないタワー（金鉱）は比べない
         var has = false;
         for (var lv = 0; lv <= G.TOWERS[type].up.length; lv++) {
           var v = RANK_STATS[key](baseStats(type, lv));

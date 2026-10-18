@@ -86,22 +86,24 @@ function playRun(seed, log) {
       G.Run.finishBattle(run, s);
       steps.push(n.floor + n.type[0] + '(-' + (lifeBefore - s.life) + ')');
       if (!run.over) {
+        if (n.type === 'elite') G.Run.addRelic(run, G.Run.rollRelic(run, 'elite'));
         var cards = G.Run.rollCards(run, 3, n.type === 'elite' ? 'elite' : 'battle');
         G.Run.addCard(run, cards[0]);
       }
     } else if (n.type === 'rest') { G.Run.rest(run); steps.push(n.floor + 'R'); }
     else if (n.type === 'shop') {
-      var st = G.Run.shopStock(run).filter(function (x) { return x.price <= run.gold; })[0];
+      var st = G.Run.shopStock(run).cards.filter(function (x) { return x.price <= run.gold; })[0];
       if (st) { run.gold -= st.price; G.Run.addCard(run, st.id); }
       steps.push(n.floor + 'S');
     } else {
       var e = G.Run.rollEvent(run), res = G.Run.eventChoice(run, e.choices[0]);
       if (res.next === 'pickCard') G.Run.addCard(run, res.cards[0]);
+      if (res.next === 'pickCopy') G.Run.addCard(run, run.deck[run.deck.length - 1]);
       if (res.next === 'pickRemove' && run.deck.length > 5) G.Run.removeCard(run, run.deck.indexOf('sling'));
       steps.push(n.floor + 'E');
     }
   }
-  if (log) console.log((run.won ? '勝ち' : '負け') + ' ライフ' + run.life + ' お金' + run.gold + ' デッキ' + run.deck.length + '枚 | ' + steps.join(' '));
+  if (log) console.log((run.won ? '勝ち' : '負け') + ' レリック' + run.relics.length + ' ライフ' + run.life + ' お金' + run.gold + ' デッキ' + run.deck.length + '枚 | ' + steps.join(' '));
   return run;
 }
 

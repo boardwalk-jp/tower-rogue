@@ -5,7 +5,7 @@ var G = window.G = window.G || {};
 
 // ============================================================
 // バトルマップ（1マス = 横16ドット × 縦12ドットの斜め見下ろし、11×15マス）
-// . 草地（タワーを置ける）  # 道  T 木  R 岩  X 城の敷地（置けない）  A/B/C 入口（いちばん上の行）  G 城（ゴール）
+// . 地面（タワーを置ける）  # 道  T 木（地域で見た目が変わる）  R 岩  L 湖・溶岩（置けない）  X 城の敷地（置けない）  A/B/C 入口（いちばん上の行）  G 城（ゴール）
 // paths は入口ごとの敵の通り道（マスの中心座標）。洞穴の出口のすぐ前（y=0.8）から出てくる
 // ============================================================
 G.MAPS = {
@@ -83,6 +83,23 @@ G.MAPS = {
       C: [[5.5,0.8],[5.5,14.6]]
     },
     gateName: { A: '左の入口', B: '右の入口', C: '中央の入口' }
+  },
+  // ---- 雪山（中盤）：L は凍った湖（置けない）、T は雪の針葉樹 ----
+  snowpass: {
+    name: '雪山の峠', theme: 'snow',
+    rows: ['...A....B..','T..#....#.T','...#..T.#..','.LL#....#..','.LL######..','.......#...','T......#.R.','..######...','..#.....T..','..#..LL....','..#..LL..T.','..######...','.T.....#...','......X#X..','......XGX..'],
+    paths: {
+      A: [[3.5,0.8],[3.5,4.5],[7.5,4.5],[7.5,7.5],[2.5,7.5],[2.5,11.5],[7.5,11.5],[7.5,14.6]],
+      B: [[8.5,0.8],[8.5,4.5],[7.5,4.5],[7.5,7.5],[2.5,7.5],[2.5,11.5],[7.5,11.5],[7.5,14.6]]
+    },
+    gateName: { A: '左の入口', B: '右の入口' }
+  },
+  // ---- 火山（終盤）：L は溶岩（置けない）、T は黒い岩の柱 ----
+  lavaflow: {
+    name: '溶岩の道', theme: 'volcano',
+    rows: ['.........A.','T..L.....#.','.#########.','.#..LLL....','.#..LLL..T.','.#######...','.......#...','.T.....#.LL','...#####.LL','...#.......','LL.#...T...','LL.######..','........#..','.T.....X#X.','.......XGX.'],
+    paths: { A: [[9.5,0.8],[9.5,2.5],[1.5,2.5],[1.5,5.5],[7.5,5.5],[7.5,8.5],[3.5,8.5],[3.5,11.5],[8.5,11.5],[8.5,14.6]] },
+    gateName: { A: '入口' }
   }
 };
 Object.keys(G.MAPS).forEach(function (k) {
@@ -143,6 +160,22 @@ G.TOWERS = {
     text: '当たった敵を遅くする（1.5秒間）。ダメージは小さい。',
     up: [{ cost: 30, dmg: 6, range: 2.4, rate: 1.1, slow: { pct: 0.5, dur: 1.5 } }, { cost: 60, dmg: 9, range: 2.6, rate: 1.0, slow: { pct: 0.6, dur: 2 } }]
   },
+  fire: {
+    name: '炎の塔', muzzle: 1.6, cost: 2, range: 2.2, dmg: 6, rate: 1.4, dmgType: 'magic', shot: 'flame', speed: 6, splash: 0.6,
+    burn: { dps: 8, dur: 2 },
+    text: '火の玉で周りの敵もまとめて燃やす（2秒間、毎秒ダメージ）。火に強い敵には効かない。',
+    up: [{ cost: 30, dmg: 9, splash: 0.7, burn: { dps: 12, dur: 2 } }, { cost: 60, dmg: 13, range: 2.5, splash: 0.8, burn: { dps: 18, dur: 2.5 } }]
+  },
+  thunder: {
+    name: '雷の塔', muzzle: 1.8, cost: 2, range: 2.4, dmg: 10, rate: 1.5, dmgType: 'magic', shot: 'spark', speed: 16, chain: 2,
+    text: '当たった敵から近くの敵へ電気が飛ぶ（2体まで、70%のダメージ）。',
+    up: [{ cost: 30, dmg: 15, chain: 3 }, { cost: 60, dmg: 22, range: 2.7, chain: 4 }]
+  },
+  mine: {
+    name: '金鉱', muzzle: 0.5, cost: 1, range: 0, dmg: 0, rate: 1, dmgType: 'none', noAttack: true, income: 8,
+    text: '攻撃しない。攻撃を1回しのぐたびにお金+8。',
+    up: [{ cost: 25, income: 14 }, { cost: 50, income: 22 }]
+  },
   ballista: {
     name: '大型弩砲', muzzle: 0.9, cost: 3, range: 3.6, dmg: 40, rate: 2.4, dmgType: 'physical', shot: 'bolt', speed: 14,
     text: '遠くまで届く重い矢。1発が大きい。',
@@ -170,6 +203,9 @@ G.CARDS = {
   cannon:   { kind: 'tower', tower: 'cannon', rarity: 'uncommon' },
   frost:    { kind: 'tower', tower: 'frost', rarity: 'uncommon' },
   ballista: { kind: 'tower', tower: 'ballista', rarity: 'rare' },
+  fire:     { kind: 'tower', tower: 'fire', rarity: 'uncommon' },
+  thunder:  { kind: 'tower', tower: 'thunder', rarity: 'uncommon' },
+  mine:     { kind: 'tower', tower: 'mine', rarity: 'common' },
 
   supply:   { kind: 'skill', name: '補給', cost: 0, target: 'none', rarity: 'common', icon: 'bag',
               text: 'カードを2枚引く。' },
@@ -197,6 +233,7 @@ G.START_DECK = ['bowman', 'bowman', 'bowman', 'bowman', 'sling', 'sling', 'sling
 // ============================================================
 // 敵
 // speed はマス/秒、armor は物理ダメージを減らす割合、life はゴールに着いた時に減るライフ
+// revive：一度だけ体力半分で起き上がる。split：倒すと分かれる。immune：効かない状態異常。magicResist：魔法・炎を減らす割合
 // ============================================================
 G.ENEMIES = {
   slime:  { name: 'スライム',   hp: 48,   speed: 0.9,  armor: 0,   life: 1,  gold: 3,   gap: 1.2 },
@@ -204,6 +241,11 @@ G.ENEMIES = {
   wolf:   { name: 'ウルフ',     hp: 28,   speed: 2.1,  armor: 0,   life: 1,  gold: 4,   gap: 0.7 },
   orc:    { name: 'オーク',     hp: 190,  speed: 0.6,  armor: 0.4, life: 2,  gold: 10,  gap: 2.6 },
   knight: { name: '重装オーク', hp: 260,  speed: 0.55, armor: 0.5, life: 3,  gold: 20,  gap: 4.0 },
+  bat:    { name: 'コウモリ',   hp: 20,   speed: 2.5,  armor: 0,   life: 1,  gold: 3,   gap: 0.5 },
+  skeleton: { name: 'ガイコツ', hp: 60,   speed: 1.0,  armor: 0.2, life: 1,  gold: 6,   gap: 1.4, revive: true },
+  kingslime: { name: '大スライム', hp: 150, speed: 0.7, armor: 0,   life: 2,  gold: 8,   gap: 3.0, split: { type: 'slime', n: 3 } },
+  yeti:   { name: 'イエティ',   hp: 240,  speed: 0.7,  armor: 0.2, life: 2,  gold: 14,  gap: 3.0, immune: ['slow'] },
+  salamander: { name: '火トカゲ', hp: 120, speed: 1.2, armor: 0.1, life: 1, gold: 8,  gap: 1.6, immune: ['burn'], magicResist: 0.3 },
   ogre:   { name: 'オーガ王',   hp: 1500, speed: 0.4,  armor: 0.3, life: 10, gold: 100, gap: 1, boss: true }
 };
 
@@ -216,7 +258,16 @@ G.WAVE_SETS = {
   early: [
     [[['slime', 6, 0]], [['slime', 5, 0], ['goblin', 4, 3]], [['goblin', 6, 0], ['slime', 5, 2]]],
     [[['goblin', 6, 0]], [['slime', 6, 0], ['wolf', 3, 4]], [['orc', 1, 0], ['goblin', 6, 2]]],
-    [[['slime', 4, 0], ['slime', 4, 4]], [['wolf', 5, 0]], [['slime', 6, 0], ['orc', 1, 5]]]
+    [[['slime', 4, 0], ['slime', 4, 4]], [['wolf', 5, 0]], [['slime', 6, 0], ['orc', 1, 5]]],
+    [[['bat', 6, 0]], [['skeleton', 3, 0], ['slime', 4, 3]], [['kingslime', 1, 0], ['goblin', 6, 2]]]
+  ],
+  snow: [
+    [[['wolf', 6, 0]], [['yeti', 1, 0], ['goblin', 6, 3]], [['wolf', 8, 0], ['yeti', 2, 4]]],
+    [[['skeleton', 4, 0]], [['kingslime', 2, 0], ['wolf', 5, 3]], [['yeti', 2, 0], ['skeleton', 5, 3]]]
+  ],
+  volcano: [
+    [[['salamander', 4, 0]], [['bat', 10, 0], ['orc', 2, 3]], [['salamander', 6, 0], ['kingslime', 2, 4]]],
+    [[['bat', 8, 0], ['skeleton', 3, 3]], [['salamander', 5, 0], ['orc', 2, 4]], [['skeleton', 6, 0], ['salamander', 5, 2], ['orc', 2, 6]]]
   ],
   mid: [
     [[['goblin', 7, 0]], [['orc', 2, 0], ['slime', 8, 2]], [['wolf', 8, 0], ['orc', 3, 4]]],
@@ -249,8 +300,40 @@ G.EVENTS = [
               { label: '断る', effect: 'none' }] },
   { id: 'altar', title: '古い祭壇', text: '赤い石の祭壇。ささげ物をすれば力を授けるという。',
     choices: [{ label: '血をささげる', note: 'ライフ-6、珍しいカードを3枚から1枚選ぶ', effect: 'rareCard', life: -6 },
-              { label: '立ち去る', effect: 'none' }] }
+              { label: '立ち去る', effect: 'none' }] },
+  { id: 'child', title: '迷子の子ども', text: '泣いている子どもがいる。家まで送ると遠回りになりそうだ。',
+    choices: [{ label: '家まで送る', note: 'ライフ-3、お礼にレリックを1つ', effect: 'relic', life: -3 },
+              { label: '道だけ教える', note: '+15G（親からのお礼）', effect: 'goldLife', gold: 15 }] },
+  { id: 'box', title: '謎の宝箱', text: '古びた宝箱。鍵はかかっていないが、何かの気配がする。',
+    choices: [{ label: '開ける', note: '50%でレリック、50%でライフ-6', effect: 'box' },
+              { label: '開けない', effect: 'none' }] },
+  { id: 'forge', title: '溶岩の鍛冶場', text: '溶岩の熱を使う鍛冶場。「同じ道具をもう1つ作ってやろう」',
+    choices: [{ label: 'カードを1枚複製する', note: '-40G、選んだカードと同じものをデッキに追加', effect: 'copyCard', gold: -40 },
+              { label: '立ち去る', effect: 'none' }] },
+  { id: 'hut', title: '雪山の小屋', text: '暖炉のある無人の小屋。薪が積んである。',
+    choices: [{ label: '暖まって休む', note: 'ライフ+6', effect: 'heal', amount: 6 },
+              { label: '薪を売りに持っていく', note: '+25G', effect: 'goldLife', gold: 25 }] }
 ];
+
+// ============================================================
+// レリック（持っているだけで効く。エリート撃破・商人・イベントで手に入る）
+// kind：number（数値が上がる）/ change（遊び方が変わる）
+// ============================================================
+G.RELICS = {
+  sharp:     { name: '鋭い矢じり', kind: 'number', rarity: 'common',   text: '物理のタワーの攻撃力+15%。' },
+  crystal:   { name: '魔力の結晶', kind: 'number', rarity: 'common',   text: '魔法のタワー（魔導士・氷・炎・雷・毒）の攻撃力+20%。' },
+  oldmap:    { name: '古い地図',   kind: 'number', rarity: 'common',   text: 'すべてのタワーの射程+0.3マス。' },
+  scale:     { name: '金の天秤',   kind: 'number', rarity: 'common',   text: '敵を倒した時のお金+1。' },
+  vial:      { name: '毒の小瓶',   kind: 'number', rarity: 'common',   text: '毒とやけどの時間+2秒。' },
+  frostbell: { name: '氷の鈴',     kind: 'number', rarity: 'uncommon', text: 'すべての敵の速さ-10%。' },
+  banner:    { name: '戦旗',       kind: 'number', rarity: 'uncommon', text: '戦闘の最初の準備ターンだけ、エネルギー+2。' },
+  spring:    { name: '泉の水',     kind: 'number', rarity: 'uncommon', text: '戦闘に勝つとライフ+3。' },
+  seal:      { name: '商人の印',   kind: 'number', rarity: 'uncommon', text: '商人の値段が25%安くなる。' },
+  blueprint: { name: '設計図の束', kind: 'change', rarity: 'uncommon', text: 'タワーを建てると、1ターンに1回だけカードを1枚引く。' },
+  wall:      { name: '応急の石壁', kind: 'change', rarity: 'rare',     text: '攻撃1回ごとに、城に着いた最初の敵ではライフが減らない。' },
+  stone:     { name: 'エネルギー石', kind: 'change', rarity: 'rare',   text: '毎ターンのエネルギー+1。' }
+};
+Object.keys(G.RELICS).forEach(function (k) { G.RELICS[k].id = k; });
 
 // ---- ダメージ数字の色 ----
 // normal：ふつう / resisted：よろい・耐性で減った / poison：毒 / burn：やけど（今後）
@@ -276,5 +359,6 @@ G.RULES = {
   floorScale: 0.04,   // 1階進むごとに敵の体力が4%ずつ増える（数はひな形どおり）
   battleGold: { battle: 10, elite: 30 },   // 戦闘に勝った時のおまけのお金
   restHeal: 10,
-  shop: { price: { common: 35, uncommon: 55, rare: 80 }, remove: 50, heal: 30, healAmount: 10 }
+  shop: { price: { common: 35, uncommon: 55, rare: 80 }, remove: 50, heal: 30, healAmount: 10,
+          relicPrice: { common: 90, uncommon: 120, rare: 160 } }
 };

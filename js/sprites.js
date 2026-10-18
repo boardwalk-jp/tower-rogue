@@ -245,6 +245,73 @@ var G = window.G = window.G || {};
     return both(g.outline(OUT));
   }
 
+  function fireTower(lv, fire) {    // 炎の塔：赤レンガの塔と火の玉
+    var g = new Grid(18, 32);
+    g.rect(4, 15, 10, 16, '#8a3b2a');
+    for (var j = 15; j < 31; j += 3) for (var i = ((j - 15) / 3) % 2 ? 4 : 6; i < 14; i += 4) g.px(i, j, '#6b2a1e');
+    g.rect(4, 15, 1, 16, '#b0573f'); g.rect(4, 30, 10, 1, '#4a1a12');
+    g.rect(2, 13, 14, 2, '#5a2418'); g.rect(3, 11, 2, 2, '#5a2418'); g.rect(13, 11, 2, 2, '#5a2418');
+    g.ell(9, 7, fire ? 4.5 : 3.8, fire ? 5 : 4.5, '#ff6a2a'); g.ell(9, 8, 2.5, 3, '#ffd84a'); g.px(9, 9, '#ffffff');
+    g.rect(14, 18 - lv, 1, 5 + lv, '#5b4632'); g.rect(15, 18 - lv, 2, 2, FLAG[lv]);
+    return g.outline(OUT).bake();
+  }
+  function thunderTower(lv, fire) { // 雷の塔：細い石の塔と金属の玉
+    var g = new Grid(18, 34);
+    stoneBase(g, 5, 14, 8, 19);
+    g.rect(4, 12, 10, 2, '#9fa3a8'); g.rect(8, 5, 2, 7, '#6b6e74');
+    g.ell(9, 4, 3.5, 3.5, fire ? '#ffffff' : '#ffe14d'); g.ell(8, 3, 1.4, 1.4, '#fff8c0');
+    if (fire) { g.px(3, 2, '#ffe14d'); g.px(14, 5, '#ffe14d'); g.px(2, 6, '#ffe14d'); g.px(15, 1, '#ffe14d'); }
+    g.rect(13, 17 - lv, 1, 5 + lv, '#5b4632'); g.rect(14, 17 - lv, 2, 2, FLAG[lv]);
+    return g.outline(OUT).bake();
+  }
+  function mineTower(lv) {          // 金鉱：木の入口と金のかたまり
+    var g = new Grid(20, 18);
+    g.ell(10, 12, 9, 6, '#6b5a48'); g.ell(10, 11, 8, 5, '#857260');
+    g.rect(6, 7, 8, 10, '#3b2a1a'); g.rect(5, 6, 10, 2, '#8a5a2b'); g.rect(5, 6, 2, 11, '#8a5a2b'); g.rect(13, 6, 2, 11, '#8a5a2b');
+    g.ell(16, 15, 2.5, 2, '#ffd84a'); g.px(15, 14, '#fff3b0'); g.ell(3.5, 15, 1.8, 1.4, '#e6b84a');
+    g.rect(17, 5 - lv, 1, 4 + lv, '#5b4632'); g.rect(18, 5 - lv, 2, 2, FLAG[lv]);
+    return g.outline(OUT).bake();
+  }
+  function bat(f) {
+    var g = new Grid(18, 12), c = '#5b4a78', d = '#3a2e52';
+    g.ell(9, 6, 3, 3, c); g.px(8, 5, '#ff4d3a'); g.px(10, 5, '#ff4d3a'); g.px(7, 2, c); g.px(11, 2, c);
+    if (f === 0) { g.rect(1, 3, 6, 2, d); g.rect(11, 3, 6, 2, d); g.px(0, 2, d); g.px(17, 2, d); }
+    else { g.rect(1, 6, 6, 2, d); g.rect(11, 6, 6, 2, d); g.px(0, 8, d); g.px(17, 8, d); }
+    return both(g.outline(OUT));
+  }
+  function skeleton(f) {
+    var g = new Grid(14, 18), b = '#e8e2d0', d = '#a8a090';
+    if (f === 0) { g.rect(5, 13, 1, 4, b); g.rect(8, 13, 1, 3, b); g.px(9, 16, b); } else { g.rect(5, 13, 1, 3, b); g.px(4, 16, b); g.rect(8, 13, 1, 4, b); }
+    g.rect(6, 8, 2, 5, b); for (var y = 8; y < 13; y += 2) g.rect(4, y, 6, 1, d);
+    g.rect(3, 8, 1, 4, b); g.rect(10, 8, 1, 4, b); g.rect(11, 3, 1, 9, '#9a8a6a');
+    g.ell(7, 4, 3.5, 3.2, b); g.rect(5, 4, 2, 2, '#1a1a1a'); g.rect(8, 4, 2, 2, '#1a1a1a'); g.rect(6, 7, 3, 1, d);
+    return both(g.outline(OUT));
+  }
+  function kingslime(f) {
+    var g = new Grid(26, 19), sq = f === 1, B = 17, rx = sq ? 12 : 10.5, ry = sq ? 11 : 14;
+    g.ell(13, B + 1, rx, ry, '#7a3fa0'); g.ell(13, B + 1, rx - 1.5, ry - 2, '#9a5fc8'); g.rect(0, B + 1, 26, 2, null);
+    g.ell(9.5, B + 1 - ry + 4, 2.5, 1.5, '#d8b8f0');
+    var ey = Math.round(B - ry * 0.4); g.rect(9, ey, 2, 2, '#1a0e24'); g.rect(15, ey, 2, 2, '#1a0e24');
+    var ty = B + 1 - ry; g.rect(9, ty - 2, 8, 2, '#ffd84a'); g.px(9, ty - 3, '#ffd84a'); g.px(13, ty - 3, '#ffd84a'); g.px(16, ty - 3, '#ffd84a');
+    return both(g.outline(OUT));
+  }
+  function yeti(f) {
+    var g = new Grid(22, 24), w = '#e8eef5', s2 = '#b8c6d6';
+    if (f === 0) { g.rect(7, 19, 3, 4, s2); g.rect(12, 19, 3, 3, s2); } else { g.rect(7, 19, 3, 3, s2); g.rect(12, 19, 3, 4, s2); }
+    g.ell(11, 13, 8, 7, w); g.ell(11, 14, 5, 4, '#d6e0ec');
+    g.rect(1, 9, 3, 9, w); g.rect(18, 9, 3, 9, w); g.rect(1, 17, 3, 2, '#7a8aa0'); g.rect(18, 17, 3, 2, '#7a8aa0');
+    g.ell(11, 5, 5, 4.5, w); g.rect(8, 5, 6, 3, '#7a8aa0'); g.px(9, 5, '#4ea8ff'); g.px(12, 5, '#4ea8ff'); g.rect(9, 7, 4, 1, '#1a2230');
+    return both(g.outline(OUT));
+  }
+  function salamander(f) {
+    var g = new Grid(22, 12), c = '#d94a2a', d = '#8a2a1a', y = '#ffb347';
+    g.rect(1, 6, 5, 2, c); g.px(0, 5, '#ffd84a'); g.px(1, 4, '#ff8a2a');         // しっぽの火
+    g.ell(11, 7, 6.5, 2.6, c); g.rect(6, 6, 10, 1, y);
+    if (f === 0) { g.rect(7, 9, 2, 2, d); g.rect(14, 9, 2, 2, d); } else { g.rect(8, 9, 2, 2, d); g.rect(13, 9, 2, 2, d); }
+    g.ell(18, 6, 3.5, 2.4, c); g.px(19, 5, '#ffe14d'); g.rect(20, 7, 2, 1, d);
+    return both(g.outline(OUT));
+  }
+
   // ---- スキルの絵（カード用、16×16） ----
   function icon(kind) {
     var g = new Grid(16, 16);
@@ -275,6 +342,21 @@ var G = window.G = window.G || {};
                       g.rect(4, 7, 2, 2, '#ffe14d'); g.rect(8, 7, 2, 2, '#ffe14d'); g.rect(4, 11, 6, 1, '#4a2a1a'); break;
     }
     return g.outline(OUT).bake();
+  }
+
+  // ---- 地形の飾り（地域ごと） ----
+  function pine(v) {   // 雪の針葉樹
+    var g = new Grid(16, 22);
+    g.rect(7, 16, 2, 5, '#5a3a22');
+    for (var r = 0; r < 14; r++) { var w = Math.min(13, 3 + Math.floor(r * 0.8)); g.rect(8 - Math.floor(w / 2), 2 + r, w, 1, r % 4 === 0 ? '#e8f0f8' : (v ? '#2a5a4a' : '#24524a')); }
+    g.px(8, 1, '#e8f0f8');
+    return g.outline('#14262a').bake();
+  }
+  function spire(v) {  // 火山の黒い岩の柱
+    var g = new Grid(16, 22);
+    for (var r = 0; r < 18; r++) { var w = 2 + Math.floor(r / 3); g.rect(8 - Math.floor(w / 2) + (v && r < 6 ? 1 : 0), 3 + r, w, 1, r % 5 === 2 ? '#5a3a34' : '#3a2a28'); }
+    g.px(7, 12, '#ff6a2a'); g.px(9, 17, '#ff6a2a');
+    return g.outline('#120a08').bake();
   }
 
   // ---- 地形の飾り ----
@@ -322,12 +404,16 @@ var G = window.G = window.G || {};
       knight: [orc(0, { skin: '#5d7f52', dark: '#3f5a37', armor: ['#4a4f5c', '#7d8496', '#2e323c'], trim: '#d9b24a' }),
                orc(1, { skin: '#5d7f52', dark: '#3f5a37', armor: ['#4a4f5c', '#7d8496', '#2e323c'], trim: '#d9b24a' })],
       wolf: [wolf(0), wolf(1)],
+      bat: [bat(0), bat(1)], skeleton: [skeleton(0), skeleton(1)], kingslime: [kingslime(0), kingslime(1)],
+      yeti: [yeti(0), yeti(1)], salamander: [salamander(0), salamander(1)],
+      pine: [pine(0), pine(1)], spire: [spire(0), spire(1)],
       ogre: [ogre(0), ogre(1)],
       icon: {}, node: {},
       tree: [tree(0), tree(1)], rock: rock(), gate: gate(), castle: castle(), heart: heart()
     };
     var makers = { archer: archerTower, mage: mageTower, cannon: cannonTower, bowman: bowmanTower, sling: slingTower,
-                   watch: watchTower, poison: poisonTower, frost: frostTower, ballista: ballistaTower };
+                   watch: watchTower, poison: poisonTower, frost: frostTower, ballista: ballistaTower,
+                   fire: fireTower, thunder: thunderTower, mine: mineTower };
     Object.keys(makers).forEach(function (k) {
       S[k] = [];
       for (var lv = 0; lv < 3; lv++) S[k].push([makers[k](lv, false), makers[k](lv, true)]);

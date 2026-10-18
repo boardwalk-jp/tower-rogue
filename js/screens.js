@@ -108,7 +108,7 @@ var G = window.G = window.G || {};
     G.run = run;
     var r = d.resume || { type: 'map' };
     if (r.type === 'node' && run.at) return enterNode(R.node(run));
-    if (r.type === 'reward' && run.at) return showReward(R.node(run), r.bonus, { stats: r.stats }, r.cards);
+    if (r.type === 'reward' && run.at) return showReward(R.node(run), r.bonus, { stats: r.stats, relic: r.relic }, r.cards);
     showWorld();
   }
   var lastResume = { type: 'map' };
@@ -158,6 +158,7 @@ var G = window.G = window.G || {};
       b.addEventListener('click', function () { tapNode(k, b); });
       box.appendChild(b);
     });
+    renderRelics();
     $('world-hint').textContent = run.at ? '次に進むマスを選んでください' : '最初のマスを選んでください（下から上へ進みます）';
     // 今いる階が見えるようにスクロール
     var cur = run.at ? nodes[run.at] : { floor: -1, lane: 2 };
@@ -175,6 +176,21 @@ var G = window.G = window.G || {};
     }
     R.enter(run, k);
     enterNode(n);
+  }
+  function renderRelics() {
+    var box = $('relic-strip'); box.innerHTML = '';
+    if (!run.relics.length) { box.innerHTML = '<span class="relic-none">レリックなし（エリートを倒す・商人・イベントで手に入る）</span>'; return; }
+    run.relics.forEach(function (id) {
+      var R2 = G.RELICS[id], b = button(R2.name, 'relic-chip r-' + R2.rarity, function () { showRelic(id); });
+      box.appendChild(b);
+    });
+  }
+  function showRelic(id) {
+    var R2 = G.RELICS[id];
+    $('p-title').textContent = R2.name;
+    $('p-note').textContent = R2.text + '（' + (R2.kind === 'change' ? '遊び方が変わる' : '数値が上がる') + '）';
+    $('p-list').innerHTML = '';
+    $('pile').hidden = false;
   }
   $('world').querySelector('.deck-btn').addEventListener('click', function () { UI.showList('デッキ', run.deck, 'カードをタップすると詳しい説明が出ます。'); });
 
@@ -208,6 +224,11 @@ var G = window.G = window.G || {};
     openPanel(n.type === 'elite' ? 'エリート撃破' : '勝利', function (body, foot) {
       body.appendChild(el('h2', 'panel-title', '勝利！'));
       body.appendChild(el('p', 'panel-text', '倒した敵 ' + s.stats.killed + '体・通した敵 ' + s.stats.leaked + '体。戦闘で得たお金 +' + s.stats.goldEarned + 'G、勝利のおまけ +' + bonus + 'G。'));
+      if (n.type === 'elite') {
+        if (!savedCards) { lastResume.relic = R.rollRelic(run, 'elite'); R.addRelic(run, lastResume.relic); save(lastResume); }
+        var rid = savedCards ? s.relic : lastResume.relic;
+        if (rid) { var rb = el('div', 'card-detail relic-get'); rb.innerHTML = '<h3></h3><p></p>'; rb.querySelector('h3').textContent = 'レリック獲得：' + G.RELICS[rid].name; rb.querySelector('p').textContent = G.RELICS[rid].text; body.appendChild(rb); }
+      }
       body.appendChild(el('p', 'panel-sub', 'カードを1枚えらんでデッキに加えます'));
       choose(body, foot, cards, '受け取る', function (id) { R.addCard(run, id); showWorld(); }, 'カードを受け取らない', showWorld);
     });
@@ -246,6 +267,7 @@ var G = window.G = window.G || {};
           var res = R.eventChoice(run, ch);
           renderRunBar();
           if (res.fail) { msg.textContent = res.msg; return; }
+          if (res.next === 'pickCopy') return pickFromDeck('複製するカードを選ぶ', function (i) { var id = run.deck[i]; R.addCard(run, id); afterEvent('「' + G.CARDS[id].name + '」をもう1枚手に入れた。'); }, true);
           if (res.next === 'pickRemove') return pickFromDeck('手放すカードを選ぶ', function (i) { R.removeCard(run, i); afterEvent('カードを手放した。'); }, true);
           if (res.next === 'pickCard') {
             return openPanel('イベント', function (b2, f2) {
@@ -278,7 +300,7 @@ var G = window.G = window.G || {};
   // 商人：カード3枚、カードを手放す、ライフ回復
   // ============================================================
   function showShop() {
-    var stock = R.shopStock(run), P = G.RULES.shop, used = { remove: false, heal: false };
+    var shop = R.shopStock(run), stock = shop.cards, P = G.RULES.shop, used = { remove: false, heal: false };
     function render() {
       openPanel('商人', function (body, foot) {
         body.appendChild(el('h2', 'panel-title', '旅の商人'));
@@ -305,19 +327,30 @@ var G = window.G = window.G || {};
         });
         body.appendChild(grid); body.appendChild(desc);
         var sv = el('div', 'choices');
+        if (shop.relic) {
+          var rl = shop.relic, RD = G.RELICS[rl.id];
+          var rbtn = button('', 'choice relic-buy', function () {
+            if (rl.sold) return;
+            if (run.gold < rl.price) { say('お金が足りません'); return; }
+            run.gold -= rl.price; rl.sold = true; R.addRelic(run, rl.id); render();
+          });
+          rbtn.appendChild(el('b', '', 'レリック：' + RD.name)); rbtn.appendChild(el('small', '', rl.sold ? '購入済み' : RD.text + '　● ' + rl.price));
+          rbtn.disabled = rl.sold;
+          sv.appendChild(rbtn);
+        }
         var rm = button('', 'choice', function () {
           if (used.remove) return;
-          if (run.gold < P.remove) { say('お金が足りません'); return; }
-          pickFromDeck('手放すカードを選ぶ（●' + P.remove + '）', function (idx) { run.gold -= P.remove; used.remove = true; R.removeCard(run, idx); render(); }, false, render);
+          if (run.gold < R.price(run, P.remove)) { say('お金が足りません'); return; }
+          pickFromDeck('手放すカードを選ぶ（●' + R.price(run, P.remove) + '）', function (idx) { run.gold -= R.price(run, P.remove); used.remove = true; R.removeCard(run, idx); render(); }, false, render);
         });
-        rm.appendChild(el('b', '', 'カードを1枚手放す')); rm.appendChild(el('small', '', used.remove ? '利用済み' : '● ' + P.remove));
+        rm.appendChild(el('b', '', 'カードを1枚手放す')); rm.appendChild(el('small', '', used.remove ? '利用済み' : '● ' + R.price(run, P.remove)));
         rm.disabled = used.remove;
         var hl = button('', 'choice', function () {
           if (used.heal) return;
-          if (run.gold < P.heal) { say('お金が足りません'); return; }
-          run.gold -= P.heal; used.heal = true; run.life = Math.min(run.maxLife, run.life + P.healAmount); render();
+          if (run.gold < R.price(run, P.heal)) { say('お金が足りません'); return; }
+          run.gold -= R.price(run, P.heal); used.heal = true; run.life = Math.min(run.maxLife, run.life + P.healAmount); render();
         });
-        hl.appendChild(el('b', '', 'ライフを' + P.healAmount + '回復')); hl.appendChild(el('small', '', used.heal ? '利用済み' : '● ' + P.heal));
+        hl.appendChild(el('b', '', 'ライフを' + P.healAmount + '回復')); hl.appendChild(el('small', '', used.heal ? '利用済み' : '● ' + R.price(run, P.heal)));
         hl.disabled = used.heal || run.life >= run.maxLife;
         sv.appendChild(rm); sv.appendChild(hl);
         body.appendChild(sv);

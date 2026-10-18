@@ -65,7 +65,7 @@ var G = window.G = window.G || {};
     var run = {
       rand: r, world: makeWorld(r), at: null, visited: [],
       deck: G.START_DECK.slice(), life: G.RULES.maxLife, maxLife: G.RULES.maxLife, gold: G.RULES.startGold,
-      stats: { battles: 0, elites: 0, cardsTaken: 0 }, over: false, won: false
+      relics: [], stats: { battles: 0, elites: 0, cardsTaken: 0 }, over: false, won: false
     };
     return run;
   }
@@ -86,9 +86,13 @@ var G = window.G = window.G || {};
   // ---- 戦闘の準備（マップと攻撃の予定） ----
   function battleOpts(run) {
     var n = node(run), kind = n.type, f = n.floor, r = run.rand;
-    var mapId = kind === 'elite' || kind === 'boss' ? 'valley' : pick(['field', 'snake'], r);
+    // 地域：1〜4階は草原、5〜7階は雪山、8〜10階は火山。エリートとボスは三つ又の谷
+    var mapId, set;
+    if (kind === 'elite' || kind === 'boss') { mapId = 'valley'; set = G.WAVE_SETS[kind]; }
+    else if (f < 4) { mapId = pick(['field', 'snake'], r); set = G.WAVE_SETS.early; }
+    else if (f < 7) { mapId = r() < 0.7 ? 'snowpass' : 'field'; set = mapId === 'snowpass' ? G.WAVE_SETS.snow : G.WAVE_SETS.mid; }
+    else { mapId = r() < 0.7 ? 'lavaflow' : 'snake'; set = mapId === 'lavaflow' ? G.WAVE_SETS.volcano : G.WAVE_SETS.mid; }
     var map = G.MAPS[mapId], gates = Object.keys(map.paths);
-    var set = kind === 'boss' ? G.WAVE_SETS.boss : kind === 'elite' ? G.WAVE_SETS.elite : f < 4 ? G.WAVE_SETS.early : G.WAVE_SETS.mid;
     var tpl = pick(set, r), scale = 1 + f * G.RULES.floorScale;
     var waves = tpl.map(function (wave) {
       return wave.map(function (g) {
@@ -98,7 +102,7 @@ var G = window.G = window.G || {};
       });
     });
     return { map: mapId, waves: waves, hpMult: scale, deck: run.deck.slice(), life: run.life, maxLife: run.maxLife,
-             gold: run.gold, seed: Math.floor(r() * 1e9), kind: kind };
+             gold: run.gold, seed: Math.floor(r() * 1e9), kind: kind, relics: run.relics.slice() };
   }
   // 戦闘の結果をランに戻す
   function finishBattle(run, s) {
@@ -108,6 +112,7 @@ var G = window.G = window.G || {};
     var n = node(run);
     if (n.type === 'boss') { run.over = true; run.won = true; return; }
     if (n.type === 'elite') run.stats.elites++;
+    if (run.relics.indexOf('spring') >= 0) run.life = Math.min(run.maxLife, run.life + 3);
     run.gold += G.RULES.battleGold[n.type] || 0;
   }
 
@@ -125,15 +130,32 @@ var G = window.G = window.G || {};
     }
     return out;
   }
+  // まだ持っていないレリックを1つ（table：elite/shop/rare）
+  var RELIC_W = { elite: { common: 50, uncommon: 35, rare: 15 }, shop: { common: 40, uncommon: 40, rare: 20 }, event: { common: 45, uncommon: 40, rare: 15 } };
+  function rollRelic(run, table) {
+    var w = RELIC_W[table] || RELIC_W.event, all = Object.keys(G.RELICS).filter(function (k) { return run.relics.indexOf(k) < 0; });
+    if (!all.length) return null;
+    for (var g = 0; g < 50; g++) {
+      var x = run.rand() * (w.common + w.uncommon + w.rare);
+      var rar = x < w.common ? 'common' : x < w.common + w.uncommon ? 'uncommon' : 'rare';
+      var c = all.filter(function (k) { return G.RELICS[k].rarity === rar; });
+      if (c.length) return pick(c, run.rand);
+    }
+    return pick(all, run.rand);
+  }
+  function addRelic(run, id) { if (id && run.relics.indexOf(id) < 0) run.relics.push(id); }
+  function price(run, base) { return Math.round(base * (run.relics.indexOf('seal') >= 0 ? 0.75 : 1)); }
   function addCard(run, id) { run.deck.push(id); run.stats.cardsTaken++; }
   function removeCard(run, index) { run.deck.splice(index, 1); }
 
   // ---- 商人 ----
   function shopStock(run) {
-    return rollCards(run, 3, 'shop').map(function (id) {
+    var items = rollCards(run, 3, 'shop').map(function (id) {
       var base = G.RULES.shop.price[G.CARDS[id].rarity];
-      return { id: id, price: Math.round(base * (0.9 + run.rand() * 0.2)), sold: false };
+      return { id: id, price: price(run, base * (0.9 + run.rand() * 0.2)), sold: false };
     });
+    var rel = rollRelic(run, 'shop');
+    return { cards: items, relic: rel ? { id: rel, price: price(run, G.RULES.shop.relicPrice[G.RELICS[rel].rarity]), sold: false } : null };
   }
 
   // ---- イベント ----
@@ -152,6 +174,11 @@ var G = window.G = window.G || {};
         return { msg: 'はずれ。20G を失った。' };
       case 'randomCard': var id = pick(cardPool(), run.rand); addCard(run, id); return { msg: '「' + G.CARDS[id].name + '」を手に入れた。' };
       case 'removeCard': return { msg: '手放すカードを選んでください。', next: 'pickRemove' };
+      case 'copyCard': return { msg: '複製するカードを選んでください。', next: 'pickCopy' };
+      case 'relic': var rl = rollRelic(run, 'event'); addRelic(run, rl); return { msg: rl ? 'レリック「' + G.RELICS[rl].name + '」を手に入れた。' + G.RELICS[rl].text : 'お礼を言われた。' };
+      case 'box':
+        if (run.rand() < 0.5) { var rb = rollRelic(run, 'event'); addRelic(run, rb); return { msg: rb ? 'レリック「' + G.RELICS[rb].name + '」が入っていた！ ' + G.RELICS[rb].text : '空っぽだった。' }; }
+        run.life = Math.max(1, run.life - 6); return { msg: '罠だった！ ライフ-6。' };
       case 'rareCard': return { msg: '祭壇が光った。', next: 'pickCard', cards: rollCards(run, 3, 'rare') };
       default: return { msg: 'その場を後にした。' };
     }
@@ -160,11 +187,11 @@ var G = window.G = window.G || {};
   // ---- セーブ用：ランを文字にできる形にする／元に戻す ----
   function toSave(run) {
     return { world: run.world, at: run.at, visited: run.visited, deck: run.deck, life: run.life, maxLife: run.maxLife,
-             gold: run.gold, stats: run.stats, rng: run.rand.state() };
+             gold: run.gold, stats: run.stats, rng: run.rand.state(), relics: run.relics };
   }
   function fromSave(d) {
     return { rand: B.rng(d.rng), world: d.world, at: d.at, visited: d.visited, deck: d.deck, life: d.life, maxLife: d.maxLife,
-             gold: d.gold, stats: d.stats, over: false, won: false };
+             gold: d.gold, stats: d.stats, relics: d.relics || [], over: false, won: false };
   }
 
   function rest(run) { var before = run.life; run.life = Math.min(run.maxLife, run.life + G.RULES.restHeal); return run.life - before; }
@@ -172,6 +199,6 @@ var G = window.G = window.G || {};
   G.Run = {
     create: create, reachable: reachable, enter: enter, node: node, battleOpts: battleOpts, finishBattle: finishBattle,
     rollCards: rollCards, addCard: addCard, removeCard: removeCard, shopStock: shopStock,
-    rollEvent: rollEvent, eventChoice: eventChoice, rest: rest, toSave: toSave, fromSave: fromSave
+    rollEvent: rollEvent, eventChoice: eventChoice, rest: rest, rollRelic: rollRelic, addRelic: addRelic, price: price, toSave: toSave, fromSave: fromSave
   };
 })();

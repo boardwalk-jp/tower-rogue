@@ -238,3 +238,13 @@ dt{color:var(--muted);text-align:right} dd{margin:0;text-align:left}
 #pk-grid .card{height:84px}
 .pile-list{max-height:50dvh;overflow-y:auto}
 .pile-list li{cursor:pointer}
+
+/* ---- レリック ---- */
+.relic-strip{display:flex;flex-wrap:wrap;gap:6px;padding:2px 10px 6px;min-height:28px;align-items:center}
+.relic-none{font-size:12px;color:var(--muted)}
+.relic-chip{min-height:30px;padding:0 10px;font-size:13px;border-radius:15px;background:#2a2410;border-color:#8a7a3a;color:#f2e2a8}
+.relic-chip.r-uncommon{border-color:#6f8fd0}
+.relic-chip.r-rare{border-color:#ffd84a;color:#ffd84a}
+.relic-get{border-color:#ffd84a}
+.relic-get h3{color:#ffd84a}
+.relic-buy{border-color:#8a7a3a}
