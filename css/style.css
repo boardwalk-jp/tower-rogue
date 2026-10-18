@@ -29,10 +29,6 @@ button[aria-pressed="true"]{background:var(--accent);color:#1d1606;border-color:
 h1{margin:0;font-weight:400;font-size:34px;line-height:1.2}
 h1 span{font-size:18px;color:var(--muted)}
 #title-art{width:308px;height:110px;image-rendering:pixelated}
-.mode{display:flex;flex-direction:column;gap:6px;align-items:center}
-.mode-label{margin:0;font-size:13px;color:var(--muted)}
-.seg{display:flex;gap:6px}
-.seg button{min-width:120px}
 .swipe{margin-top:10px;display:flex;flex-direction:column;align-items:center;gap:6px}
 .swipe p{margin:0;font-size:18px}
 .arrow{color:var(--accent);line-height:.9;font-size:20px;animation:up 1.2s ease-in-out infinite}
@@ -52,9 +48,9 @@ h1 span{font-size:18px;color:var(--muted)}
 .hud-life{color:#ff7a7a}
 .hud-gold{color:var(--gold)}
 .hud-turn #h-phase{color:var(--accent)}
-.hud-energy,#h-energy{display:flex;gap:5px;align-items:center}
-.gem{width:12px;height:12px;transform:rotate(45deg);border:1px solid #4f8fae;background:#16303c}
-.en-num{color:var(--energy);margin-left:6px}
+#h-energy{display:flex;gap:6px;align-items:center}
+.gem{width:13px;height:13px;transform:rotate(45deg);border:1px solid #4f8fae;background:#16303c}
+.en-num{color:var(--energy);margin-left:4px;font-size:17px}
 .gem.on{background:var(--energy);border-color:#b8ecff}
 
 .stage{position:relative;flex:1 1 auto;min-height:120px;display:flex;align-items:center;justify-content:center;overflow:hidden}
@@ -63,6 +59,13 @@ h1 span{font-size:18px;color:var(--muted)}
   text-shadow:0 2px 0 #000,0 0 12px #000;opacity:0;transition:opacity .25s}
 .banner.show{opacity:1}
 .banner.prep{color:var(--good)} .banner.attack{color:var(--bad)}
+.bubble{position:absolute;z-index:5;transform:translateX(-50%);margin-top:6px;background:rgba(14,18,15,.95);border:1px solid var(--accent);
+  border-radius:10px;padding:8px 10px;font-size:14px;line-height:1.5;min-width:150px;max-width:calc(100% - 16px)}
+.bubble::before{content:"";position:absolute;top:-6px;left:var(--tip,50%);width:10px;height:10px;transform:translateX(-50%) rotate(45deg);
+  background:inherit;border-left:1px solid var(--accent);border-top:1px solid var(--accent)}
+.bubble .gate{display:block;margin-bottom:2px}
+.bubble .row{display:flex;align-items:center;gap:4px;white-space:nowrap}
+.bubble .sub{color:var(--muted);font-size:12px}
 .toast{position:absolute;left:50%;bottom:8px;transform:translateX(-50%);background:rgba(10,12,10,.88);border:1px solid var(--line);
   border-radius:8px;padding:6px 12px;font-size:14px;pointer-events:none;opacity:0;transition:opacity .2s;white-space:nowrap}
 .toast.show{opacity:1}
@@ -74,7 +77,11 @@ h1 span{font-size:18px;color:var(--muted)}
 .gate{color:var(--accent)}
 
 .actions{display:flex;gap:6px;align-items:center;padding:4px 8px 6px}
-.piles{display:flex;gap:8px;font-size:13px;color:var(--muted);margin-right:auto;font-variant-numeric:tabular-nums}
+.actions{justify-content:flex-end}
+.hand-bar{display:flex;align-items:center;justify-content:space-between;padding:2px 10px 6px}
+.energy{display:flex;align-items:center;gap:8px}
+.en-label{font-size:13px;color:var(--energy)}
+.piles{display:flex;gap:10px;font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
 .piles b{font-weight:400;color:var(--fg)}
 #btn-draw small{color:var(--gold);font-size:13px}
 #btn-speed{min-width:52px}

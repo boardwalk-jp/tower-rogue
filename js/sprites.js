@@ -155,12 +155,6 @@ var G = window.G = window.G || {};
     g.ell(7, 6, 6, 3.5, '#7b8086'); g.ell(6, 5, 4, 2.4, '#9ca1a7'); g.px(5, 4, '#c3c7cc');
     return g.outline('#2a2d30').bake();
   }
-  function pedestal() {
-    var g = new Grid(16, 12);
-    g.ell(8, 6, 7.5, 4.6, '#6d6253'); g.ell(8, 5, 7, 3.8, '#a39581'); g.ell(8, 5, 5, 2.6, '#b8aa94');
-    g.px(4, 4, '#cfc2ab'); g.px(11, 6, '#8a7c68');
-    return g.bake();
-  }
   function gate() { // 入口（洞穴）
     var g = new Grid(20, 14);
     g.ell(10, 9, 10, 6, '#5a5048'); g.ell(10, 8, 9, 5.5, '#7a6e62');
@@ -191,7 +185,7 @@ var G = window.G = window.G || {};
       goblin: [goblin(0), goblin(1)],
       orc: [orc(0), orc(1)],
       archer: [], mage: [], cannon: [],
-      tree: [tree(0), tree(1)], rock: rock(), pedestal: pedestal(), gate: gate(), castle: castle(), heart: heart()
+      tree: [tree(0), tree(1)], rock: rock(), gate: gate(), castle: castle(), heart: heart()
     };
     for (var lv = 0; lv < 3; lv++) {
       S.archer.push([archerTower(lv, false), archerTower(lv, true)]);

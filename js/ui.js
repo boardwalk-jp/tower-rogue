@@ -5,7 +5,6 @@ var G = window.G = window.G || {};
 (function () {
   var $ = function (id) { return document.getElementById(id); };
   var SPR = G.buildSprites();
-  var mode = 'pedestal';
   var s = null;
   var ui = { selIndex: -1, selType: null, selTower: null, preview: null, time: 0 };
   var speed = 1;
@@ -32,13 +31,6 @@ var G = window.G = window.G || {};
     c.drawImage(SPR.orc[0].l, 92, 15);
   })();
 
-  function setMode(m) {
-    mode = m;
-    document.querySelectorAll('[data-mode]').forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.mode === m)); });
-  }
-  document.querySelectorAll('[data-mode]').forEach(function (b) {
-    b.addEventListener('click', function () { setMode(b.dataset.mode); });
-  });
 
   function start() {
     if (started) return;
@@ -53,7 +45,8 @@ var G = window.G = window.G || {};
 
   // ---- 戦闘の開始・やり直し ----
   function newBattle() {
-    s = G.Battle.create({ mode: mode });
+    s = G.Battle.create();
+    closeGateInfo();
     G.Render.clearFx();
     deselect();
     $('result').hidden = true;
@@ -93,18 +86,7 @@ var G = window.G = window.G || {};
   function renderInfo() {
     var el = $('info'); el.innerHTML = '';
     if (s.phase === 'prep') {
-      var lbl = document.createElement('span'); lbl.className = 'lbl'; lbl.textContent = '次の攻撃：'; el.appendChild(lbl);
-      var byGate = {};
-      G.Battle.nextWave(s).forEach(function (g) { (byGate[g.gate] = byGate[g.gate] || []).push(g); });
-      Object.keys(byGate).sort().forEach(function (k) {
-        var gt = document.createElement('span'); gt.className = 'gate'; gt.textContent = G.MAP.gateName[k]; el.appendChild(gt);
-        byGate[k].forEach(function (g) {
-          var ch = document.createElement('span'); ch.className = 'chip';
-          ch.appendChild(enemyIcon(g.type));
-          ch.appendChild(document.createTextNode(G.ENEMIES[g.type].name + '×' + g.n));
-          el.appendChild(ch);
-        });
-      });
+      el.innerHTML = '<span>入口の <b style="color:var(--bad)">！</b> をタップすると次に来る敵が見えます</span>';
     } else if (s.phase === 'attack') {
       var left = s.spawnQueue.length + s.enemies.length;
       el.innerHTML = '<span class="lbl">残り ' + left + '体</span><span>攻撃中もカードを使えます</span>';
@@ -232,6 +214,9 @@ var G = window.G = window.G || {};
     var moved = Math.hypot(e.clientX - mp.x, e.clientY - mp.y) > 14; mp = null;
     if (moved && !ui.selType) return;
     var r = cv.getBoundingClientRect();
+    var gk = G.Render.gateAt(s, e.clientX - r.left, e.clientY - r.top, r.width, r.height);
+    if (gk) { openGateInfo(gk); return; }
+    closeGateInfo();
     if (ui.selType) {
       var t = tileFromClient(e.clientX, e.clientY);
       if (t && G.Battle.canPlaceAt(s, t.tx, t.ty)) { tryPlace(ui.selIndex, t.tx, t.ty); return; }
@@ -243,6 +228,32 @@ var G = window.G = window.G || {};
     var tw = G.Render.towerAt(s, e.clientX - r.left, e.clientY - r.top, r.width, r.height);
     if (tw) openTowerSheet(tw.id); else closeTowerSheet();
   });
+
+  // ---- 入口の「！」をタップ → 次に来る敵 ----
+  function openGateInfo(k) {
+    if (ui.gateOpen === k) { closeGateInfo(); return; }
+    ui.gateOpen = k;
+    var el = $('gate-info'); el.innerHTML = '';
+    var gt = document.createElement('span'); gt.className = 'gate'; gt.textContent = G.MAP.gateName[k] + 'から'; el.appendChild(gt);
+    G.Battle.nextWave(s).filter(function (g) { return g.gate === k; }).forEach(function (g) {
+      var row = document.createElement('div'); row.className = 'row';
+      row.appendChild(enemyIcon(g.type));
+      row.appendChild(document.createTextNode(G.ENEMIES[g.type].name + ' ×' + g.n));
+      var sub = document.createElement('span'); sub.className = 'sub';
+      sub.textContent = g.delay > 0 ? '（' + g.delay + '秒後から）' : '';
+      row.appendChild(sub);
+      el.appendChild(row);
+    });
+    el.hidden = false;
+    // 「！」の真下に吹き出しを出す。はみ出す時は内側に寄せて、三角だけ「！」を指す
+    var st = $('stage').getBoundingClientRect(), r = cv.getBoundingClientRect(), p = G.Render.gatePos(k);
+    var gx = r.left - st.left + p.x * r.width, w = el.offsetWidth;
+    var left = Math.max(8 + w / 2, Math.min(st.width - 8 - w / 2, gx));
+    el.style.left = left + 'px';
+    el.style.top = (r.top - st.top + p.y * r.height) + 'px';
+    el.style.setProperty('--tip', (w / 2 + gx - left) + 'px');
+  }
+  function closeGateInfo() { ui.gateOpen = null; $('gate-info').hidden = true; }
 
   // ---- タワーの小窓（強化） ----
   function openTowerSheet(id) { ui.selTower = id; renderTowerSheet(); $('tower-sheet').hidden = false; }
@@ -288,7 +299,7 @@ var G = window.G = window.G || {};
 
   // ---- ボタン ----
   $('btn-go').addEventListener('click', function () {
-    G.Battle.startAttack(s); renderInfo(); renderHud(true);
+    closeGateInfo(); G.Battle.startAttack(s); renderInfo(); renderHud(true);
   });
   $('btn-draw').addEventListener('click', function () {
     var err = G.Battle.extraDraw(s);
@@ -353,6 +364,7 @@ var G = window.G = window.G || {};
       G.Render.draw(s, ui, dt);
       ctx.imageSmoothingEnabled = false;
       ctx.drawImage(G.Render.buf, 0, 0, cv.width, cv.height);
+      G.Render.drawNums(ctx, cv.width / G.Render.W);
       if (toastT > 0) { toastT -= dt; if (toastT <= 0) $('toast').classList.remove('show'); }
       if (bannerT > 0) { bannerT -= dt; if (bannerT <= 0) $('banner').classList.remove('show'); }
     }

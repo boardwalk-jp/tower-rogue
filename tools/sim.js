@@ -19,7 +19,7 @@ function spots(s) {
 }
 
 function play(opts) {
-  var s = G.Battle.create({ mode: opts.mode, seed: opts.seed });
+  var s = G.Battle.create({ seed: opts.seed });
   var guard = 0;
   while ((s.phase === 'prep' || s.phase === 'attack') && guard++ < 200000) {
     if (s.phase === 'prep') {
@@ -38,11 +38,8 @@ function play(opts) {
   return { result: s.phase, turn: s.turn, life: s.life, gold: s.gold, towers: s.towers.length, killed: s.stats.killed, leaked: s.stats.leaked };
 }
 
-['pedestal', 'free'].forEach(function (mode) {
-  console.log('== 置き方: ' + mode + ' ==');
-  console.log('何も建てない     ', JSON.stringify(play({ mode: mode, seed: 1, build: false })));
-  for (var seed = 1; seed <= 3; seed++) {
-    console.log('建てるだけ   s' + seed, JSON.stringify(play({ mode: mode, seed: seed, build: true })));
-    console.log('建てて強化   s' + seed, JSON.stringify(play({ mode: mode, seed: seed, build: true, upgrade: true })));
-  }
-});
+console.log('何も建てない     ', JSON.stringify(play({ seed: 1, build: false })));
+for (var seed = 1; seed <= 3; seed++) {
+  console.log('建てるだけ   s' + seed, JSON.stringify(play({ seed: seed, build: true })));
+  console.log('建てて強化   s' + seed, JSON.stringify(play({ seed: seed, build: true, upgrade: true })));
+}

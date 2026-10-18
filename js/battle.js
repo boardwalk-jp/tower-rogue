@@ -53,7 +53,6 @@ var G = window.G = window.G || {};
     opts = opts || {};
     var R = G.RULES;
     var s = {
-      mode: opts.mode || 'pedestal',     // 'pedestal'＝台座だけ / 'free'＝道以外ならどこでも
       rand: rng(opts.seed || (Date.now() & 0xffffff)),
       phase: 'prep', turn: 0, totalTurns: G.WAVES.length,
       life: R.life, energy: 0, gold: R.startGold,
@@ -97,8 +96,7 @@ var G = window.G = window.G || {};
     var c = tileAt(tx, ty);
     if (c === null) return false;
     for (var i = 0; i < s.towers.length; i++) if (s.towers[i].tx === tx && s.towers[i].ty === ty) return false;
-    if (s.mode === 'pedestal') return c === 'P';
-    return c === '.' || c === 'P';
+    return c === '.';   // 道・木・岩・城の敷地以外ならどこでも
   }
 
   function playCard(s, handIndex, tx, ty) {
@@ -189,7 +187,8 @@ var G = window.G = window.G || {};
     var E = G.ENEMIES[e.type];
     var real = type === 'physical' ? dmg * (1 - E.armor) : dmg;
     e.hp -= real; e.flash = 0.12;
-    ev(s, { k: 'hit', x: e.x, y: e.y, amount: real, armored: type === 'physical' && E.armor > 0 });
+    var kind = type === 'poison' ? 'poison' : (type === 'physical' && E.armor > 0) ? 'resisted' : 'normal';
+    ev(s, { k: 'hit', x: e.x, y: e.y, amount: real, kind: kind });
     if (e.hp <= 0) {
       s.gold += E.gold; s.stats.killed++;
       ev(s, { k: 'kill', x: e.x, y: e.y, type: e.type, gold: E.gold });

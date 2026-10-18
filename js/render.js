@@ -7,8 +7,8 @@ var G = window.G = window.G || {};
   var W = G.MAP.cols * TW, H = G.MAP.rowsN * TH + OY + 4;
   var buf = document.createElement('canvas'); buf.width = W; buf.height = H;
   var b = buf.getContext('2d');
-  var bg = null, bgMode = null;
-  var parts = [], rings = [], floats = [];
+  var bg = null;
+  var parts = [], rings = [], floats = [], nums = [];
 
   function sx(x) { return x * TW; }
   function sy(y) { return y * TH + OY; }
@@ -41,7 +41,7 @@ var G = window.G = window.G || {};
   }
 
   // ---- 地面（草・道・台座・入口）を作り置き ----
-  function buildBg(mode) {
+  function buildBg() {
     var cv = document.createElement('canvas'); cv.width = W; cv.height = H;
     var g = cv.getContext('2d'), M = G.MAP, S = G.SPR;
     g.fillStyle = '#2f5a2a'; g.fillRect(0, 0, W, H);
@@ -75,7 +75,6 @@ var G = window.G = window.G || {};
     // 台座・木・岩・入口・城（上の行から順に描いて重なりを正しくする）
     for (ty = 0; ty < M.rowsN; ty++) for (tx = 0; tx < M.cols; tx++) {
       var c = M.rows[ty][tx], cx = tx * TW + TW / 2, by = sy(ty + 1);
-      if (c === 'P' && mode === 'pedestal') g.drawImage(S.pedestal, cx - 8, by - 12);
       if (c === 'T') g.drawImage(S.tree[(tx + ty) % 2], cx - 8, by - 20);
       if (c === 'R') g.drawImage(S.rock, cx - 7, by - 10);
       if (c === 'A' || c === 'B') g.drawImage(S.gate, cx - 10, sy(0) - 6);
@@ -87,11 +86,15 @@ var G = window.G = window.G || {};
     for (var i = 0; i < events.length; i++) {
       var e = events[i];
       if (e.k === 'hit') {
-        burst(e.x, e.y - 0.4, 3, e.armored ? ['#d0d0d8', '#ffffff'] : ['#ff6b5b', '#ffd0c0'], 22, 60, 0.3);
+        burst(e.x, e.y - 0.4, 3, e.kind === 'resisted' ? ['#d0d0d8', '#ffffff'] : ['#ff6b5b', '#ffd0c0'], 22, 60, 0.3);
+        // ダメージの数字（少し左右にばらして重なりにくく）
+        if (nums.length < 120) nums.push({ x: sx(e.x) + (Math.random() - 0.5) * 8, y: sy(e.y) - 16, vy: -22,
+          text: String(Math.max(1, Math.round(e.amount))), col: G.DMG_COLORS[e.kind] || G.DMG_COLORS.normal,
+          size: e.kind === 'resisted' ? 0.85 : 1, life: 0.7, ml: 0.7 });
       } else if (e.k === 'kill') {
         var cols = e.type === 'slime' ? ['#5cc350', '#b6f29a'] : e.type === 'goblin' ? ['#8bc34a', '#7a5230'] : ['#6e9a4e', '#a0a0aa'];
         burst(e.x, e.y - 0.4, 12, cols, 40, 90, 0.6);
-        floats.push({ x: sx(e.x), y: sy(e.y) - 18, text: '+' + e.gold, col: '#ffd84a', life: 0.9 });
+        nums.push({ x: sx(e.x), y: sy(e.y) - 22, vy: -14, text: '+' + e.gold, col: '#ffd84a', size: 0.9, life: 0.9, ml: 0.9, coin: true });
       } else if (e.k === 'boom') {
         burst(e.x, e.y, 14, ['#ffb347', '#ffe08a', '#ff6b3a', '#5a5048'], 50, 40, 0.5);
         rings.push({ x: sx(e.x), y: sy(e.y), r: 2, max: e.r * TW, col: '#ffcf6a', life: 0.3, ml: 0.3 });
@@ -120,8 +123,9 @@ var G = window.G = window.G || {};
     }
     for (i = rings.length - 1; i >= 0; i--) { rings[i].life -= dt; if (rings[i].life <= 0) rings.splice(i, 1); }
     for (i = floats.length - 1; i >= 0; i--) { floats[i].life -= dt; floats[i].y -= dt * 14; if (floats[i].life <= 0) floats.splice(i, 1); }
+    for (i = nums.length - 1; i >= 0; i--) { var n = nums[i]; n.life -= dt; n.y += n.vy * dt; n.vy *= 0.92; if (n.life <= 0) nums.splice(i, 1); }
   }
-  function clearFx() { parts = []; rings = []; floats = []; }
+  function clearFx() { parts = []; rings = []; floats = []; nums = []; }
 
   function rangeEllipse(x, y, r, col, t) { // 射程（点線のだ円）
     var n = Math.max(24, Math.round(r * 18));
@@ -142,7 +146,7 @@ var G = window.G = window.G || {};
   function draw(s, ui, dt) {
     var S = G.SPR, t = ui.time;
     stepFx(dt);
-    if (!bg || bgMode !== s.mode) { bg = buildBg(s.mode); bgMode = s.mode; }
+    if (!bg) bg = buildBg();
     b.drawImage(bg, 0, 0);
 
     // 置ける場所の表示（カード選択中）
@@ -159,13 +163,14 @@ var G = window.G = window.G || {};
       }
     }
 
-    // 次の攻撃で使われる入口に「！」を点滅表示
+    // 次の攻撃で使われる入口に「！」（タップすると次の敵が見える）
     if (s.phase === 'prep') {
-      var gates = {};
-      G.Battle.nextWave(s).forEach(function (g) { gates[g.gate] = true; });
-      Object.keys(gates).forEach(function (k) {
-        var p = G.MAP.paths[k][0], gx = sx(p[0]), gy = sy(0) - 4 + Math.round(Math.sin(t * 5) * 1.5);
-        if (Math.floor(t * 3) % 2 === 0) { b.fillStyle = '#ff4d3a'; b.fillRect(gx - 1, gy - 9, 3, 5); b.fillRect(gx - 1, gy - 3, 3, 2); }
+      gatesNext(s).forEach(function (k) {
+        var p = G.MAP.paths[k][0], gx = Math.round(sx(p[0])), gy = sy(0) - 3 + Math.round(Math.sin(t * 5) * 1.5);
+        var open = ui.gateOpen === k;
+        b.fillStyle = '#16120f'; b.fillRect(gx - 4, gy - 13, 9, 12);
+        b.fillStyle = open ? '#ffe14d' : '#ff4d3a'; b.fillRect(gx - 3, gy - 12, 7, 10);
+        b.fillStyle = '#ffffff'; b.fillRect(gx - 1, gy - 11, 3, 5); b.fillRect(gx - 1, gy - 5, 3, 2);
       });
     }
 
@@ -250,6 +255,35 @@ var G = window.G = window.G || {};
     });
   }
 
+  function gatesNext(s) {
+    var g = {}; G.Battle.nextWave(s).forEach(function (w) { g[w.gate] = true; });
+    return Object.keys(g).sort();
+  }
+  // 「！」をタップしたか（指でも押しやすいよう広めに判定）
+  function gateAt(s, px, py, cssW, cssH) {
+    if (s.phase !== 'prep') return null;
+    var x = px / cssW * W, y = py / cssH * H, hit = null;
+    gatesNext(s).forEach(function (k) {
+      var p = G.MAP.paths[k][0];
+      if (Math.abs(x - sx(p[0])) <= 13 && y >= 0 && y <= sy(1) + 2) hit = k;
+    });
+    return hit;
+  }
+  // 数字は拡大後の画面に普通の文字で描く（小さなドット数字より読みやすい）
+  function drawNums(ctx, scale) {
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
+    nums.forEach(function (n) {
+      var a = Math.min(1, n.life / n.ml * 2.5), fs = Math.round(15 * n.size * scale / 2.1);
+      ctx.globalAlpha = a;
+      ctx.font = fs + 'px "DotGothic16", ui-monospace, monospace';
+      ctx.lineWidth = Math.max(2, fs * 0.28); ctx.strokeStyle = '#120d08';
+      ctx.strokeText(n.text, n.x * scale, n.y * scale);
+      ctx.fillStyle = n.col; ctx.fillText(n.text, n.x * scale, n.y * scale);
+    });
+    ctx.globalAlpha = 1;
+  }
+  function gatePos(k) { var p = G.MAP.paths[k][0]; return { x: sx(p[0]) / W, y: (sy(1) + 2) / H }; }
+
   // 画面座標 → マス
   function toTile(px, py, cssW, cssH) {
     var x = px / cssW * W, y = py / cssH * H;
@@ -264,5 +298,6 @@ var G = window.G = window.G || {};
     return best;
   }
 
-  G.Render = { W: W, H: H, buf: buf, draw: draw, addEvents: addEvents, toTile: toTile, towerAt: towerAt, clearFx: clearFx };
+  G.Render = { W: W, H: H, buf: buf, draw: draw, addEvents: addEvents, toTile: toTile, towerAt: towerAt, clearFx: clearFx,
+               gateAt: gateAt, gatePos: gatePos, drawNums: drawNums };
 })();
