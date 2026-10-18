@@ -31,7 +31,7 @@ var G = window.G = window.G || {};
       // 無音を1回鳴らす（古い iPhone はこれで音が出るようになる）
       try { var b = ac.createBuffer(1, 1, 22050), src = ac.createBufferSource(); src.buffer = b; src.connect(ac.destination); src.start(0); } catch (e) {}
     }
-    if (wantTrack && !playing) startTrack(wantTrack);
+    if (wantTrack && !playing && !bossOn) startTrack(wantTrack);
   }
   ['touchend', 'pointerup', 'click', 'keydown'].forEach(function (n) { document.addEventListener(n, unlock, { passive: true, capture: true }); });
   // 別のアプリに切り替えたら止め、戻ったら次のタップで再開
@@ -166,8 +166,25 @@ var G = window.G = window.G || {};
       pos++; nextT += step;
     }
   }
+  // ---- ボス出現の曲（終焉の玉座 ver11）：流している間は、ふつうのBGMを止めておく ----
+  var boss = null, bossOut = null, bossOn = false;
+  function bossTheme(on) {
+    if (on === bossOn) return;
+    bossOn = on;
+    if (on) {
+      if (!ac || !G.makeBossTheme) return;
+      if (!boss) { bossOut = ac.createGain(); bossOut.connect(master); boss = G.makeBossTheme(ac, bossOut); }
+      bossOut.gain.value = cfg.bgm ? 0.55 : 0;
+      playing = null;            // ふつうのBGMを止める（wantTrack は覚えておく）
+      boss.start();
+    } else {
+      if (boss) boss.stop();
+      if (wantTrack && ac) startTrack(wantTrack);   // 元のBGMに戻す
+    }
+  }
   // 曲を変える（同じ曲なら何もしない）。null で止める
   function music(name) {
+    if (bossOn) bossTheme(false);
     if (wantTrack === name) return;
     wantTrack = name;
     if (!name) { playing = null; return; }
@@ -177,9 +194,10 @@ var G = window.G = window.G || {};
   function set(kind, v) {
     cfg[kind] = v; saveCfg();
     if (ac) { (kind === 'se' ? sfxBus : bgmBus).gain.value = v ? (kind === 'se' ? 0.32 : 0.12) : 0; }
+    if (kind === 'bgm' && bossOut) bossOut.gain.value = v ? 0.55 : 0;
   }
   // 音の状態（メニューの「音のテスト」で表示）
   function state() { return !ac ? 'まだ準備していない（画面をタップすると準備）' : ac.state === 'running' ? '鳴らせる状態' : '止まっている（' + ac.state + '）'; }
   function test() { unlock(); var was = cfg.se; cfg.se = true; play('upgrade'); cfg.se = was; }
-  G.Sound = { play: play, music: music, set: set, get: function (k) { return cfg[k]; }, state: state, test: test };
+  G.Sound = { play: play, music: music, set: set, bossTheme: bossTheme, bossPlaying: function () { return bossOn && !!boss && boss.playing; }, get: function (k) { return cfg[k]; }, state: state, test: test };
 })();

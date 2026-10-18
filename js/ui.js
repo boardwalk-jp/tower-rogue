@@ -565,14 +565,14 @@ var G = window.G = window.G || {};
       switch (e.k) {
         case 'fire': SND.play(G.TOWERS[e.type].shot || 'arrow'); break;
         case 'hit': if (e.kind !== 'poison' && e.kind !== 'burn') SND.play('hit'); break;
-        case 'kill': SND.play(e.boss ? 'bossdown' : e.big ? 'bigkill' : 'kill'); if (!e.boss) SND.play('coin'); break;
-        case 'leak': SND.play('leak'); break;
+        case 'kill': SND.play(e.boss ? 'bossdown' : e.big ? 'bigkill' : 'kill'); if (!e.boss) SND.play('coin'); if (e.boss && SND.bossTheme && !bossesLeft()) SND.bossTheme(false); break;
+        case 'leak': SND.play('leak'); if (G.ENEMIES[e.type].boss && SND.bossTheme && !bossesLeft()) SND.bossTheme(false); break;
         case 'build': SND.play('build'); break;
         case 'upgrade': SND.play('upgrade'); break;
         case 'skill': SND.play('skill'); break;
         case 'boom': SND.play(e.small ? 'stone' : 'boom'); break;
         case 'broken': SND.play('boom'); break;
-        case 'spawn': if (e.boss) SND.play('boss'); break;
+        case 'spawn': if (e.boss) { SND.play('boss'); if (SND.bossTheme) SND.bossTheme(true); } break;
         case 'summon': SND.play('summon'); break;
         case 'healcast': SND.play('heal'); break;
         case 'attack': SND.play('attack'); break;
@@ -582,9 +582,12 @@ var G = window.G = window.G || {};
       }
     });
   }
+  // まだ生きているボスがいるか（ボスを倒す・城に着くと元のBGMに戻す）
+  function bossesLeft() { return s.enemies.some(function (en) { return en.hp > 0 && G.ENEMIES[en.type].boss; }) || s.spawnQueue.some(function (q) { return G.ENEMIES[q.type].boss; }); }
   function closeTowerSheetIfGone() { if (ui.selTower && !B.findTower(s, ui.selTower)) closeTowerSheet(); }
   function finish() {
     if (ended) return; ended = true;
+    if (G.Sound && G.Sound.bossTheme) G.Sound.bossTheme(false);
     deselect(); closeTowerSheet(); closeGateInfo();
     showBanner(s.phase === 'win' ? '勝利！' : '敗北…', s.phase === 'win' ? 'prep' : 'attack');
     renderInfo();
