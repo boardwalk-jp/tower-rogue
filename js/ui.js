@@ -286,25 +286,26 @@ var G = window.G = window.G || {};
     var T = G.TOWERS[tw.type], st = G.Battle.towerStats(tw), c = G.Battle.upgradeCost(tw), R = G.Rank.ofStats(st);
     $('ts-name').textContent = T.name;
     $('ts-lv').textContent = 'Lv' + (tw.lv + 1) + '/' + (T.up.length + 1);
-    var w = function (x) { return '<span>' + x + '</span>'; };  // 項目の途中で改行しないように
-    var txt = '<span class="now">' + w('攻撃力 ' + st.dmg + rk(R.dmg)) + '・' + w('射程 ' + st.range.toFixed(1) + 'マス' + rk(R.range)) +
-      '・' + w(perSec(st.rate) + '発/s' + rk(R.speed)) +
-      (st.splash ? '・' + w('爆発 ' + fmtSplash(st.splash) + 'マス' + rk(R.splash)) : '') + '</span>';
-    var n = G.Battle.nextStats(tw);
-    if (n) {
-      // 変わる数値の後ろに (+4) のように差を書く
-      // 色は「強くなる＝アップの赤／弱くなる＝ダウンの青」
-      var d = function (a, b, dec, lowerIsBetter) {
-        var v = +(b - a).toFixed(dec); if (v === 0) return '';
-        var good = lowerIsBetter ? v < 0 : v > 0;
-        return '<b class="' + (good ? 'd-up' : 'd-down') + '">(' + (v > 0 ? '+' : '') + v + ')</b>';
-      };
-      var RN = G.Rank.ofStats(n);
-      txt += '<span class="next">強化 → ' + w('攻撃力 ' + n.dmg + rkNext(R.dmg, RN.dmg) + d(st.dmg, n.dmg, 0)) +
-        '・' + w('射程 ' + n.range.toFixed(1) + rkNext(R.range, RN.range) + d(st.range, n.range, 1)) +
-        '・' + w(perSec(n.rate) + '発/s' + rkNext(R.speed, RN.speed) + d(+perSec(st.rate), +perSec(n.rate), 2)) +
-        (n.splash ? '・' + w('爆発 ' + fmtSplash(n.splash) + rkNext(R.splash, RN.splash) + d(st.splash, n.splash, 2)) : '') + '</span>';
-    }
+    var n = G.Battle.nextStats(tw), RN = n ? G.Rank.ofStats(n) : null;
+    // 変わる数値の後ろに (+4) のように差を書く。色は「強くなる＝アップの赤／弱くなる＝ダウンの青」
+    var d = function (a, b, dec) {
+      var v = +(b - a).toFixed(dec); if (v === 0) return '';
+      return ' <b class="' + (v > 0 ? 'd-up' : 'd-down') + '">(' + (v > 0 ? '+' : '') + v + ')</b>';
+    };
+    // 1行＝1項目：[項目名, 今の値, 強化後の値]
+    var rows = [
+      ['攻撃力', st.dmg + rk(R.dmg), n && (n.dmg + rkNext(R.dmg, RN.dmg) + d(st.dmg, n.dmg, 0))],
+      ['射程', st.range.toFixed(1) + 'マス' + rk(R.range), n && (n.range.toFixed(1) + 'マス' + rkNext(R.range, RN.range) + d(st.range, n.range, 1))],
+      ['攻撃速度', perSec(st.rate) + '発/s' + rk(R.speed), n && (perSec(n.rate) + '発/s' + rkNext(R.speed, RN.speed) + d(+perSec(st.rate), +perSec(n.rate), 2))]
+    ];
+    if (st.splash) rows.push(['爆発範囲', fmtSplash(st.splash) + 'マス' + rk(R.splash),
+      n && (fmtSplash(n.splash) + 'マス' + rkNext(R.splash, RN.splash) + d(st.splash, n.splash, 2))]);
+    var txt = rows.map(function (r) {
+      return '<span class="k">' + r[0] + '</span><span class="v">' + r[1] + '</span>' + (n ? '<span class="nx">' + r[2] + '</span>' : '');
+    }).join('');
+    if (n) txt += '<span class="mid" style="grid-row:1 / span ' + rows.length + '"><small>強化後</small>' +
+      '<svg viewBox="0 0 30 18" aria-hidden="true"><path d="M0 6h17V0l13 9-13 9v-6H0z"/></svg></span>';
+    $('ts-stats').classList.toggle('maxed', !n);
     $('ts-stats').innerHTML = txt;
     var up = $('ts-up');
     if (c === null) { up.textContent = '最大まで強化済み'; up.disabled = true; }

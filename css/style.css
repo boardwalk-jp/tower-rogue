@@ -118,8 +118,17 @@ h1 span{font-size:18px;color:var(--muted)}
 .sheet-head{font-size:17px} .sheet-head span{color:var(--accent);font-size:14px}
 .sheet p{margin:6px 0 10px;font-size:14px;color:var(--muted);line-height:1.6}
 .sheet #ts-up{width:100%}
-.sheet .now{display:block;color:var(--fg)}
-.sheet .next{display:block;color:var(--fg)}
+/* 強さの表：左から 項目名｜今の値｜太い矢印（全行で1本、上に「強化後」）｜強化後の値。項目ごとに1行 */
+.stat-table{display:grid;grid-template-columns:auto auto auto 1fr;align-items:center;column-gap:8px;row-gap:3px;
+  margin:6px 0 10px;font-size:14px;line-height:1.5;font-variant-numeric:tabular-nums;white-space:nowrap}
+.stat-table.maxed{grid-template-columns:auto 1fr}
+.stat-table .k{grid-column:1;color:var(--muted);font-size:13px}
+.stat-table .v{grid-column:2}
+.stat-table .mid{grid-column:3;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:0 2px}
+.stat-table .mid small{font-size:11px;color:var(--up);letter-spacing:.05em}
+.stat-table .mid svg{width:30px;height:18px;fill:var(--up)}
+.stat-table .nx{grid-column:4}
+.stat-table .max{color:var(--muted);font-size:12px}
 .d-up,.d-down{font-weight:400}
 /* ランクの札：上ほど明るい金色、下ほどくすんだ色。赤・青（アップ・ダウン）は使わない */
 .rank{display:inline-block;font-style:normal;font-size:11px;line-height:1;min-width:16px;padding:2px 3px 1px;margin:0 1px 0 3px;
@@ -133,7 +142,6 @@ h1 span{font-size:18px;color:var(--muted)}
 .rank.rank-down{color:var(--down);border-color:var(--down);background:rgba(78,168,255,.12)}
 .rk-arrow{margin-left:3px;margin-right:-2px}
 .d-up{color:var(--up)} .d-down{color:var(--down)}
-.sheet p span span{white-space:nowrap}
 button.up{background:var(--up);color:#fff;border-color:var(--up);text-shadow:0 1px 0 rgba(0,0,0,.35)}
 
 .modal{position:fixed;inset:0;z-index:40;background:rgba(5,8,6,.72);display:flex;align-items:center;justify-content:center;padding:16px}
