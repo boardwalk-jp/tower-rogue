@@ -281,6 +281,54 @@ var G = window.G = window.G || {};
     }
   }
 
+  // ---- 数値のランク（S〜E、効果で範囲外なら SS/SSS・F/G） ----
+  // 全タワーの Lv1〜最大の通常の値から、数値ごとに「一番大きい値〜一番小さい値」を出し、等間隔で区切る。
+  // その数値を持つタワーが1種類だけならランクなし。2種類以上なら S〜E の6段階。
+  // タワーを増やしたり数値を変えたら、G.Rank.build() を呼ぶと計算し直す（起動時に1回呼ぶ）。
+  var RANKS = ['S', 'A', 'B', 'C', 'D', 'E'];
+  var RANK_STATS = {
+    dmg:    function (st) { return st.dmg; },
+    range:  function (st) { return st.range; },
+    speed:  function (st) { return 1 / st.rate; },          // 発/s
+    splash: function (st) { return st.splash || null; }
+  };
+  var rankTable = {};
+  function buildRanks() {
+    rankTable = {};
+    Object.keys(RANK_STATS).forEach(function (key) {
+      var vals = [], types = 0;
+      Object.keys(G.TOWERS).forEach(function (type) {
+        var has = false;
+        for (var lv = 0; lv <= G.TOWERS[type].up.length; lv++) {
+          var v = RANK_STATS[key](towerStats({ type: type, lv: lv }));
+          if (v !== null && v !== undefined) { vals.push(v); has = true; }
+        }
+        if (has) types++;
+      });
+      if (types < 2) return;                       // 1種類だけ：ランクなし
+      var n = RANKS.length;
+      var lo = Math.min.apply(null, vals), hi = Math.max.apply(null, vals);
+      rankTable[key] = { lo: lo, hi: hi, n: n, step: (hi - lo) / n };
+    });
+    return rankTable;
+  }
+  function rankOf(key, v) {
+    var r = rankTable[key], eps = 1e-9;
+    if (!r || v === null || v === undefined) return '';
+    if (r.step <= 0) return RANKS[0];
+    if (v > r.hi + eps) return (v - r.hi) <= r.step + eps ? 'SS' : 'SSS';   // 通常の最大より上（同じ間隔で1段ごと）
+    if (v < r.lo - eps) return (r.lo - v) <= r.step + eps ? 'F' : 'G';      // 通常の最小より下
+    var i = Math.min(r.n - 1, Math.floor((v - r.lo) / r.step + eps));      // 境目ちょうどは上のランク
+    return RANKS[r.n - 1 - i];
+  }
+  // タワーの今の強さ（st）を数値ごとのランクにする
+  function ranksOf(st) {
+    return { dmg: rankOf('dmg', st.dmg), range: rankOf('range', st.range), speed: rankOf('speed', 1 / st.rate),
+             splash: st.splash ? rankOf('splash', st.splash) : '' };
+  }
+  G.Rank = { build: buildRanks, of: rankOf, ofStats: ranksOf, table: function () { return rankTable; } };
+  buildRanks();
+
   G.Battle = {
     create: create, update: update, startAttack: startAttack, playCard: playCard,
     canPlaceAt: canPlaceAt, upgrade: upgrade, upgradeCost: upgradeCost, towerStats: towerStats, nextStats: nextStats,

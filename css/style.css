@@ -121,6 +121,13 @@ h1 span{font-size:18px;color:var(--muted)}
 .sheet .now{display:block;color:var(--fg)}
 .sheet .next{display:block;color:var(--fg)}
 .d-up,.d-down{font-weight:400}
+/* ランクの札：上ほど明るい金色、下ほどくすんだ色。赤・青（アップ・ダウン）は使わない */
+.rank{display:inline-block;font-style:normal;font-size:11px;line-height:1;min-width:16px;padding:2px 3px 1px;margin:0 1px 0 3px;
+  border-radius:4px;text-align:center;vertical-align:1px;border:1px solid #5d6b62;color:#cfd8cf;background:#26302a}
+.rank-sss,.rank-ss,.rank-s{color:#2a1c00;background:#ffd84a;border-color:#ffd84a}
+.rank-a{color:#ffd84a;border-color:#b8942a}
+.rank-b{color:#eef2ea;border-color:#8a9a8e}
+.rank-f,.rank-g{color:#8b948d;background:#1a201c;border-color:#3a443e}
 .d-up{color:var(--up)} .d-down{color:var(--down)}
 .sheet p span span{white-space:nowrap}
 button.up{background:var(--up);color:#fff;border-color:var(--up);text-shadow:0 1px 0 rgba(0,0,0,.35)}
