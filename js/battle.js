@@ -38,13 +38,16 @@ var G = window.G = window.G || {};
     return M.rows[ty][tx];
   }
 
+  // 決まった数（seed）から同じ並びの乱数を作る。state() で今の位置を取り出せる（セーブ用）
   function rng(seed) {
-    return function () {
+    var f = function () {
       seed |= 0; seed = seed + 0x6D2B79F5 | 0;
       var t = Math.imul(seed ^ seed >>> 15, 1 | seed);
       t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
       return ((t ^ t >>> 14) >>> 0) / 4294967296;
     };
+    f.state = function () { return seed | 0; };
+    return f;
   }
   function shuffle(arr, r) {
     for (var i = arr.length - 1; i > 0; i--) {

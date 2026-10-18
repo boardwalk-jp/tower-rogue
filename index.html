@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap">
-<link rel="stylesheet" href="css/style.css?v=20261018203344">
+<link rel="stylesheet" href="css/style.css?v=20261018204524">
 </head>
 <body>
 
@@ -18,6 +18,10 @@
     <p class="eyebrow">段階2 1層の試作</p>
     <h1>タワーローグ<span>（仮）</span></h1>
     <canvas id="title-art" width="112" height="40" aria-hidden="true"></canvas>
+    <div class="title-menu" role="radiogroup" aria-label="始め方">
+      <button type="button" id="t-cont" class="title-opt" aria-pressed="false"><b>つづきから</b><small id="t-cont-info"></small></button>
+      <button type="button" id="t-new" class="title-opt" aria-pressed="true"><b>はじめから</b><small id="t-new-info">新しい挑戦を始める</small></button>
+    </div>
     <div class="swipe">
       <div class="arrow" aria-hidden="true">▲<br>▲</div>
       <p>上にスワイプしてスタート</p>
@@ -39,6 +43,7 @@
     </div>
   </div>
   <div class="world-foot">
+    <button type="button" id="world-menu-btn" class="menu-btn">メニュー</button>
     <p class="world-hint" id="world-hint">光っているマスを選んでください</p>
     <button type="button" class="deck-btn">デッキ <b class="rb-deck"></b>枚</button>
   </div>
@@ -114,6 +119,16 @@
   </div>
 </div>
 
+<!-- ワールドマップのメニュー -->
+<div class="modal" id="world-menu" hidden>
+  <div class="modal-box">
+    <h2>メニュー</h2>
+    <p>マスを1つ進めるたびに自動で保存しています。タイトルの「つづきから」で再開できます。</p>
+    <button type="button" id="wm-title" class="go">タイトルに戻る</button>
+    <button type="button" id="wm-close">閉じる</button>
+  </div>
+</div>
+
 <!-- デッキからカードを1枚選ぶ（手放す時など） -->
 <div class="modal" id="picker" hidden>
   <div class="modal-box wide">
@@ -127,12 +142,12 @@
 
 <div id="rotate"><p>画面を縦にしてください</p></div>
 
-<script src="js/data.js?v=20261018203344"></script>
-<script src="js/battle.js?v=20261018203344"></script>
-<script src="js/run.js?v=20261018203344"></script>
-<script src="js/sprites.js?v=20261018203344"></script>
-<script src="js/render.js?v=20261018203344"></script>
-<script src="js/ui.js?v=20261018203344"></script>
-<script src="js/screens.js?v=20261018203344"></script>
+<script src="js/data.js?v=20261018204524"></script>
+<script src="js/battle.js?v=20261018204524"></script>
+<script src="js/run.js?v=20261018204524"></script>
+<script src="js/sprites.js?v=20261018204524"></script>
+<script src="js/render.js?v=20261018204524"></script>
+<script src="js/ui.js?v=20261018204524"></script>
+<script src="js/screens.js?v=20261018204524"></script>
 </body>
 </html>

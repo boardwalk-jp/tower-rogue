@@ -29,6 +29,14 @@ button[aria-pressed="true"]{background:var(--accent);color:#1d1606;border-color:
 h1{margin:0;font-weight:400;font-size:34px;line-height:1.2}
 h1 span{font-size:18px;color:var(--muted)}
 #title-art{width:308px;height:110px;image-rendering:pixelated}
+.title-menu{display:flex;flex-direction:column;gap:8px;width:min(300px,100%)}
+.title-opt{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 12px;min-height:56px}
+.title-opt b{font-weight:400;font-size:17px}
+.title-opt small{font-size:12px;color:var(--muted)}
+.title-opt[aria-pressed="true"] small{color:#3a2c08}
+.title-opt:disabled{opacity:.35}
+.title-opt .warn{color:#7a1f14}
+.menu-btn{flex:0 0 auto}
 .swipe{margin-top:10px;display:flex;flex-direction:column;align-items:center;gap:6px}
 .swipe p{margin:0;font-size:18px}
 .arrow{color:var(--accent);line-height:.9;font-size:20px;animation:up 1.2s ease-in-out infinite}

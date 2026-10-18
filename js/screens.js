@@ -36,21 +36,82 @@ var G = window.G = window.G || {};
     c.drawImage(SPR.goblin[1].l, 78, 22);
     c.drawImage(SPR.knight[0].l, 92, 17);
   })();
+  // ============================================================
+  // 自動セーブ（このブラウザの中に保存。マスに入る時・報酬が出た時・マップに戻った時）
+  // resume：map＝マップから / node＝そのマスに入るところから（戦闘は最初から）/ reward＝報酬を選ぶところから
+  // ============================================================
+  var SAVE_KEY = 'towerRogue.save.v1';
+  function save(resume) {
+    if (!run || run.over) return;
+    try { localStorage.setItem(SAVE_KEY, JSON.stringify({ v: 1, at: Date.now(), run: R.toSave(run), resume: resume || { type: 'map' } })); } catch (e) {}
+  }
+  function loadSave() {
+    try { var d = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); return d && d.v === 1 ? d : null; } catch (e) { return null; }
+  }
+  function clearSave() { try { localStorage.removeItem(SAVE_KEY); } catch (e) {} }
+
+  // ---- タイトル：「つづきから」「はじめから」を選んでから上にスワイプ ----
+  var titleChoice = 'new';
+  function refreshTitle() {
+    var d = loadSave(), cont = $('t-cont');
+    cont.disabled = !d;
+    if (d) {
+      var r = d.run, n = r.at ? r.world.nodes[r.at] : null;
+      var where = !n ? 'スタート地点' : n.type === 'boss' ? 'ボス' : (n.floor + 1) + '階';
+      var dt = new Date(d.at);
+      $('t-cont-info').textContent = where + '・ライフ' + r.life + '/' + r.maxLife + '・デッキ' + r.deck.length + '枚・' + (dt.getMonth() + 1) + '/' + dt.getDate() + ' ' + dt.getHours() + ':' + String(dt.getMinutes()).padStart(2, '0');
+    } else $('t-cont-info').textContent = '保存されたデータはありません';
+    setChoice(d ? 'cont' : 'new');
+  }
+  function setChoice(c) {
+    titleChoice = c;
+    $('t-cont').setAttribute('aria-pressed', String(c === 'cont'));
+    $('t-new').setAttribute('aria-pressed', String(c === 'new'));
+    $('t-new-info').innerHTML = c === 'new' && loadSave() ? '<span class="warn">始めると、つづきのデータは消えます</span>' : '新しい挑戦を始める';
+  }
+  $('t-cont').addEventListener('click', function () { setChoice('cont'); });
+  $('t-new').addEventListener('click', function () { setChoice('new'); });
+  refreshTitle();
+
   function start() {
-    if (G.started) return;
+    if (G.started || $('start').hidden) return;
     G.started = true;
     $('start').hidden = true;
-    newRun();
+    var d = titleChoice === 'cont' ? loadSave() : null;
+    if (d) continueRun(d); else newRun();
   }
   // ユーザーが自分でスクロールした時だけアドレスバーが縮むので、スクロールを合図に始める
   window.addEventListener('scroll', function () { if (window.scrollY > 60) start(); }, { passive: true });
   $('pc-start').addEventListener('click', start);
 
+  function backToTitle() {
+    save(lastResume);
+    G.started = false;
+    document.querySelectorAll('[data-screen]').forEach(function (e) { e.hidden = true; });
+    G.currentScreen = 'start';
+    $('start').hidden = false;
+    refreshTitle();
+    window.scrollTo(0, 0);
+  }
+  $('world-menu-btn').addEventListener('click', function () { $('world-menu').hidden = false; });
+  $('wm-close').addEventListener('click', function () { $('world-menu').hidden = true; });
+  $('wm-title').addEventListener('click', function () { $('world-menu').hidden = true; backToTitle(); });
+
   function newRun() {
+    clearSave();
     run = R.create();
     G.run = run;
     showWorld();
   }
+  function continueRun(d) {
+    run = R.fromSave(d.run);
+    G.run = run;
+    var r = d.resume || { type: 'map' };
+    if (r.type === 'node' && run.at) return enterNode(R.node(run));
+    if (r.type === 'reward' && run.at) return showReward(R.node(run), r.bonus, { stats: r.stats }, r.cards);
+    showWorld();
+  }
+  var lastResume = { type: 'map' };
 
   // ============================================================
   // ワールドマップ：下（1階）から上（ボス）へ。光っているマスをタップ → もう一度タップで進む
@@ -63,6 +124,7 @@ var G = window.G = window.G || {};
     return { x: left + n.lane * LANE_W, y: PAD_Y + (floors - 1 - n.floor) * FLOOR_H };
   }
   function showWorld() {
+    lastResume = { type: 'map' }; save(lastResume);
     G.showScreen('world');
     pendingNode = null;
     var box = $('world-map'), svg = $('world-lines'), width = Math.min(box.parentNode.clientWidth || 360, 420);
@@ -117,6 +179,8 @@ var G = window.G = window.G || {};
   $('world').querySelector('.deck-btn').addEventListener('click', function () { UI.showList('デッキ', run.deck, 'カードをタップすると詳しい説明が出ます。'); });
 
   function enterNode(n) {
+    // マスに入る時点で保存（途中でやめても、つづきからは同じマスに入り直す。戦闘は最初から）
+    lastResume = { type: 'node' }; save(lastResume);
     if (n.type === 'battle' || n.type === 'elite' || n.type === 'boss') return startBattle(n);
     if (n.type === 'event') return showEvent();
     if (n.type === 'shop') return showShop();
@@ -131,14 +195,16 @@ var G = window.G = window.G || {};
     var label = n.type === 'boss' ? 'ボス' : (n.floor + 1) + '階' + (n.type === 'elite' ? 'エリート' : '');
     UI.start(opts, function (s) {
       R.finishBattle(run, s);
-      if (run.over) return showEnd();
+      if (run.over) { clearSave(); return showEnd(); }
       showReward(n, run.gold - s.gold, s);
     }, { label: label, title: n.type === 'boss' ? 'ボス戦' : n.type === 'elite' ? 'エリート戦' : '準備ターン' });
   }
 
   // ---- 報酬：カード3枚から1枚（取らなくてもよい） ----
-  function showReward(n, bonus, s) {
-    var cards = R.rollCards(run, 3, n.type === 'elite' ? 'elite' : 'battle');
+  function showReward(n, bonus, s, savedCards) {
+    var cards = savedCards || R.rollCards(run, 3, n.type === 'elite' ? 'elite' : 'battle');
+    lastResume = { type: 'reward', cards: cards, bonus: bonus, stats: { killed: s.stats.killed, leaked: s.stats.leaked, goldEarned: s.stats.goldEarned } };
+    save(lastResume);
     openPanel(n.type === 'elite' ? 'エリート撃破' : '勝利', function (body, foot) {
       body.appendChild(el('h2', 'panel-title', '勝利！'));
       body.appendChild(el('p', 'panel-text', '倒した敵 ' + s.stats.killed + '体・通した敵 ' + s.stats.leaked + '体。戦闘で得たお金 +' + s.stats.goldEarned + 'G、勝利のおまけ +' + bonus + 'G。'));
@@ -198,7 +264,8 @@ var G = window.G = window.G || {};
       var msg = el('p', 'panel-sub'); body.appendChild(msg);
     });
     function afterEvent(text) {
-      if (run.life <= 0) { run.over = true; return showEnd(); }
+      if (run.life <= 0) { run.over = true; clearSave(); return showEnd(); }
+      lastResume = { type: 'map' }; save(lastResume);   // 選択肢が決まった時点で保存（つづきからはマップに戻る）
       openPanel('イベント', function (body, foot) {
         body.appendChild(el('h2', 'panel-title', ev.title));
         body.appendChild(el('p', 'panel-text', text));
@@ -276,6 +343,7 @@ var G = window.G = window.G || {};
       body.appendChild(list);
     });
     function done(text) {
+      lastResume = { type: 'map' }; save(lastResume);
       openPanel('休憩', function (body, foot) {
         body.appendChild(el('h2', 'panel-title', 'たき火'));
         body.appendChild(el('p', 'panel-text', text));
@@ -288,12 +356,14 @@ var G = window.G = window.G || {};
   // ランの終わり
   // ============================================================
   function showEnd() {
+    clearSave();
     openPanel(run.won ? 'クリア' : '敗北', function (body, foot) {
       body.appendChild(el('h2', 'panel-title ' + (run.won ? 'win' : 'lose'), run.won ? '第1層クリア！' : '敗北…'));
       var n = R.node(run);
       body.appendChild(el('p', 'panel-text', (run.won ? 'オーガ王を倒した。' : (n ? (n.type === 'boss' ? 'ボス戦' : (n.floor + 1) + '階') : '') + 'で力つきた。') +
         ' 勝った戦闘 ' + run.stats.battles + '回（エリート ' + run.stats.elites + '回）、手に入れたカード ' + run.stats.cardsTaken + '枚、最後のデッキ ' + run.deck.length + '枚。'));
       foot.appendChild(button('新しく始める', 'go', newRun));
+      foot.appendChild(button('タイトルに戻る', '', backToTitle));
       foot.appendChild(button('最後のデッキを見る', '', function () { UI.showList('デッキ', run.deck); }));
     });
   }

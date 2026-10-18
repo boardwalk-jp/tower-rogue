@@ -157,11 +157,21 @@ var G = window.G = window.G || {};
     }
   }
 
+  // ---- セーブ用：ランを文字にできる形にする／元に戻す ----
+  function toSave(run) {
+    return { world: run.world, at: run.at, visited: run.visited, deck: run.deck, life: run.life, maxLife: run.maxLife,
+             gold: run.gold, stats: run.stats, rng: run.rand.state() };
+  }
+  function fromSave(d) {
+    return { rand: B.rng(d.rng), world: d.world, at: d.at, visited: d.visited, deck: d.deck, life: d.life, maxLife: d.maxLife,
+             gold: d.gold, stats: d.stats, over: false, won: false };
+  }
+
   function rest(run) { var before = run.life; run.life = Math.min(run.maxLife, run.life + G.RULES.restHeal); return run.life - before; }
 
   G.Run = {
     create: create, reachable: reachable, enter: enter, node: node, battleOpts: battleOpts, finishBattle: finishBattle,
     rollCards: rollCards, addCard: addCard, removeCard: removeCard, shopStock: shopStock,
-    rollEvent: rollEvent, eventChoice: eventChoice, rest: rest
+    rollEvent: rollEvent, eventChoice: eventChoice, rest: rest, toSave: toSave, fromSave: fromSave
   };
 })();
