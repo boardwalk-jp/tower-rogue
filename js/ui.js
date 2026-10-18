@@ -17,9 +17,35 @@ var G = window.G = window.G || {};
   // ---- Safari の長押しメニュー・文字選択・拡大を止める ----
   document.addEventListener('contextmenu', function (e) { e.preventDefault(); });
   document.addEventListener('selectstart', function (e) { e.preventDefault(); });
-  ['gesturestart', 'gesturechange'].forEach(function (n) { document.addEventListener(n, function (e) { e.preventDefault(); }); });
+  // ---- 画面の拡大を止める（iPhone の Safari は「拡大しない」設定を無視するので、自分で止める） ----
+  function zoomed() { return window.visualViewport && window.visualViewport.scale > 1.01; }
+  // もし拡大されてしまったら、ピンチで戻せるようにする（拡大中だけ2本指の操作を通す）
+  ['gesturestart', 'gesturechange'].forEach(function (n) { document.addEventListener(n, function (e) { if (!zoomed()) e.preventDefault(); }); });
+  // ダブルタップでの拡大を止める：0.35秒以内の2回目のタップは拡大の合図にさせない。
+  // その代わり、ボタンなら押したことにする（速く2回押した時に2回目が消えないように）
+  var lastTouchEnd = 0;
+  document.addEventListener('touchend', function (e) {
+    var now = Date.now(), quick = now - lastTouchEnd < 350;
+    lastTouchEnd = now;
+    if (!quick || e.touches.length) return;
+    if (e.target.closest && e.target.closest('input, textarea, select')) return;
+    e.preventDefault();
+    var btn = e.target.closest && e.target.closest('button'), tgt = btn || e.target;
+    if (!(btn && btn.disabled) && typeof tgt.click === 'function') tgt.click();
+  }, { passive: false });
+  document.addEventListener('dblclick', function (e) { e.preventDefault(); }, { passive: false });
+  // それでも拡大された時は、画面の設定を書き直して元の大きさに戻す
+  var vpMeta = document.querySelector('meta[name=viewport]');
+  function resetZoom() {
+    if (!vpMeta || !zoomed()) return;
+    var c = vpMeta.getAttribute('content');
+    vpMeta.setAttribute('content', c + ',user-scalable=0');
+    setTimeout(function () { vpMeta.setAttribute('content', c); }, 50);
+  }
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', function () { setTimeout(resetZoom, 300); });
   // ゲーム中は画面がスクロールしないように（細くなったアドレスバーを戻さないため）。.scroll-y の中だけはスクロールできる
   document.addEventListener('touchmove', function (e) {
+    if (e.touches.length > 1 && zoomed()) return;   // 拡大中のピンチ（元に戻す操作）は止めない
     if (!G.started) return;
     if (e.target.closest && e.target.closest('.scroll-y')) return;
     e.preventDefault();
