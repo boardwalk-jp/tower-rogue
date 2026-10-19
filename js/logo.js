@@ -101,7 +101,7 @@
     return rows;
   }
   var FLAME = [flameFrame(0), flameFrame(1.6), flameFrame(-1.6), flameFrame(0.8)];
-  var FC = { o: '#ff8a1e', y: '#ffd23a', W: '#fff6c0', r: '#c8341a' };
+  var FC = { o: '#3a8cff', y: '#86d4ff', W: '#eafcff', r: '#2350c8' };   // 青い炎
 
   // ---- ロゴ全体の並び ----
   // 1段目：Slay ＋ 右下に小さい the。2段目：Syoppaiya（少し右へ）
@@ -109,7 +109,7 @@
   var LAYOUT = [
     { text: 'Slay', x: 2, y: 4, scale: 1, gap: 0, layer: 1, rot: [-6, 4, -3, 5], dy: [-2, 0, 1, 0], big: { 0: 1.14 } },
     { text: 'the', x: 68, y: 14, scale: 0.6, gap: 0, layer: 1, rot: [-5, 3, 6], dy: [0, -1, 0] },
-    { text: 'Syoppaiya', x: 24, y: 31, scale: 1, gap: 0, layer: 0, rot: [-7, 5, -3, 3, -4, 4, -2, 6, -3], dy: [-2, 1, 0, -1, 0, 1, -1, 0, 1], big: { 0: 1.14 } }
+    { text: 'Syoppaiya', x: 24, y: 36, scale: 1, gap: 0, layer: 0, rot: [-7, 5, -3, 3, -4, 4, -2, 6, -3], dy: [-2, 1, 0, -1, 0, 1, -1, 0, 1], big: { 0: 1.14 } }
   ];
   var built = null;
   function build() {
@@ -167,8 +167,8 @@
     B.items.forEach(function (it) {
       if (!it.g.dot) return;
       var fx = it.x + it.g.dot[0] + 2 - 4, fy = it.y + it.g.dot[1] + 2 - 12;
-      // 炎のふち（こげ茶）
-      c.fillStyle = '#2e1206';
+      // 炎のふち（こい紺）
+      c.fillStyle = '#0c1430';
       for (var yy = 0; yy < fr.length; yy++) for (var xx = 0; xx < fr[yy].length; xx++) {
         if (fr[yy][xx] === '.') continue;
         c.fillRect(fx + xx - 1, fy + yy, 1, 1); c.fillRect(fx + xx + 1, fy + yy, 1, 1); c.fillRect(fx + xx, fy + yy - 1, 1, 1); c.fillRect(fx + xx, fy + yy + 1, 1, 1);
