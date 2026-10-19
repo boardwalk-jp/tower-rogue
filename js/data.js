@@ -249,16 +249,39 @@ G.TOWERS = {
     text: '近くの道に兵士2人を出す。兵士は敵1体ずつを止めて戦う。倒れても8秒で戻る。ボスは止められない。',
     up: [{ cost: 30, soldiers: { n: 2, hp: 120, dmg: 12, rate: 1.0, respawn: 7 } }, { cost: 60, soldiers: { n: 3, hp: 160, dmg: 16, rate: 0.9, respawn: 6 } }]
   },
+  // ---- 追加のタワー（2026-10-19 夜） ----
+  dart: {
+    name: '吹き矢小屋', muzzle: 0.7, cost: 1, range: 2.2, dmg: 3, rate: 0.55, dmgType: 'physical', shot: 'arrow', speed: 12,
+    poison: { dps: 3, dur: 2 },
+    text: '細い吹き矢をとても速く撃つ。当たると少し毒（2秒）。',
+    up: [{ cost: 20, dmg: 4, poison: { dps: 5, dur: 2 } }, { cost: 40, dmg: 6, range: 2.4, poison: { dps: 7, dur: 2.5 } }]
+  },
+  mortar: {
+    name: '臼砲', noAir: true, muzzle: 0.7, cost: 2, range: 3.6, dmg: 34, rate: 2.4, dmgType: 'physical', shot: 'ball', speed: 3.5, splash: 1.3,
+    text: '遠くへ大きな砲弾を撃ち、広い範囲を吹き飛ばす。空の敵には当たらない。',
+    up: [{ cost: 40, dmg: 50, splash: 1.4 }, { cost: 80, dmg: 70, range: 3.9, splash: 1.5 }]
+  },
+  blizzard: {
+    name: '吹雪の塔', muzzle: 1.6, cost: 2, range: 2.2, dmg: 9, rate: 1.0, dmgType: 'magic', aura: true, slow: { pct: 0.45, dur: 1.2 },
+    text: '弾を撃たず、射程の中の敵すべてに1秒ごとに冷たい風（ダメージ＋遅くする）。',
+    up: [{ cost: 40, dmg: 13, slow: { pct: 0.5, dur: 1.2 } }, { cost: 80, dmg: 18, range: 2.5, slow: { pct: 0.55, dur: 1.5 } }]
+  },
+  golem: {
+    name: '石像の工房', muzzle: 0, cost: 2, range: 2.0, dmg: 0, rate: 1, dmgType: 'none', noAttack: true,
+    soldiers: { n: 1, hp: 420, dmg: 32, rate: 1.0, respawn: 8, stopsBoss: true, unit: 'golemUnit' },
+    text: '近くの道に石の巨人を1体出す。ボスも止められる（体力420）。倒れても8秒で戻る。',
+    up: [{ cost: 40, soldiers: { n: 1, hp: 620, dmg: 44, rate: 1.0, respawn: 7, stopsBoss: true, unit: 'golemUnit' } }, { cost: 80, soldiers: { n: 1, hp: 860, dmg: 60, rate: 0.9, respawn: 6, stopsBoss: true, unit: 'golemUnit' } }]
+  },
   // ---- レア（ボスの報酬に出る） ----
   sniper: {
-    name: '狙撃塔', muzzle: 1.9, cost: 2, range: 4.0, dmg: 34, rate: 2.2, dmgType: 'physical', shot: 'bolt', speed: 18, vsBoss: 1.5, defTarget: 'strong',
+    name: '狙撃塔', muzzle: 1.9, cost: 2, range: 3.8, dmg: 26, rate: 2.4, dmgType: 'physical', shot: 'bolt', speed: 18, vsBoss: 1.5, defTarget: 'strong',
     text: 'とても遠くまで届く。最初は体力が一番多い敵をねらう。ボスには1.5倍のダメージ。',
-    up: [{ cost: 40, dmg: 50, range: 4.2 }, { cost: 80, dmg: 72, range: 4.2, rate: 2.0 }]
+    up: [{ cost: 40, dmg: 40, range: 4.0 }, { cost: 80, dmg: 58, range: 4.2, rate: 2.2 }]
   },
   storm: {
-    name: '嵐の塔', muzzle: 1.9, cost: 3, range: 2.6, dmg: 14, rate: 1.2, dmgType: 'magic', shot: 'spark', speed: 16, chain: 4, chainFull: true,
+    name: '嵐の塔', muzzle: 1.9, cost: 2, range: 2.6, dmg: 16, rate: 1.2, dmgType: 'magic', shot: 'spark', speed: 16, chain: 4, chainFull: true,
     text: '雷が近くの敵へ4体まで飛び移る。飛び移っても威力が落ちない。',
-    up: [{ cost: 40, dmg: 19, chain: 5 }, { cost: 80, dmg: 26, range: 2.8, chain: 6 }]
+    up: [{ cost: 40, dmg: 22, chain: 5 }, { cost: 80, dmg: 30, range: 2.8, chain: 6 }]
   },
   ballista: {
     name: '大型弩砲', muzzle: 0.9, cost: 3, range: 3.6, dmg: 40, rate: 2.4, dmgType: 'physical', shot: 'bolt', speed: 14,
@@ -289,6 +312,10 @@ G.CARDS = {
   ballista: { kind: 'tower', tower: 'ballista', rarity: 'rare' },
   sniper:   { kind: 'tower', tower: 'sniper', rarity: 'rare' },
   storm:    { kind: 'tower', tower: 'storm', rarity: 'rare' },
+  mortar:   { kind: 'tower', tower: 'mortar', rarity: 'rare' },
+  blizzard: { kind: 'tower', tower: 'blizzard', rarity: 'rare' },
+  golem:    { kind: 'tower', tower: 'golem', rarity: 'rare' },
+  dart:     { kind: 'tower', tower: 'dart', rarity: 'common' },
   fire:     { kind: 'tower', tower: 'fire', rarity: 'uncommon' },
   thunder:  { kind: 'tower', tower: 'thunder', rarity: 'uncommon' },
   mine:     { kind: 'tower', tower: 'mine', rarity: 'common' },
@@ -308,6 +335,16 @@ G.CARDS = {
               text: 'タワー1つをお金を使わずにLv+1（この戦闘中ずっと）。' },
   warcry:   { kind: 'skill', name: '号令', cost: 1, target: 'none', rarity: 'uncommon', icon: 'horn', mult: 1.5,
               text: 'すべてのタワーの攻撃速度をこのターンだけ1.5倍。' },
+  timestop: { kind: 'skill', name: '時止め', cost: 2, target: 'none', rarity: 'rare', icon: 'hourglass', sec: 3,
+              text: '次の3秒間（攻撃中）、すべての敵が止まる。ボスは半分の速さになる。' },
+  masterwork: { kind: 'skill', name: '名匠の技', cost: 1, target: 'tower', rarity: 'rare', icon: 'star', exhaust: true,
+              text: 'タワー1つを、お金を使わずに最大レベルまで強化（この戦闘中ずっと）。使い切り。' },
+  patch:    { kind: 'skill', name: '応急手当', cost: 0, target: 'none', rarity: 'common', icon: 'bandage', exhaust: true, heal: 3,
+              text: 'ライフ+3（最大ライフまで）。使い切り。' },
+  focus:    { kind: 'skill', name: '集中', cost: 0, target: 'tower', rarity: 'common', icon: 'target', mult: 1.5,
+              text: 'タワー1つの攻撃速度をこのターンだけ1.5倍。' },
+  bounty:   { kind: 'skill', name: '懸賞金', cost: 1, target: 'none', rarity: 'uncommon', icon: 'poster', mult: 2,
+              text: 'このターン、敵を倒した時のお金が2倍。' },
   rally:    { kind: 'skill', name: '総攻撃', cost: 1, target: 'none', rarity: 'rare', icon: 'sword', mult: 1.6,
               text: 'すべてのタワーの攻撃力をこのターンだけ1.6倍。' },
   // ---- ここから下は、経験値をためると解放されるカード（unlock: true） ----
@@ -338,6 +375,11 @@ G.PLUS_SKILL = {
   forge:    { cost: 0, text: 'タワー1つをお金を使わずにLv+1（この戦闘中ずっと）。', plusNote: ['エネルギー', '1', '0'] },
   warcry:   { mult: 1.8, text: 'すべてのタワーの攻撃速度をこのターンだけ1.8倍。', plusNote: ['攻撃速度の倍率', '1.5倍', '1.8倍'] },
   workshop: { cost: 1, text: '「弓兵の塔（エネルギー0・使い切り）」を2枚手札に加える。使い切り。', plusNote: ['エネルギー', '2', '1'] },
+  timestop: { sec: 4, text: '次の4秒間（攻撃中）、すべての敵が止まる。ボスは半分の速さになる。', plusNote: ['止める時間', '3秒', '4秒'] },
+  masterwork: { cost: 0, text: 'タワー1つを、お金を使わずに最大レベルまで強化（この戦闘中ずっと）。使い切り。', plusNote: ['エネルギー', '1', '0'] },
+  patch:    { heal: 5, text: 'ライフ+5（最大ライフまで）。使い切り。', plusNote: ['回復', '+3', '+5'] },
+  focus:    { mult: 2, text: 'タワー1つの攻撃速度をこのターンだけ2倍。', plusNote: ['攻撃速度の倍率', '1.5倍', '2倍'] },
+  bounty:   { cost: 0, text: 'このターン、敵を倒した時のお金が2倍。', plusNote: ['エネルギー', '1', '0'] },
   rally:    { mult: 2, text: 'すべてのタワーの攻撃力をこのターンだけ2倍。', plusNote: ['攻撃力の倍率', '1.6倍', '2倍'] },
   overclock: { cost: 0, text: 'すべてのタワーの攻撃速度をこのターンだけ2倍。', plusNote: ['エネルギー', '1', '0'] },
   architect: { n: 3, text: 'このターン、次に使うタワーのカード3枚のエネルギーが0になる。', plusNote: ['0になる枚数', '2枚', '3枚'] },

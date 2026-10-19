@@ -614,6 +614,7 @@ var G = window.G = window.G || {};
         case 'broken': SND.play('boom'); break;
         case 'spawn': if (e.boss) { SND.play('boss'); if (SND.bossTheme) SND.bossTheme(true); } break;
         case 'summon': SND.play('summon'); break;
+        case 'blizzard': SND.play('ice'); break;
         case 'bossHit': SND.play('bossHit'); break;
         case 'bossArrive': SND.play('bossRoar'); break;
         case 'healcast': SND.play('heal'); break;

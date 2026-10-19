@@ -372,6 +372,11 @@ var G = window.G = window.G || {};
       case 'gear':   g.ell(8, 8, 6, 6, '#8b8f94'); for (var q = 0; q < 8; q++) { var an = q * Math.PI / 4; g.rect(Math.round(8 + Math.cos(an) * 6.5) - 1, Math.round(8 + Math.sin(an) * 6.5) - 1, 2, 2, '#8b8f94'); } g.ell(8, 8, 2.5, 2.5, '#16120f'); g.px(4, 5, '#c3c7cc'); g.rect(10, 1, 1, 4, '#ffe14d'); g.rect(11, 3, 1, 3, '#ffe14d'); break;
       case 'scroll': g.rect(3, 3, 10, 10, '#4a7ad0'); g.rect(3, 3, 10, 1, '#7aa8f0'); for (var y2 = 5; y2 < 12; y2 += 2) g.rect(5, y2, 6, 1, '#d8e8ff'); g.rect(2, 2, 2, 12, '#e8d9b0'); g.rect(12, 2, 2, 12, '#e8d9b0'); break;
       case 'meteor': g.ell(10, 10, 4, 4, '#8a4a2a'); g.ell(10, 10, 2.5, 2.5, '#ff8a2a'); g.px(11, 9, '#ffd84a'); for (var k2 = 0; k2 < 6; k2++) { g.px(1 + k2, 1 + k2, '#ff6a2a'); g.px(2 + k2, 1 + k2, '#ffd84a'); } break;
+      case 'hourglass': g.rect(3, 1, 10, 2, '#8a5a2b'); g.rect(3, 13, 10, 2, '#8a5a2b'); for (var h2 = 0; h2 < 5; h2++) { g.rect(4 + h2, 3 + h2, 8 - h2 * 2, 1, '#bfe8ff'); g.rect(4 + h2, 12 - h2, 8 - h2 * 2, 1, '#bfe8ff'); } g.rect(6, 10, 4, 2, '#ffd84a'); g.px(7, 6, '#ffd84a'); g.px(8, 8, '#ffd84a'); break;
+      case 'star': g.rect(7, 1, 2, 14, '#ffd84a'); g.rect(1, 6, 14, 3, '#ffd84a'); g.rect(4, 4, 8, 7, '#ffd84a'); g.rect(3, 11, 3, 3, '#ffd84a'); g.rect(10, 11, 3, 3, '#ffd84a'); g.px(6, 5, '#fff6c0'); g.rect(6, 7, 1, 2, '#b08218'); g.rect(9, 7, 1, 2, '#b08218'); break;
+      case 'bandage': g.rect(3, 5, 10, 6, '#f0e8d8'); g.rect(1, 6, 2, 4, '#e0d8c8'); g.rect(13, 6, 2, 4, '#e0d8c8'); g.rect(7, 6, 2, 4, '#d94a3a'); g.rect(6, 7, 4, 2, '#d94a3a'); break;
+      case 'target': g.ell(8, 8, 7, 7, '#d94a3a'); g.ell(8, 8, 5, 5, '#f0f0f0'); g.ell(8, 8, 3, 3, '#d94a3a'); g.ell(8, 8, 1.2, 1.2, '#f0f0f0'); g.rect(13, 1, 1, 6, '#8a5a2b'); g.px(14, 1, '#e8e8e8'); break;
+      case 'poster': g.rect(2, 1, 12, 14, '#e8d9b0'); g.rect(2, 1, 12, 2, '#c8b88a'); g.ell(8, 7, 3, 3, '#6b4422'); g.rect(4, 11, 8, 1, '#d94a3a'); g.rect(5, 13, 6, 1, '#ffd84a'); break;
       case 'sword':  for (var k3 = 0; k3 < 9; k3++) { g.px(12 - k3, 2 + k3, '#e8ecf0'); g.px(13 - k3, 2 + k3, '#b4b8bc'); } g.rect(3, 10, 4, 1, '#d9b24a'); g.rect(4, 11, 1, 3, '#8a5a2b'); g.rect(6, 9, 1, 4, '#d9b24a'); break;
       case 'saw':    g.rect(2, 7, 12, 4, '#b4b8bc'); for (var x = 2; x < 14; x += 2) g.px(x, 11, '#8b8f94'); g.rect(11, 4, 4, 4, '#8a5a2b'); g.rect(3, 2, 6, 3, '#8a5a2b'); g.rect(4, 3, 4, 1, '#c08a4a'); break;
     }
@@ -534,6 +539,51 @@ var G = window.G = window.G || {};
     g.rect(15, 19 - lv, 1, 5 + lv, '#5b4632'); g.rect(16, 19 - lv, 2, 2, FLAG[lv]);
     return g.outline(OUT).bake();
   }
+  function dartTower(lv, fire) {     // 吹き矢小屋：竹の小屋と吹き矢の筒
+    var g = new Grid(16, 22);
+    g.rect(3, 10, 10, 11, '#8a9a4a'); for (var i = 3; i < 13; i += 2) g.rect(i, 10, 1, 11, '#6a7a3a');
+    g.rect(1, 7, 14, 3, '#c8a860'); g.rect(2, 5, 12, 2, '#a88840'); g.rect(4, 4, 8, 1, '#a88840');
+    g.rect(fire ? 9 : 8, 12, 6, 1, '#e8d9b0'); g.px(fire ? 15 : 14, 12, '#ffffff');
+    g.rect(12, 14 - lv, 1, 5 + lv, '#5b4632'); g.rect(13, 14 - lv, 2, 2, FLAG[lv]);
+    return g.outline(OUT).bake();
+  }
+  function mortarTower(lv, fire) {   // 臼砲：低い石の台と上を向いた太い砲
+    var g = new Grid(24, 20);
+    stoneBase(g, 3, 11, 18, 8);
+    g.rect(2, 9, 20, 2, '#9fa3a8');
+    g.ell(12, 6, 5, 4, '#3a3e44'); g.ell(12, 4, 4, 2, '#1e2024'); g.rect(9, 7, 6, 2, '#5a5e64');
+    if (fire) { g.ell(12, 2, 3, 2, '#ffb347'); g.px(12, 0, '#ffe08a'); }
+    g.rect(20, 12 - lv, 1, 5 + lv, '#5b4632'); g.rect(21, 12 - lv, 2, 2, FLAG[lv]);
+    return g.outline(OUT).bake();
+  }
+  function blizzardTower(lv, fire) { // 吹雪の塔：氷の柱と回る雪
+    var g = new Grid(20, 34);
+    g.rect(6, 12, 8, 21, '#a8d8f0'); g.rect(6, 12, 2, 21, '#e0f4ff'); g.rect(12, 12, 2, 21, '#7ab8e0');
+    g.rect(4, 30, 12, 3, '#7ab8e0');
+    g.rect(8, 3, 4, 9, '#e0f4ff'); g.rect(9, 1, 2, 2, '#ffffff'); g.rect(6, 6, 8, 2, '#bfe8ff');
+    var c = fire ? '#ffffff' : '#bfe8ff';
+    g.px(2, 8, c); g.px(17, 5, c); g.px(3, 16, c); g.px(16, 14, c); g.px(1, 22, c); g.px(18, 20, c);
+    g.rect(14, 18 - lv, 1, 5 + lv, '#5b4632'); g.rect(15, 18 - lv, 2, 2, FLAG[lv]);
+    return g.outline(OUT).bake();
+  }
+  function golemTower(lv) {          // 石像の工房：石の門と台座
+    var g = new Grid(22, 22);
+    stoneBase(g, 2, 8, 18, 13);
+    g.rect(7, 12, 8, 9, '#2a2620'); g.ell(11, 12, 4, 3, '#2a2620');
+    g.rect(1, 6, 20, 2, '#9fa3a8'); g.rect(4, 3, 3, 3, '#8b8f94'); g.rect(15, 3, 3, 3, '#8b8f94');
+    g.rect(10, 15, 2, 2, '#ffd84a');
+    g.rect(19, 9 - lv, 1, 5 + lv, '#5b4632'); g.rect(20, 9 - lv, 2, 2, FLAG[lv]);
+    return g.outline(OUT).bake();
+  }
+  function golemUnit(f) {            // 石の巨人（道に出る）
+    var g = new Grid(16, 18);
+    if (f) { g.rect(3, 6, 3, 6, '#8b8f94'); g.rect(11, 3, 3, 6, '#8b8f94'); } else { g.rect(2, 7, 3, 7, '#8b8f94'); g.rect(11, 7, 3, 7, '#8b8f94'); }
+    g.rect(5, 5, 6, 8, '#9fa3a8'); g.rect(5, 5, 6, 1, '#c3c7cc');
+    g.rect(6, 1, 4, 4, '#9fa3a8'); g.px(7, 2, '#5fd8ff'); g.px(8, 2, '#5fd8ff');
+    g.rect(5, 13, 2, 4, '#7d8186'); g.rect(9, 13, 2, 4, '#7d8186');
+    g.px(7, 8, '#6d7177'); g.px(9, 10, '#6d7177');
+    return both(g.outline(OUT));
+  }
   function castle() {
     var g = new Grid(28, 26);
     stoneBase(g, 3, 10, 22, 15);
@@ -570,7 +620,7 @@ var G = window.G = window.G || {};
       dragon: [dragon(0), dragon(1)], skeleton: [skeleton(0), skeleton(1)], kingslime: [kingslime(0), kingslime(1)],
       yeti: [yeti(0), yeti(1)], salamander: [salamander(0), salamander(1)],
       pine: [pine(0), pine(1)], spire: [spire(0), spire(1)],
-      ogre: [ogre(0), ogre(1)], soldier: [soldier(0), soldier(1)],
+      ogre: [ogre(0), ogre(1)], soldier: [soldier(0), soldier(1)], golemUnit: [golemUnit(0), golemUnit(1)],
       shaman: [shaman(0), shaman(1)], harpy: [harpy(0), harpy(1)], wyvern: [wyvern(0), wyvern(1)],
       goblinlord: [ogre(0, { skin: '#7aa83a', dark: '#4e7a22', belly: '#a8c870' }), ogre(1, { skin: '#7aa83a', dark: '#4e7a22', belly: '#a8c870' })],
       lich: [ogre(0, { skin: '#8a8aa8', dark: '#4e4e6a', belly: '#c8c8e0' }), ogre(1, { skin: '#8a8aa8', dark: '#4e4e6a', belly: '#c8c8e0' })],
@@ -581,12 +631,12 @@ var G = window.G = window.G || {};
     var makers = { archer: archerTower, mage: mageTower, cannon: cannonTower, bowman: bowmanTower, sling: slingTower,
                    watch: watchTower, poison: poisonTower, frost: frostTower, ballista: ballistaTower,
                    fire: fireTower, thunder: thunderTower, mine: mineTower,
-                   sniper: sniperTower, storm: stormTower, spikes: spikesTower, tar: tarTower, barrel: barrelTower, barricade: barricadeTower, barracks: barracksTower };
+                   sniper: sniperTower, storm: stormTower, dart: dartTower, mortar: mortarTower, blizzard: blizzardTower, golem: golemTower, spikes: spikesTower, tar: tarTower, barrel: barrelTower, barricade: barricadeTower, barracks: barracksTower };
     Object.keys(makers).forEach(function (k) {
       S[k] = [];
       for (var lv = 0; lv < 3; lv++) S[k].push([makers[k](lv, false), makers[k](lv, true)]);
     });
-    ['eye', 'bag', 'stone', 'coin', 'hammer', 'horn', 'saw', 'gear', 'scroll', 'meteor', 'sword'].forEach(function (k) { S.icon[k] = icon(k); });
+    ['eye', 'bag', 'stone', 'coin', 'hammer', 'horn', 'saw', 'gear', 'scroll', 'meteor', 'sword', 'hourglass', 'star', 'bandage', 'target', 'poster'].forEach(function (k) { S.icon[k] = icon(k); });
     ['battle', 'elite', 'event', 'shop', 'rest', 'boss'].forEach(function (k) { S.node[k] = nodeIcon(k); });
     G.SPR = S;
     return S;

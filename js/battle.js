@@ -85,7 +85,7 @@ var G = window.G = window.G || {};
       energy: 0, gold: opts.gold !== undefined ? opts.gold : R.startGold,
       draw: [], hand: [], discard: [], exhaust: [],
       towers: [], enemies: [], shots: [], events: [],
-      buff: { speedMult: 1 },     // 全タワーへのこのターンだけの強化（号令など）
+      buff: { speedMult: 1, goldMult: 1 },     // 全タワーへのこのターンだけの強化（号令など）
       relics: opts.relics || [],  // 持っているレリックのid（同じものが複数あれば重ねがけ）
       phoenix: opts.phoenix || 0, freeTowers: 0,
       bpUsed: false, wallUsed: false, pendingSpawn: [], soldiers: [],
@@ -127,8 +127,8 @@ var G = window.G = window.G || {};
     s.energy = G.RULES.energyPerTurn + has(s, 'stone') + (s.turn === 0 ? 2 * has(s, 'banner') : 0);
     s.bpUsed = 0; s.freeTowers = 0;
     // 「このターンだけ」の強化を外す
-    s.buff.speedMult = 1;
-    s.towers.forEach(function (tw) { tw.turnDmgMult = 1; });
+    s.buff.speedMult = 1; s.buff.goldMult = 1;
+    s.towers.forEach(function (tw) { tw.turnDmgMult = 1; tw.turnRateMult = 1; });
     // 兵士は準備ターンの始めに全員元気になって持ち場に戻る
     s.soldiers.forEach(function (u) { u.dead = 0; u.hp = u.max; u.eng = null; u.x = u.hx; u.y = u.hy; });
     // 前のターンの手札は捨て札へ（使い切りの一時カードは消える）
@@ -152,7 +152,8 @@ var G = window.G = window.G || {};
   function skillBlocked(s, def, tw) {
     if (def.target === 'tower') {
       if (!tw) return 'タワーを選んでください';
-      if ((def.base || def.id) === 'forge' && tw.lv >= G.TOWERS[tw.type].up.length) return 'これ以上強化できません';
+      var bid = def.base || def.id;
+      if ((bid === 'forge' || bid === 'masterwork') && tw.lv >= G.TOWERS[tw.type].up.length) return 'これ以上強化できません';
     }
     return null;
   }
@@ -206,6 +207,14 @@ var G = window.G = window.G || {};
       case 'tax': s.gold += def.gold; s.stats.goldEarned += def.gold; break;
       case 'warcry': case 'overclock': s.buff.speedMult *= def.mult; break;
       case 'rally': s.towers.forEach(function (t2) { t2.turnDmgMult *= def.mult; }); break;
+      case 'focus': tw.turnRateMult = (tw.turnRateMult || 1) * def.mult; break;
+      case 'bounty': s.buff.goldMult = (s.buff.goldMult || 1) * def.mult; break;
+      case 'patch': s.life = Math.min(s.maxLife, s.life + def.heal); break;
+      case 'timestop': s.freezeT = Math.max(s.freezeT || 0, def.sec); break;
+      case 'masterwork':
+        tw.lv = G.TOWERS[tw.type].up.length; ev(s, { k: 'upgrade', x: tw.x, y: tw.y, id: tw.id });
+        var mb = baseStats(tw.type, tw.lv); if (mb.blocker) { tw.hp += mb.blocker.hp - tw.maxHp; tw.maxHp = mb.blocker.hp; } if (mb.soldiers) makeSoldiers(s, tw);
+        break;
       case 'architect': s.freeTowers += def.n; break;
       case 'meteor':
         // 隕石：今マップにいる敵すべてにダメージ（準備ターンに使うと、次の攻撃の最初の敵には当たらない）
@@ -247,6 +256,7 @@ var G = window.G = window.G || {};
     }
     st.dmg = Math.round(st.dmg * 10) / 10;
     if (s && s.buff.speedMult !== 1) st.rate = st.rate / s.buff.speedMult;
+    if (tw.turnRateMult && tw.turnRateMult !== 1) st.rate = st.rate / tw.turnRateMult;
     return st;
   }
   function nextStats(tw, s) { // 次のレベルの強さ（最大なら null）
@@ -368,7 +378,7 @@ var G = window.G = window.G || {};
     if (e.hp <= 0) {
       // ガイコツ：一度だけ体力半分で起き上がる
       if (E.revive && !e.revived) { e.revived = true; e.hp = e.max * 0.5; e.poisonT = e.burnT = 0; ev(s, { k: 'revive', x: e.x, y: e.y }); return; }
-      var gold = Math.round((E.gold + has(s, 'scale')) * (1 + 0.25 * has(s, 'magnet')));
+      var gold = Math.round((E.gold + has(s, 'scale')) * (1 + 0.25 * has(s, 'magnet')) * ((s.buff && s.buff.goldMult) || 1));
       s.gold += gold; s.stats.goldEarned += gold; s.stats.killed++;
       ev(s, { k: 'kill', x: e.x, y: e.y, type: e.type, gold: gold, boss: !!E.boss, big: E.life >= 3 });
       // 疫病の灰：毒の敵が倒れると周りに毒がうつる
@@ -474,7 +484,7 @@ var G = window.G = window.G || {};
       if (Math.abs(dx) > 0.02) u.face = dx > 0 ? 1 : -1;
       if (tgt && dd < 0.35) {
         E = G.ENEMIES[tgt.type];
-        if (!E.boss) tgt.blockedBy = 's' + u.id;
+        if (!E.boss || ss.stopsBoss) tgt.blockedBy = 's' + u.id;   // 石の巨人はボスも止める
         u.cd -= dt;
         if (u.cd <= 0) { u.cd = ss.rate; hurt(s, tgt, ss.dmg, 'physical'); u.swing = 0.2; }
         if (!E.boss || dd < 0.35) { u.hp -= enemyAtk(E) * dt; u.flash = 0.05; }
@@ -487,6 +497,7 @@ var G = window.G = window.G || {};
   function update(s, dt) {
     if (s.phase !== 'attack') return;
     s.time += dt;
+    if (s.freezeT > 0) s.freezeT -= dt;   // 時止め
     while (s.spawnQueue.length && s.spawnQueue[0].t <= s.time) spawn(s, s.spawnQueue.shift());
     while (s.pendingSpawn.length) spawn(s, s.pendingSpawn.shift());
 
@@ -499,6 +510,7 @@ var G = window.G = window.G || {};
       var sp = E.speed * Math.pow(0.9, has(s, 'frostbell'));
       if (e.tarT > 0) { e.tarT -= dt; if ((E.immune || []).indexOf('slow') < 0) sp *= (1 - e.tarSlow); }
       if (e.blockedBy) { sp = 0; }   // 兵士・バリケードに止められている
+      if (s.freezeT > 0) sp *= E.boss ? 0.5 : 0;   // 時止め（ボスは半分の速さ）
       // ボス：一定の時間ごとに手下を呼ぶ（飛ぶ手下は入口から、歩く手下はボスのすぐ後ろから）
       if (E.summon) {
         e.sumT += dt;
@@ -564,6 +576,19 @@ var G = window.G = window.G || {};
       var tw = s.towers[i], T = G.TOWERS[tw.type];
       if (T.noAttack) continue;
       var st = towerStats(tw, s), noAir = !!T.noAir;
+      // 吹雪の塔：弾を撃たず、射程の中の敵すべてにダメージと遅くする効果
+      if (T.aura) {
+        tw.cd -= dt; if (tw.fire > 0) tw.fire -= dt;
+        if (tw.cd <= 0) {
+          var hitAny = false;
+          for (var aj = 0; aj < s.enemies.length; aj++) {
+            var ae = s.enemies[aj]; if (ae.hp <= 0 || Math.hypot(ae.x - tw.x, ae.y - tw.y) > st.range) continue;
+            hurt(s, ae, st.dmg, 'magic', tw.type); applyOnHit(s, ae, { slow: st.slow }); hitAny = true;
+          }
+          if (hitAny) { tw.cd = st.rate; tw.fire = 0.3; ev(s, { k: 'blizzard', x: tw.x, y: tw.y, r: st.range }); }
+        }
+        continue;
+      }
       tw.cd -= dt; if (tw.fire > 0) tw.fire -= dt;
       var best = null, bestScore = 0, score = TARGET_SCORE[tw.target] || TARGET_SCORE.first;
       for (var j = 0; j < s.enemies.length; j++) {

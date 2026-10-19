@@ -104,6 +104,9 @@ var G = window.G = window.G || {};
         if (nums.length < 120) nums.push({ x: sx(e.x) + (Math.random() - 0.5) * 8, y: sy(e.y) - 16, vy: -22,
           text: String(Math.max(1, Math.round(e.amount))), col: G.DMG_COLORS[e.kind] || G.DMG_COLORS.normal,
           size: e.kind === 'resisted' ? 0.85 : e.amount >= 60 ? 1.45 : e.amount >= 30 ? 1.2 : e.kind === 'combo' ? 1.15 : 1, life: 0.7, ml: 0.7 });
+      } else if (e.k === 'blizzard') {
+        rings.push({ x: sx(e.x), y: sy(e.y), r: 3, max: e.r * TW, col: '#bfe8ff', life: 0.5, ml: 0.5 });
+        for (var bz = 0; bz < 14 && parts.length < 400; bz++) { var ba = Math.random() * Math.PI * 2, br = Math.random() * e.r; parts.push({ x: sx(e.x + Math.cos(ba) * br), y: sy(e.y + Math.sin(ba) * br), vx: 10, vy: 8, g: 0, life: 0.6, ml: 0.6, col: Math.random() < 0.5 ? '#ffffff' : '#bfe8ff' }); }
       } else if (e.k === 'bossHit') {
         // ボスが城をたたく：城が赤く光り、がれきが飛び、画面がゆれる
         fx.castleHit = 0.35; addShake(4);
@@ -287,7 +290,8 @@ var G = window.G = window.G || {};
         continue;
       }
       if (it.k === 'soldier') {
-        var simg = S.soldier[o.swing > 0 ? 1 : 0], sximg = o.face < 0 ? simg.l : simg.r;
+        var ownT = G.Battle.findTower(s, o.tower), unitK = ownT && G.TOWERS[ownT.type].soldiers.unit || 'soldier';
+        var simg = S[unitK][o.swing > 0 ? 1 : 0], sximg = o.face < 0 ? simg.l : simg.r;
         b.fillStyle = 'rgba(0,0,0,.35)'; b.fillRect(sx(o.x) - 3, sy(o.y) + 2, 7, 1);
         blitB(sximg, sx(o.x), sy(o.y) + 3);
         if (o.flash > 0) { b.globalCompositeOperation = 'lighter'; b.globalAlpha = 0.4; blitB(sximg, sx(o.x), sy(o.y) + 3); b.globalAlpha = 1; b.globalCompositeOperation = 'source-over'; }
@@ -341,6 +345,8 @@ var G = window.G = window.G || {};
       if (o.hp < o.max || E.boss) hpBar(ex, ey - img.height - 3, barW, Math.max(0, o.hp / o.max), o.hp / o.max > 0.5 ? '#7fd36a' : '#ffb347');
     }
 
+    // 時止め：画面全体をうすい青に
+    if (s.freezeT > 0) { b.globalAlpha = Math.min(0.28, s.freezeT * 0.2); b.fillStyle = '#5fa8ff'; b.fillRect(0, 0, W, H); b.globalAlpha = 1; }
     // タワーの小窓を出している時・スキルの相手を選んでいる時：対象のタワー以外を暗くする
     var focus = null;
     if (ui.selTower) focus = [ui.selTower];
