@@ -322,10 +322,14 @@ var G = window.G = window.G || {};
       if (b.dataset.nav === 'help') return showHelp();
       if (G.currentScreen === 'world') return;
       viewFrom = G.currentScreen;       // 戦闘中は、マップを見ている間 戦闘が止まる
+      // カードを選んでいる途中なら、選ぶ画面をいったん隠して、もどる時に戻す
+      pickerAway = !$('picker').hidden; if (pickerAway) $('picker').hidden = true;
       showWorld(true);
     });
   });
+  var pickerAway = false;
   $('world-back').addEventListener('click', function () {
+    if (pickerAway) { pickerAway = false; setTimeout(function () { $('picker').hidden = false; }, 0); }
     var to = viewFrom || 'world'; viewFrom = null;
     $('world-menu-btn').hidden = false; $('world-back').hidden = true;
     G.showScreen(to);
@@ -663,6 +667,7 @@ var G = window.G = window.G || {};
     body.scrollTop = 0;
     fill(body, foot);
     renderRunBar();
+    UI.relicBar($('p-relics'), run ? run.relics : [], '');
   }
 
   // ---- デッキから1枚選ぶ ----
@@ -688,6 +693,10 @@ var G = window.G = window.G || {};
     $('pk-cancel').hidden = !!mustPick;
     $('pk-ok').onclick = function () { if (picked < 0) return; $('picker').hidden = true; onOk(picked); };
     $('pk-cancel').onclick = function () { $('picker').hidden = true; if (onCancel) onCancel(); };
+    // 上の帯（マップ・デッキ・？・レリック）は隠さない：カードを選んでいる間も確かめられる
+    var scr = document.querySelector('.screen:not([hidden])'), top = 0;
+    if (scr) { var bar = scr.querySelector('.runbar'), rs = scr.querySelector('.relic-strip:not(:empty)'); top = Math.max(bar ? bar.getBoundingClientRect().bottom : 0, rs ? rs.getBoundingClientRect().bottom : 0); }
+    $('picker').style.top = Math.round(top) + 'px';
     $('picker').hidden = false;
   }
 
