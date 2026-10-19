@@ -585,6 +585,8 @@ var G = window.G = window.G || {};
       else if (e.k === 'attack') { showBanner(s.turn === s.totalTurns - 1 ? '最後の攻撃' : '攻撃ターン', 'attack'); }
       else if (e.k === 'spawn' && e.boss) showBanner('ボス出現！', 'attack');
       else if (e.k === 'summon') toast('ボスが手下を呼んだ！');
+      else if (e.k === 'bossArrive') showBanner('ボスが城に着いた！', 'attack');
+      else if (e.k === 'bossHit') inf = true;
       else if (e.k === 'kill' || e.k === 'leak') {
         inf = true;
         if (e.k === 'kill' && e.boss) freeze = Math.max(freeze, 0.45);
@@ -612,6 +614,8 @@ var G = window.G = window.G || {};
         case 'broken': SND.play('boom'); break;
         case 'spawn': if (e.boss) { SND.play('boss'); if (SND.bossTheme) SND.bossTheme(true); } break;
         case 'summon': SND.play('summon'); break;
+        case 'bossHit': SND.play('bossHit'); break;
+        case 'bossArrive': SND.play('bossRoar'); break;
         case 'healcast': SND.play('heal'); break;
         case 'attack': SND.play('attack'); break;
         case 'income': SND.play('coin'); break;

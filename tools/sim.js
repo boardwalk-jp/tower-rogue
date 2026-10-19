@@ -77,7 +77,9 @@ function fight(opts) {
     // ボス本体：倒せたか・城に着いたか、着いた時に残っていた体力の割合
     if (process.env.BOSS) s.events.forEach(function (e) {
       if (e.k === 'spawn' && e.boss) bossNow = s.enemies[s.enemies.length - 1];
-      if (e.k === 'kill' && e.boss) (BOSS[e.type] = BOSS[e.type] || { kill: 0, leak: 0, left: [] }).kill++;
+      if (e.k === 'kill' && e.boss) { var bk = (BOSS[e.type] = BOSS[e.type] || { kill: 0, leak: 0, left: [] }); bk.kill++; if (!bossNow || !bossNow.atCastle) bk.early = (bk.early || 0) + 1; }
+      if (e.k === 'bossArrive') { var ba = (BOSS[e.type] = BOSS[e.type] || { kill: 0, leak: 0, left: [] }); ba.arrive = (ba.arrive || 0) + 1; if (bossNow) ba.left.push(Math.round(bossNow.hp / bossNow.max * 100)); }
+      if (e.k === 'bossHit') { var bh = (BOSS[e.type] = BOSS[e.type] || { kill: 0, leak: 0, left: [] }); bh.hits = (bh.hits || 0) + e.life; }
       if (e.k === 'leak' && G.ENEMIES[e.type].boss) { var b = (BOSS[e.type] = BOSS[e.type] || { kill: 0, leak: 0, left: [] }); b.leak++; if (bossNow) b.left.push(Math.round(bossNow.lastHp / bossNow.max * 100)); }
     });
     if (bossNow && bossNow.hp > 0) bossNow.lastHp = bossNow.hp;
@@ -146,4 +148,4 @@ Object.keys(G.COMMANDERS).filter(function (c) { return !only || c === only; }).f
 });
 console.log('合計 ' + totalWins + '/' + total);
 if (process.env.LEAKS) console.log(JSON.stringify(LEAK));
-if (process.env.BOSS) Object.keys(BOSS).forEach(function (k) { var b = BOSS[k]; console.log(G.ENEMIES[k].name + '：倒した ' + b.kill + '・城に着いた ' + b.leak + (b.left.length ? '（着いた時の残り体力 平均' + Math.round(b.left.reduce(function (a, c) { return a + c; }, 0) / b.left.length) + '%）' : '')); });
+if (process.env.BOSS) Object.keys(BOSS).forEach(function (k) { var b = BOSS[k], tot = b.kill + (b.lost || 0); console.log(G.ENEMIES[k].name + '：倒した ' + b.kill + '（城に着く前 ' + (b.early || 0) + '）・城に着いた ' + (b.arrive || 0) + (b.left.length ? '（着いた時の残り体力 平均' + Math.round(b.left.reduce(function (a, c) { return a + c; }, 0) / b.left.length) + '%）' : '') + '・城をたたいて減らしたライフ 合計' + (b.hits || 0)); });

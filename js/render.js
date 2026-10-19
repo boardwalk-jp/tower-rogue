@@ -10,7 +10,7 @@ var G = window.G = window.G || {};
   var bgCache = {}, M = G.MAPS.field;   // M：今描いているマップ
   var parts = [], rings = [], floats = [], nums = [], beams = [], glows = [];
   // 手ごたえの演出：画面のゆれ（shake：強さ）と白い光（flash：0〜1）
-  var fx = { shake: 0, flash: 0 };
+  var fx = { shake: 0, flash: 0, castleHit: 0 };
   function addShake(v) { fx.shake = Math.max(fx.shake, v); }
 
   function sx(x) { return x * TW; }
@@ -104,6 +104,14 @@ var G = window.G = window.G || {};
         if (nums.length < 120) nums.push({ x: sx(e.x) + (Math.random() - 0.5) * 8, y: sy(e.y) - 16, vy: -22,
           text: String(Math.max(1, Math.round(e.amount))), col: G.DMG_COLORS[e.kind] || G.DMG_COLORS.normal,
           size: e.kind === 'resisted' ? 0.85 : e.amount >= 60 ? 1.45 : e.amount >= 30 ? 1.2 : e.kind === 'combo' ? 1.15 : 1, life: 0.7, ml: 0.7 });
+      } else if (e.k === 'bossHit') {
+        // ボスが城をたたく：城が赤く光り、がれきが飛び、画面がゆれる
+        fx.castleHit = 0.35; addShake(4);
+        burst(e.x, e.y + 0.4, 18, ['#9ca1a7', '#cfc2ab', '#ff5a5a', '#5a5048'], 50, 90, 0.6);
+        rings.push({ x: sx(e.x), y: sy(e.y + 0.4), r: 3, max: 22, col: '#ff5a5a', life: 0.35, ml: 0.35 });
+        floats.push({ x: sx(e.x) + 6, y: sy(e.y) - 4, text: '-' + e.life, col: '#ff5a5a', life: 1.2, heart: true });
+      } else if (e.k === 'bossArrive') {
+        addShake(3); rings.push({ x: sx(e.x), y: sy(e.y), r: 4, max: 34, col: '#ff4d3a', life: 0.6, ml: 0.6 });
       } else if (e.k === 'summon') {
         burst(e.x, e.y - 0.8, 16, ['#c79bff', '#6f4cc0', '#ffffff'], 40, -10, 0.6);
         rings.push({ x: sx(e.x), y: sy(e.y), r: 4, max: 26, col: '#c79bff', life: 0.5, ml: 0.5 });
@@ -189,6 +197,7 @@ var G = window.G = window.G || {};
   // 画面のゆれの量（ピクセル）を出して少しずつ弱める
   function shakeOffset(dt) {
     if (fx.flash > 0) fx.flash = Math.max(0, fx.flash - dt * 2.2);
+    if (fx.castleHit > 0) fx.castleHit = Math.max(0, fx.castleHit - dt);
     if (fx.shake <= 0.05) { fx.shake = 0; return { x: 0, y: 0 }; }
     var v = fx.shake; fx.shake *= Math.pow(0.02, dt);
     return { x: (Math.random() * 2 - 1) * v, y: (Math.random() * 2 - 1) * v };
@@ -272,7 +281,11 @@ var G = window.G = window.G || {};
 
     for (var i = 0; i < list.length; i++) {
       var it = list[i], o = it.o;
-      if (it.k === 'castle') { blitB(S.castle, sx(castleAt.x), sy(castleAt.y + 1) + 4); continue; }
+      if (it.k === 'castle') {
+        blitB(S.castle, sx(castleAt.x), sy(castleAt.y + 1) + 4);
+        if (fx.castleHit > 0) { b.globalCompositeOperation = 'lighter'; b.globalAlpha = fx.castleHit * 2; b.filter = 'none'; blitB(S.castle, sx(castleAt.x), sy(castleAt.y + 1) + 4); b.globalAlpha = 1; b.globalCompositeOperation = 'source-over'; }
+        continue;
+      }
       if (it.k === 'soldier') {
         var simg = S.soldier[o.swing > 0 ? 1 : 0], sximg = o.face < 0 ? simg.l : simg.r;
         b.fillStyle = 'rgba(0,0,0,.35)'; b.fillRect(sx(o.x) - 3, sy(o.y) + 2, 7, 1);
@@ -313,6 +326,8 @@ var G = window.G = window.G || {};
       var img = o.face < 0 ? es.l : es.r, ex = sx(o.x), ey = sy(o.y) + 3;
       b.fillStyle = 'rgba(0,0,0,.35)'; b.fillRect(ex - 5, ey - 1, 10, 2);
       if (o.fly) ey -= 7 + Math.round(Math.sin(t * 5 + o.id) * 1.5);   // 空を飛ぶ敵は影から浮かせて描く
+      // 城の前のボス：攻撃の時に、のけぞってから城へ体当たりする動き
+      if (o.atkAnim > 0) { var ap = 1 - o.atkAnim / 0.45; ey += Math.round(ap < 0.35 ? -ap / 0.35 * 4 : Math.sin((ap - 0.35) / 0.65 * Math.PI) * 7); }
       blitB(img, ex, ey);
       if (o.flash > 0) {
         b.globalCompositeOperation = 'lighter'; b.globalAlpha = 0.6; blitB(img, ex, ey);

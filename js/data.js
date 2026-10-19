@@ -191,9 +191,9 @@ G.TOWERS = {
     up: [{ cost: 30, dmg: 26, range: 2.5, rate: 1.5 }, { cost: 60, dmg: 42, range: 2.8, rate: 1.4 }]
   },
   cannon: {
-    name: '大砲', noAir: true, muzzle: 0.6, cost: 2, range: 2.4, dmg: 11, rate: 2.0, dmgType: 'physical', shot: 'ball', speed: 4, splash: 0.95,
+    name: '大砲', noAir: true, muzzle: 0.6, cost: 2, range: 2.4, dmg: 13, rate: 1.85, dmgType: 'physical', shot: 'ball', speed: 4, splash: 0.95,
     text: '砲弾が爆発し、まわりの敵もまとめて攻撃。',
-    up: [{ cost: 30, dmg: 18, range: 2.6, rate: 1.9, splash: 1.1 }, { cost: 60, dmg: 28, range: 2.8, rate: 1.8, splash: 1.25 }]
+    up: [{ cost: 30, dmg: 21, range: 2.6, rate: 1.75, splash: 1.1 }, { cost: 60, dmg: 32, range: 2.8, rate: 1.65, splash: 1.25 }]
   },
   frost: {
     name: '氷の塔', muzzle: 1.7, cost: 2, range: 2.2, dmg: 4, rate: 1.2, dmgType: 'magic', shot: 'ice', speed: 6,
@@ -202,10 +202,10 @@ G.TOWERS = {
     up: [{ cost: 30, dmg: 6, range: 2.4, rate: 1.1, slow: { pct: 0.5, dur: 1.5 } }, { cost: 60, dmg: 9, range: 2.6, rate: 1.0, slow: { pct: 0.6, dur: 2 } }]
   },
   fire: {
-    name: '炎の塔', muzzle: 1.6, cost: 2, range: 2.2, dmg: 6, rate: 1.4, dmgType: 'magic', shot: 'flame', speed: 6, splash: 0.6,
-    burn: { dps: 8, dur: 2 },
+    name: '炎の塔', muzzle: 1.6, cost: 2, range: 2.3, dmg: 7, rate: 1.3, dmgType: 'magic', shot: 'flame', speed: 6, splash: 0.65,
+    burn: { dps: 10, dur: 2 },
     text: '火の玉で周りの敵もまとめて燃やす（2秒間、毎秒ダメージ）。火に強い敵には効かない。',
-    up: [{ cost: 30, dmg: 9, splash: 0.7, burn: { dps: 12, dur: 2 } }, { cost: 60, dmg: 13, range: 2.5, splash: 0.8, burn: { dps: 18, dur: 2.5 } }]
+    up: [{ cost: 30, dmg: 10, splash: 0.75, burn: { dps: 14, dur: 2 } }, { cost: 60, dmg: 15, range: 2.6, splash: 0.85, burn: { dps: 20, dur: 2.5 } }]
   },
   thunder: {
     name: '雷の塔', muzzle: 1.8, cost: 2, range: 2.4, dmg: 10, rate: 1.5, dmgType: 'magic', shot: 'spark', speed: 16, chain: 2,
@@ -213,9 +213,9 @@ G.TOWERS = {
     up: [{ cost: 30, dmg: 15, chain: 3 }, { cost: 60, dmg: 22, range: 2.7, chain: 4 }]
   },
   mine: {
-    name: '金鉱', muzzle: 0.5, cost: 1, range: 0, dmg: 0, rate: 1, dmgType: 'none', noAttack: true, income: 8,
-    text: '攻撃しない。攻撃を1回しのぐたびにお金+8。',
-    up: [{ cost: 25, income: 14 }, { cost: 50, income: 22 }]
+    name: '金鉱', muzzle: 0.5, cost: 1, range: 0, dmg: 0, rate: 1, dmgType: 'none', noAttack: true, income: 10,
+    text: '攻撃しない。攻撃を1回しのぐたびにお金+10。',
+    up: [{ cost: 25, income: 17 }, { cost: 50, income: 26 }]
   },
   // ---- 道にだけ置ける物（place: 'path'）。攻撃はせず、上を通った敵に効く ----
   spikes: {
@@ -355,6 +355,7 @@ G.COMMANDERS = {
 // revive：一度だけ体力半分で起き上がる。split：倒すと分かれる。immune：効かない状態異常。magicResist：魔法・炎を減らす割合
 // fly：空を飛ぶ（道を通らず入口から城へまっすぐ。罠・バリケード・兵士に止められず、大砲は当たらない）
 // heal：近くの仲間の体力を回復する。summon：一定の時間ごとに手下を呼ぶ（ボス）
+// ボスは城に着いても消えず、城の前で止まって bossHit.every 秒ごとに城を攻撃する（1回で bossHit.dmg のライフが減る）
 // ============================================================
 G.ENEMIES = {
   slime:  { name: 'スライム',   hp: 48,   speed: 0.9,  armor: 0,   life: 1,  gold: 3,   gap: 1.2 },
@@ -371,14 +372,14 @@ G.ENEMIES = {
   harpy:     { name: 'ハーピー',   hp: 90, speed: 0.75, armor: 0,   life: 1,  gold: 8,   gap: 1.4, fly: true },
   wyvern:    { name: 'ワイバーン', hp: 380, speed: 0.48,  armor: 0.2, life: 3,  gold: 24,  gap: 4.0, fly: true, immune: ['burn'] },
   shaman:    { name: 'ゴブリン呪術師', hp: 150, speed: 0.8, armor: 0, life: 2, gold: 14, gap: 3.0, heal: { r: 1.4, amt: 15, every: 3 } },
-  goblinlord: { name: 'ゴブリン将軍', hp: 1250, speed: 0.42, armor: 0.25, life: 10, gold: 100, gap: 1, boss: true, summon: { type: 'goblin', n: 3, every: 8 } },
-  lich:      { name: '死霊の王',   hp: 1150, speed: 0.4, armor: 0.2, magicResist: 0.2, life: 10, gold: 100, gap: 1, boss: true, summon: { type: 'skeleton', n: 2, every: 8 } },
+  goblinlord: { name: 'ゴブリン将軍', hp: 1400, speed: 0.42, armor: 0.25, life: 10, gold: 100, gap: 1, boss: true, summon: { type: 'goblin', n: 3, every: 8 } },
+  lich:      { name: '死霊の王',   hp: 1000, speed: 0.4, armor: 0.2, magicResist: 0.2, life: 10, gold: 100, gap: 1, boss: true, summon: { type: 'skeleton', n: 2, every: 8 } },
   demonlord: { name: '魔王',       hp: 1800, speed: 0.36, armor: 0.3, life: 15, gold: 0, gap: 1, boss: true, final: true, immune: ['burn'], summon: { type: 'bat', n: 3, every: 7 } },
   iceknight: { name: '氷の騎士',   hp: 300, speed: 0.55, armor: 0.5, life: 3,  gold: 22,  gap: 4.0, immune: ['slow'] },
   magma:     { name: '溶岩スライム', hp: 160, speed: 0.7, armor: 0,  life: 2,  gold: 9,   gap: 3.0, immune: ['burn'], split: { type: 'salamander', n: 2 } },
   demon:     { name: '炎の悪魔',   hp: 320, speed: 0.7,  armor: 0.3, life: 3,  gold: 24,  gap: 4.0, immune: ['burn'], magicResist: 0.3 },
-  frostgiant: { name: '霜の巨人',  hp: 1700, speed: 0.4, armor: 0.3, life: 10, gold: 100, gap: 1, boss: true, immune: ['slow'] },
-  dragon:    { name: '火竜',       hp: 2000, speed: 0.35, armor: 0.3, life: 15, gold: 0, gap: 1, boss: true, final: true, immune: ['burn'], magicResist: 0.25 },
+  frostgiant: { name: '霜の巨人',  hp: 1500, speed: 0.4, armor: 0.3, life: 10, gold: 100, gap: 1, boss: true, immune: ['slow'] },
+  dragon:    { name: '火竜',       hp: 1800, speed: 0.35, armor: 0.3, life: 15, gold: 0, gap: 1, boss: true, final: true, immune: ['burn'], magicResist: 0.25 },
   ogre:   { name: 'オーガ王',   hp: 1500, speed: 0.4,  armor: 0.3, life: 10, gold: 100, gap: 1, boss: true }
 };
 
@@ -586,7 +587,8 @@ G.RULES = {
   floorScale: 0.04,   // 1階進むごとに敵の体力が4%ずつ増える（数はひな形どおり）
   battleGold: { battle: 10, elite: 30 },   // 戦闘に勝った時のおまけのお金
   restHeal: 12,
-  bossHp: 0.6,        // ボスの体力の倍率（階が進む分の倍率はボスにはかけず、層の倍率×これ）
+  bossHit: { every: 2.5, dmg: 3 },   // 城の前で止まったボスの攻撃（間隔の秒・1回で減るライフ。ラスボスは dmg+1）
+  bossHp: 0.7,        // ボスの体力の倍率（階が進む分の倍率はボスにはかけず、層の倍率×これ）
   easyBattles: 3,     // 各層の最初の3回の通常戦闘は、その層で弱い方の攻撃のひな形から選ぶ
   easyPool: 3,        // 弱い順に何個のひな形から選ぶか
   captainGold: 8,     // 隊長：戦闘に勝つたびのお金

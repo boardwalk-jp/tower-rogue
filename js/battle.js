@@ -538,6 +538,19 @@ var G = window.G = window.G || {};
         if (e.hp <= 0) continue;
       }
       place(s, e);
+      // ボス：城の前で止まり、一定の間隔で城を攻撃する（倒すまで戦闘は終わらない）
+      if (E.boss && e.d >= pathOf(s, e.gate).len - 1.6) {
+        e.d = pathOf(s, e.gate).len - 1.6; place(s, e);
+        if (!e.atCastle) { e.atCastle = true; e.atkT = 1.0; ev(s, { k: 'bossArrive', x: e.x, y: e.y, type: e.type }); }
+        e.atkT -= dt; if (e.atkAnim > 0) e.atkAnim -= dt;
+        if (e.atkT <= 0) {
+          var BH = G.RULES.bossHit, hit = BH.dmg + (E.final ? 1 : 0);
+          e.atkT = BH.every; e.atkAnim = 0.45;
+          s.life = Math.max(0, s.life - hit); s.stats.bossHits = (s.stats.bossHits || 0) + hit;
+          ev(s, { k: 'bossHit', x: e.x, y: e.y + 0.6, life: hit, type: e.type });
+        }
+        continue;
+      }
       if (e.d >= pathOf(s, e.gate).len) {
         e.hp = 0; e.leaked = true; s.stats.leaked++;
         if (s.wallUsed < has(s, 'wall') && !E.boss) { s.wallUsed++; ev(s, { k: 'relic', id: 'wall', x: e.x, y: e.y }); }

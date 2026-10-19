@@ -261,7 +261,8 @@ var G = window.G = window.G || {};
   var RELIC_W = { elite: { common: 50, uncommon: 35, rare: 15 }, shop: { common: 40, uncommon: 40, rare: 20 }, event: { common: 45, uncommon: 40, rare: 15 } };
   // 同じレリックも出る（重ねがけ）。ただし持っている物は出にくい（持っている数ごとに 0.35倍）
   function rollRelic(run, table) {
-    var w = RELIC_W[table] || RELIC_W.event, all = Object.keys(G.RELICS).filter(function (k) { return unlocked('relic', k); });
+    // 1回の挑戦で同じレリックは1個まで（持っている物は出ない）
+    var w = RELIC_W[table] || RELIC_W.event, all = Object.keys(G.RELICS).filter(function (k) { return unlocked('relic', k) && run.relics.indexOf(k) < 0; });
     if (!all.length) return null;
     var x = run.rand() * (w.common + w.uncommon + w.rare);
     var rar = x < w.common ? 'common' : x < w.common + w.uncommon ? 'uncommon' : 'rare';
@@ -270,7 +271,7 @@ var G = window.G = window.G || {};
     for (var i = 0; i < c.length; i++) { y -= ws[i]; if (y <= 0) return c[i]; }
     return c[c.length - 1];
   }
-  function addRelic(run, id) { if (id) run.relics.push(id); }
+  function addRelic(run, id) { if (id && run.relics.indexOf(id) < 0) run.relics.push(id); }
   function price(run, base) { return Math.round(base * Math.pow(0.75, Math.min(2, count(run.relics, 'seal')))); }
   function addCard(run, id) { run.deck.push(id); run.stats.cardsTaken++; }
   function removeCard(run, index) { run.deck.splice(index, 1); }
