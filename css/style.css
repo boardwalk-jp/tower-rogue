@@ -264,7 +264,10 @@ dt{color:var(--muted);text-align:right} dd{margin:0;text-align:left}
 .modal-box.wide{max-width:420px;max-height:calc(100dvh - 32px)}
 /* カードを選ぶ画面は上の帯（マップ・デッキ・レリック）の下から出す：選んでいる間も上の帯を押せる */
 #picker{padding-top:8px}
-#picker .modal-box{max-height:100%;overflow-y:auto}
+#picker .modal-box{max-height:100%;overflow-y:auto;-webkit-overflow-scrolling:touch;touch-action:pan-y;overscroll-behavior:contain}
+/* 並べたカード（選ぶ画面・報酬・商人）は、カードの上から指でスクロールできるように（手札のカードはドラッグで使うのでそのまま） */
+.cards-grid .card{touch-action:pan-y}
+#pk-grid{-webkit-overflow-scrolling:touch;touch-action:pan-y;overscroll-behavior:contain}
 #pk-grid{width:100%;max-height:44dvh;overflow-y:auto;grid-template-columns:repeat(4,1fr);gap:6px;padding:4px}
 #pk-grid .card{height:84px}
 .pile-list{max-height:50dvh;overflow-y:auto}
