@@ -169,7 +169,6 @@ var G = window.G = window.G || {};
     if (!seen) setTimeout(showHelp, 50);
     openPanel('指揮官', function (body, foot) {
       body.appendChild(el('h2', 'panel-title', '指揮官を選ぶ'));
-      body.appendChild(el('p', 'panel-text', '最初のデッキ・最大ライフ・能力が違う。'));
       var list = el('div', 'choices cmd-list'), picked = null;
       var ok = button('この指揮官で始める', 'go', function () { if (picked) newRun(picked, ascPick); });
       ok.disabled = true;
@@ -195,23 +194,21 @@ var G = window.G = window.G || {};
         list.appendChild(b);
       });
       body.appendChild(list);
-      // ---- アセンション（難易度）：1つ前の難易度をクリアすると次が選べる ----
+      // ---- アセンション（難易度）：1回クリアすると出てくる。◀ ▶ で A0〜 を切りかえる。下の固定欄に置く（スクロールなしで見える） ----
       var maxA = Math.min(G.ASC_MAX, R.metaLoad().ascMax || 0), ascPick = Math.min(maxA, lastAsc());
-      body.appendChild(el('h2', 'panel-sub', '難易度'));
-      var row = el('div', 'asc-pick'), note = el('p', 'asc-note');
-      function showNote() {
-        if (!ascPick) { note.textContent = 'ノーマル：追加のルールなし。クリアするとアセンション1が選べる。'; return; }
-        note.innerHTML = '';
-        note.appendChild(document.createTextNode('アセンション' + ascPick + '：'));
-        G.ASCENSION.filter(function (a) { return a.lv <= ascPick; }).forEach(function (a, i) { if (i) note.appendChild(document.createTextNode('・')); note.appendChild(el('b', '', a.text)); });
-        note.appendChild(document.createTextNode('。経験値+' + ascPick * 10 + '%。' + (ascPick < G.ASC_MAX ? 'クリアするとアセンション' + (ascPick + 1) + 'が選べる。' : '')));
+      if (maxA > 0) {
+        var row = el('div', 'asc-pick'), note = el('p', 'asc-note'), lbl = el('b', 'asc-label'), prev = button('◀', 'asc-arrow', function () { setAsc(ascPick - 1); }), next = button('▶', 'asc-arrow', function () { setAsc(ascPick + 1); });
+        var setAsc = function (v) {
+          ascPick = Math.max(0, Math.min(maxA, v));
+          lbl.textContent = 'アセンション ' + ascPick; prev.disabled = ascPick <= 0; next.disabled = ascPick >= maxA;
+          note.innerHTML = '';
+          if (!ascPick) { note.textContent = 'A0：追加のルールなし。'; return; }
+          G.ASCENSION.filter(function (a) { return a.lv <= ascPick; }).forEach(function (a, i) { if (i) note.appendChild(document.createTextNode('・')); note.appendChild(el('b', '', a.text)); });
+          note.appendChild(document.createTextNode('。経験値+' + ascPick * 10 + '%'));
+        };
+        row.appendChild(prev); row.appendChild(lbl); row.appendChild(next);
+        foot.appendChild(row); foot.appendChild(note); setAsc(ascPick);
       }
-      for (var a = 0; a <= G.ASC_MAX; a++) (function (a) {
-        var b = button(a ? 'A' + a : 'ノーマル', a === ascPick ? 'sel' : '', function () { ascPick = a; row.querySelectorAll('button').forEach(function (x) { x.classList.remove('sel'); }); b.classList.add('sel'); showNote(); });
-        if (a > maxA) { b.disabled = true; b.textContent = '🔒A' + a; }
-        row.appendChild(b);
-      })(a);
-      body.appendChild(row); body.appendChild(note); showNote();
       foot.appendChild(ok);
     });
   }
@@ -743,5 +740,5 @@ var G = window.G = window.G || {};
   }
 
   // 開発用
-  G.Screens = { showRest: showRest, showEvent: showEvent, newRun: newRun, showWorld: showWorld, enterNode: enterNode, showEnd: showEnd, get run() { return run; } };
+  G.Screens = { chooseCommander: chooseCommander, showRest: showRest, showEvent: showEvent, newRun: newRun, showWorld: showWorld, enterNode: enterNode, showEnd: showEnd, get run() { return run; } };
 })();
