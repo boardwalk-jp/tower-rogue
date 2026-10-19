@@ -130,7 +130,7 @@ var G = window.G = window.G || {};
       var r = d.run, n = r.at ? r.world.nodes[r.at] : null;
       var where = '第' + (r.act || 1) + '層 ' + (!n ? 'スタート地点' : n.type === 'boss' ? 'ボス' : (n.floor + 1) + '階');
       var dt = new Date(d.at);
-      $('t-cont-info').textContent = (G.COMMANDERS[r.cmd] || G.COMMANDERS.captain).name + '・' + where + '・ライフ' + r.life + '/' + r.maxLife + '・デッキ' + r.deck.length + '枚・' + (dt.getMonth() + 1) + '/' + dt.getDate() + ' ' + dt.getHours() + ':' + String(dt.getMinutes()).padStart(2, '0');
+      $('t-cont-info').textContent = (G.COMMANDERS[r.cmd] || G.COMMANDERS.captain).name + (r.asc ? '・A' + r.asc : '') + '・' + where + '・ライフ' + r.life + '/' + r.maxLife + '・デッキ' + r.deck.length + '枚・' + (dt.getMonth() + 1) + '/' + dt.getDate() + ' ' + dt.getHours() + ':' + String(dt.getMinutes()).padStart(2, '0');
     } else $('t-cont-info').textContent = '保存されたデータはありません';
     var m = R.metaLoad(), nx = R.nextUnlock(m.xp), got = G.UNLOCKS.filter(function (u) { return u.xp <= m.xp; }).length;
     $('t-meta').textContent = '経験値 ' + m.xp + '　解放 ' + got + '/' + G.UNLOCKS.length + (nx ? '（次まで あと' + (nx.xp - m.xp) + '）' : '');
@@ -162,7 +162,7 @@ var G = window.G = window.G || {};
       body.appendChild(el('h2', 'panel-title', '指揮官を選ぶ'));
       body.appendChild(el('p', 'panel-text', '最初のデッキ・最大ライフ・能力が違う。'));
       var list = el('div', 'choices cmd-list'), picked = null;
-      var ok = button('この指揮官で始める', 'go', function () { if (picked) newRun(picked); });
+      var ok = button('この指揮官で始める', 'go', function () { if (picked) newRun(picked, ascPick); });
       ok.disabled = true;
       Object.keys(G.COMMANDERS).forEach(function (id) {
         var C = G.COMMANDERS[id], b = button('', 'choice cmd', function () {
@@ -174,7 +174,11 @@ var G = window.G = window.G || {};
         b.appendChild(cv);
         var tx = el('span', 'cmd-txt');
         tx.appendChild(el('b', '', C.name + '　♥' + C.life));
-        tx.appendChild(el('small', '', '能力：' + C.text));
+        // 能力＝指揮官のレリック（最初から持っている。レリックを見ればどの指揮官か分かる）
+        if (C.relic) {
+          var rl = el('small', 'cmd-relic'); rl.appendChild(UI.relicCanvas(C.relic));
+          rl.appendChild(el('span', '', G.RELICS[C.relic].name + '：' + G.RELICS[C.relic].text)); tx.appendChild(rl);
+        }
         var cnt = {}; C.deck.forEach(function (k) { cnt[k] = (cnt[k] || 0) + 1; });
         tx.appendChild(el('small', 'cmd-deck', 'デッキ：' + Object.keys(cnt).map(function (k) { return G.CARDS[k].name + '×' + cnt[k]; }).join('、')));
         tx.appendChild(el('small', 'cmd-sub', C.sub));
@@ -182,9 +186,27 @@ var G = window.G = window.G || {};
         list.appendChild(b);
       });
       body.appendChild(list);
+      // ---- アセンション（難易度）：1つ前の難易度をクリアすると次が選べる ----
+      var maxA = Math.min(G.ASC_MAX, R.metaLoad().ascMax || 0), ascPick = Math.min(maxA, lastAsc());
+      body.appendChild(el('h2', 'panel-sub', '難易度'));
+      var row = el('div', 'asc-pick'), note = el('p', 'asc-note');
+      function showNote() {
+        if (!ascPick) { note.textContent = 'ノーマル：追加のルールなし。クリアするとアセンション1が選べる。'; return; }
+        note.innerHTML = '';
+        note.appendChild(document.createTextNode('アセンション' + ascPick + '：'));
+        G.ASCENSION.filter(function (a) { return a.lv <= ascPick; }).forEach(function (a, i) { if (i) note.appendChild(document.createTextNode('・')); note.appendChild(el('b', '', a.text)); });
+        note.appendChild(document.createTextNode('。経験値+' + ascPick * 10 + '%。' + (ascPick < G.ASC_MAX ? 'クリアするとアセンション' + (ascPick + 1) + 'が選べる。' : '')));
+      }
+      for (var a = 0; a <= G.ASC_MAX; a++) (function (a) {
+        var b = button(a ? 'A' + a : 'ノーマル', a === ascPick ? 'sel' : '', function () { ascPick = a; row.querySelectorAll('button').forEach(function (x) { x.classList.remove('sel'); }); b.classList.add('sel'); showNote(); });
+        if (a > maxA) { b.disabled = true; b.textContent = '🔒A' + a; }
+        row.appendChild(b);
+      })(a);
+      body.appendChild(row); body.appendChild(note); showNote();
       foot.appendChild(ok);
     });
   }
+  function lastAsc() { try { return +localStorage.getItem('towerRogue.lastAsc') || 0; } catch (e) { return 0; } }
   // ユーザーが自分でスクロールした時だけアドレスバーが縮むので、スクロールを合図に始める
   window.addEventListener('scroll', function () { if (window.scrollY > 60) start(); }, { passive: true });
   $('pc-start').addEventListener('click', start);
@@ -216,9 +238,10 @@ var G = window.G = window.G || {};
     setTimeout(function () { var er = (window.__errs || []).slice(-3).join(' / '); $('wm-sound-state').textContent = '音の状態：' + G.Sound.state() + '。' + (er ? 'エラー：' + er : 'エラーなし') + '。鳴らない時はマナーモードと音量を確認してください。'; }, 400);
   });
 
-  function newRun(cmdId) {
+  function newRun(cmdId, asc) {
     clearSave();
-    run = R.create(null, cmdId || (run && run.cmd) || 'captain');
+    try { localStorage.setItem('towerRogue.lastAsc', String(asc || 0)); } catch (e) {}
+    run = R.create(null, cmdId || (run && run.cmd) || 'captain', asc || 0);
     G.run = run;
     showWorld();
   }
@@ -576,7 +599,7 @@ var G = window.G = window.G || {};
   function showEnd() {
     clearSave(); music(run.won ? 'victory' : null);
     openPanel(run.won ? 'クリア' : '敗北', function (body, foot) {
-      body.appendChild(el('h2', 'panel-title ' + (run.won ? 'win' : 'lose'), run.won ? '全3層クリア！' : '敗北…'));
+      body.appendChild(el('h2', 'panel-title ' + (run.won ? 'win' : 'lose'), (run.won ? '全3層クリア！' : '敗北…') + (run.asc ? '（アセンション' + run.asc + '）' : '')));
       var n = R.node(run);
       body.appendChild(el('p', 'panel-text', (run.won ? 'ラスボスの' + R.bossName(run) + 'を倒した。' : G.ACTS[run.act - 1].name + 'の' + (n ? (n.type === 'boss' ? 'ボス戦' : (n.floor + 1) + '階') : '') + 'で力つきた。') +
         ' 勝った戦闘 ' + run.stats.battles + '回（エリート ' + run.stats.elites + '回）、手に入れたカード ' + run.stats.cardsTaken + '枚、最後のデッキ ' + run.deck.length + '枚。'));
@@ -660,6 +683,7 @@ var G = window.G = window.G || {};
     box.appendChild(el('p', '', '合計 ' + x.after + (nx ? '　次の解放まで あと ' + (nx.xp - x.after) + '（' + unlockName(nx) + '）' : '　すべて解放済み')));
     var bar = el('div', 'xp-bar'), fill = el('i'); fill.style.width = (nx ? Math.max(2, (x.after - lo) / (hi - lo) * 100) : 100) + '%'; bar.appendChild(fill); box.appendChild(bar);
     x.newly.forEach(function (u) { box.appendChild(el('p', 'xp-new', '新しく解放：' + unlockName(u) + '（次のランから報酬・商人に出る）')); });
+    if (x.ascUnlocked) box.appendChild(el('p', 'xp-new', '新しく解放：アセンション' + x.ascUnlocked + '（指揮官を選ぶ画面で選べる）'));
     return box;
   }
 

@@ -118,7 +118,7 @@ var G = window.G = window.G || {};
     $('p-title').textContent = R2.name + (n > 1 ? '　×' + n : '');
     $('p-note').innerHTML = '';
     var p1 = document.createElement('span'); p1.className = 'rar-label r-' + R2.rarity; p1.textContent = RARITY[R2.rarity]; $('p-note').appendChild(p1);
-    $('p-note').appendChild(document.createTextNode('　' + R2.text + '（' + (R2.kind === 'change' ? '遊び方が変わる' : R2.kind === 'combo' ? '組み合わせで強くなる' : '数値が上がる') + '）' + (n > 1 ? '　同じものを' + n + '個持っているので、効果が' + n + '回分重なる。' : '')));
+    $('p-note').appendChild(document.createTextNode('　' + R2.text + '（' + (R2.kind === 'commander' ? '指揮官の印・最初から持っている' : R2.kind === 'change' ? '遊び方が変わる' : R2.kind === 'combo' ? '組み合わせで強くなる' : '数値が上がる') + '）' + (n > 1 ? '　同じものを' + n + '個持っているので、効果が' + n + '回分重なる。' : '')));
     var ul = $('p-list'); ul.innerHTML = '';
     var li = document.createElement('li'); li.className = 'relic-big';
     var c = document.createElement('canvas'); c.width = 14; c.height = 14; c.getContext('2d').drawImage(G.relicIcon(id), 0, 0); li.appendChild(c);

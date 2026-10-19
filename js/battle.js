@@ -79,7 +79,7 @@ var G = window.G = window.G || {};
       kind: opts.kind || 'battle',
       map: map, paths: pathsOf(map), fly: flyPathsOf(map), cmd: opts.cmd || null,
       waves: opts.waves || [[{ gate: Object.keys(map.paths)[0], type: 'slime', n: 5, gap: 1.2, delay: 0 }]],
-      hpMult: opts.hpMult || 1, bossMult: opts.bossMult || opts.hpMult || 1,
+      hpMult: opts.hpMult || 1, bossMult: opts.bossMult || opts.hpMult || 1, enemySpeed: opts.enemySpeed || 1, bossHitAdd: opts.bossHitAdd || 0, ascGold: opts.ascGold || 1,
       phase: 'prep', turn: 0,
       life: opts.life !== undefined ? opts.life : R.maxLife, maxLife: opts.maxLife || R.maxLife,
       energy: 0, gold: opts.gold !== undefined ? opts.gold : R.startGold,
@@ -204,6 +204,7 @@ var G = window.G = window.G || {};
       case 'whet': tw.bonusDmg += def.amount; break;
       case 'forge': tw.lv++; ev(s, { k: 'upgrade', x: tw.x, y: tw.y, id: tw.id }); var fb = baseStats(tw.type, tw.lv); if (fb.blocker) { tw.hp += fb.blocker.hp - tw.maxHp; tw.maxHp = fb.blocker.hp; } if (fb.soldiers) makeSoldiers(s, tw); break;
       case 'supply': for (var d = 0; d < def.n; d++) drawOne(s); break;
+      case 'energize': s.energy += def.n; break;
       case 'tax': s.gold += def.gold; s.stats.goldEarned += def.gold; break;
       case 'warcry': case 'overclock': s.buff.speedMult *= def.mult; break;
       case 'rally': s.towers.forEach(function (t2) { t2.turnDmgMult *= def.mult; }); break;
@@ -247,9 +248,9 @@ var G = window.G = window.G || {};
     // レリックの数値アップ
     if (T.dmgType === 'physical') st.dmg *= Math.pow(1.15, has(s, 'sharp'));
     if (T.dmgType === 'magic') st.dmg *= Math.pow(1.2, has(s, 'crystal'));
-    if (cmd(s, 'witch') && T.dmgType === 'magic') st.dmg *= 1.25;
+    if (has(s, 'cmd_witch') && T.dmgType === 'magic') st.dmg *= 1.25;   // 魔女の杖
     if (has(s, 'oldmap') && st.range > 0) st.range = Math.round((st.range + 0.3 * has(s, 'oldmap')) * 10) / 10;
-    var plusDur = 2 * has(s, 'vial') + (cmd(s, 'witch') ? 1 : 0);
+    var plusDur = 2 * has(s, 'vial') + (has(s, 'cmd_witch') ? 1 : 0);
     if (plusDur) {
       if (st.poison) st.poison = { dps: st.poison.dps, dur: st.poison.dur + plusDur };
       if (st.burn) st.burn = { dps: st.burn.dps, dur: st.burn.dur + plusDur };
@@ -266,7 +267,7 @@ var G = window.G = window.G || {};
   function upgradeCost(tw, s) {
     var T = G.TOWERS[tw.type];
     if (tw.lv >= T.up.length) return null;
-    return cmd(s, 'engineer') ? Math.round(T.up[tw.lv].cost * 0.8) : T.up[tw.lv].cost;
+    return has(s, 'cmd_engineer') ? Math.round(T.up[tw.lv].cost * 0.8) : T.up[tw.lv].cost;   // 工兵の工具箱
   }
   function upgrade(s, towerId) {
     var tw = findTower(s, towerId);
@@ -378,7 +379,7 @@ var G = window.G = window.G || {};
     if (e.hp <= 0) {
       // ガイコツ：一度だけ体力半分で起き上がる
       if (E.revive && !e.revived) { e.revived = true; e.hp = e.max * 0.5; e.poisonT = e.burnT = 0; ev(s, { k: 'revive', x: e.x, y: e.y }); return; }
-      var gold = Math.round((E.gold + has(s, 'scale')) * (1 + 0.25 * has(s, 'magnet')) * ((s.buff && s.buff.goldMult) || 1));
+      var gold = Math.round((E.gold + has(s, 'scale')) * (1 + 0.25 * has(s, 'magnet')) * ((s.buff && s.buff.goldMult) || 1) * (s.ascGold || 1));
       s.gold += gold; s.stats.goldEarned += gold; s.stats.killed++;
       ev(s, { k: 'kill', x: e.x, y: e.y, type: e.type, gold: gold, boss: !!E.boss, big: E.life >= 3 });
       // 疫病の灰：毒の敵が倒れると周りに毒がうつる
@@ -507,7 +508,7 @@ var G = window.G = window.G || {};
     for (var i = 0; i < s.enemies.length; i++) {
       var e = s.enemies[i], E = G.ENEMIES[e.type];
       if (e.hp <= 0) continue;
-      var sp = E.speed * Math.pow(0.9, has(s, 'frostbell'));
+      var sp = E.speed * Math.pow(0.9, has(s, 'frostbell')) * (s.enemySpeed || 1);
       if (e.tarT > 0) { e.tarT -= dt; if ((E.immune || []).indexOf('slow') < 0) sp *= (1 - e.tarSlow); }
       if (e.blockedBy) { sp = 0; }   // 兵士・バリケードに止められている
       if (s.freezeT > 0) sp *= E.boss ? 0.5 : 0;   // 時止め（ボスは半分の速さ）
@@ -557,7 +558,7 @@ var G = window.G = window.G || {};
         if (!e.atCastle) { e.atCastle = true; e.atkT = 1.0; ev(s, { k: 'bossArrive', x: e.x, y: e.y, type: e.type }); }
         e.atkT -= dt; if (e.atkAnim > 0) e.atkAnim -= dt;
         if (e.atkT <= 0) {
-          var BH = G.RULES.bossHit, hit = E.final ? BH.finalDmg : BH.dmg;
+          var BH = G.RULES.bossHit, hit = (E.final ? BH.finalDmg : BH.dmg) + (s.bossHitAdd || 0);
           e.atkT = BH.every; e.atkAnim = 0.45;
           s.life = Math.max(0, s.life - hit); s.stats.bossHits = (s.stats.bossHits || 0) + hit;
           ev(s, { k: 'bossHit', x: e.x, y: e.y + 0.6, life: hit, type: e.type });

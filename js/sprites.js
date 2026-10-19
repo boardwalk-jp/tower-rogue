@@ -378,6 +378,7 @@ var G = window.G = window.G || {};
       case 'target': g.ell(8, 8, 7, 7, '#d94a3a'); g.ell(8, 8, 5, 5, '#f0f0f0'); g.ell(8, 8, 3, 3, '#d94a3a'); g.ell(8, 8, 1.2, 1.2, '#f0f0f0'); g.rect(13, 1, 1, 6, '#8a5a2b'); g.px(14, 1, '#e8e8e8'); break;
       case 'poster': g.rect(2, 1, 12, 14, '#e8d9b0'); g.rect(2, 1, 12, 2, '#c8b88a'); g.ell(8, 7, 3, 3, '#6b4422'); g.rect(4, 11, 8, 1, '#d94a3a'); g.rect(5, 13, 6, 1, '#ffd84a'); break;
       case 'sword':  for (var k3 = 0; k3 < 9; k3++) { g.px(12 - k3, 2 + k3, '#e8ecf0'); g.px(13 - k3, 2 + k3, '#b4b8bc'); } g.rect(3, 10, 4, 1, '#d9b24a'); g.rect(4, 11, 1, 3, '#8a5a2b'); g.rect(6, 9, 1, 4, '#d9b24a'); break;
+      case 'energy': g.rect(7, 1, 2, 14, '#5fc8ff'); g.rect(5, 3, 6, 10, '#5fc8ff'); g.rect(3, 5, 10, 6, '#5fc8ff'); g.rect(1, 7, 14, 2, '#5fc8ff'); g.rect(6, 4, 2, 4, '#e0faff'); g.rect(9, 9, 2, 2, '#2a98c8'); g.px(13, 2, '#ffffff'); g.px(12, 3, '#ffffff'); g.px(14, 3, '#ffffff'); g.px(13, 4, '#ffffff'); break;
       case 'saw':    g.rect(2, 7, 12, 4, '#b4b8bc'); for (var x = 2; x < 14; x += 2) g.px(x, 11, '#8b8f94'); g.rect(11, 4, 4, 4, '#8a5a2b'); g.rect(3, 2, 6, 3, '#8a5a2b'); g.rect(4, 3, 4, 1, '#c08a4a'); break;
     }
     return g.outline(OUT).bake();
@@ -407,6 +408,10 @@ var G = window.G = window.G || {};
       case 'anvil': g.rect(1, 3, 10, 3, '#5a5e64'); g.rect(11, 3, 3, 2, '#5a5e64'); g.rect(4, 6, 5, 3, '#4a4e54'); g.rect(2, 9, 9, 3, '#5a5e64'); g.rect(1, 3, 10, 1, '#8b8f94'); g.px(6, 1, '#ff8a2a'); g.px(8, 0, '#ffd84a'); break;
       case 'crown': g.rect(1, 6, 12, 6, '#ffd84a'); g.rect(1, 3, 2, 3, '#ffd84a'); g.rect(6, 1, 2, 5, '#ffd84a'); g.rect(11, 3, 2, 3, '#ffd84a'); g.rect(1, 11, 12, 1, '#d9a82a'); g.px(3, 8, '#d94a3a'); g.px(7, 8, '#3a7bd9'); g.px(10, 8, '#d94a3a'); break;
       case 'phoenix': for (i = 0; i < 11; i++) g.rect(2 + i, 12 - i, 2, 2, i < 4 ? '#ffd84a' : i < 8 ? '#ff8a2a' : '#d94a3a'); g.rect(8, 2, 3, 3, '#d94a3a'); g.px(4, 8, '#ff8a2a'); g.px(6, 6, '#ffd84a'); g.px(1, 13, '#8a5a2b'); break;
+      // 指揮官のレリック
+      case 'cmd_captain': g.rect(5, 0, 4, 5, '#3a6ab0'); g.rect(6, 0, 2, 5, '#d94a3a'); g.ell(7, 9, 4.5, 4.5, '#ffd84a'); g.ell(7, 9, 3, 3, '#d9a82a'); g.px(7, 7, '#fff6c0'); g.rect(6, 9, 3, 1, '#fff6c0'); g.px(7, 10, '#fff6c0'); break;
+      case 'cmd_witch': for (i = 0; i < 10; i++) g.rect(3 + i, 12 - i, 2, 1, '#8a5a2b'); g.ell(11, 3, 2.5, 2.5, '#c79bff'); g.px(10, 2, '#ffffff'); g.px(13, 1, '#ffe14d'); g.px(8, 1, '#ffe14d'); g.px(13, 6, '#ffe14d'); break;
+      case 'cmd_engineer': g.rect(1, 6, 12, 7, '#c8341a'); g.rect(1, 6, 12, 1, '#ff6a4a'); g.rect(4, 3, 6, 1, '#5a5e64'); g.rect(4, 3, 1, 3, '#5a5e64'); g.rect(9, 3, 1, 3, '#5a5e64'); g.rect(6, 8, 2, 2, '#d9a82a'); g.rect(1, 9, 12, 1, '#8a2010'); break;
       default: g.ell(7, 7, 5, 5, '#c8b88a');
     }
     return g.outline(OUT).bake();
@@ -636,7 +641,7 @@ var G = window.G = window.G || {};
       S[k] = [];
       for (var lv = 0; lv < 3; lv++) S[k].push([makers[k](lv, false), makers[k](lv, true)]);
     });
-    ['eye', 'bag', 'stone', 'coin', 'hammer', 'horn', 'saw', 'gear', 'scroll', 'meteor', 'sword', 'hourglass', 'star', 'bandage', 'target', 'poster'].forEach(function (k) { S.icon[k] = icon(k); });
+    ['eye', 'bag', 'stone', 'coin', 'hammer', 'horn', 'saw', 'gear', 'scroll', 'meteor', 'sword', 'hourglass', 'star', 'bandage', 'target', 'poster', 'energy'].forEach(function (k) { S.icon[k] = icon(k); });
     ['battle', 'elite', 'event', 'shop', 'rest', 'boss'].forEach(function (k) { S.node[k] = nodeIcon(k); });
     G.SPR = S;
     return S;

@@ -96,7 +96,7 @@ function upgradeBest(run) {
   return false;
 }
 function playRun(seed, log, cmdId) {
-  var run = G.Run.create(seed, cmdId), steps = [];
+  var run = G.Run.create(seed, cmdId, +process.env.ASC || 0), steps = [];
   while (!run.over) {
     var opts = G.Run.reachable(run);
     var nid = opts[Math.floor(run.rand() * opts.length)];

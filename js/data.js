@@ -385,6 +385,8 @@ G.CARDS = {
               text: 'このターン、次に使うタワーのカード2枚のエネルギーが0になる。' },
   meteor:   { kind: 'skill', name: '隕石', cost: 2, target: 'none', rarity: 'rare', icon: 'meteor', dmg: 90, unlock: true,
               text: '今マップにいるすべての敵に90ダメージ（魔法）。攻撃中に使う。' },
+  energize: { kind: 'skill', name: 'エナジー補給', cost: 0, target: 'none', rarity: 'uncommon', icon: 'energy', n: 1,
+              text: 'エネルギー+1。' },
   workshop: { kind: 'skill', name: '急造工房', cost: 2, target: 'none', rarity: 'rare', icon: 'saw', exhaust: true,
               text: '「弓兵の塔（エネルギー0・使い切り）」を2枚手札に加える。使い切り。',
               give: { card: 'archer', n: 2, cost: 0 } }
@@ -400,6 +402,7 @@ Object.keys(G.CARDS).forEach(function (id) {
 G.PLUS_SKILL = {
   // plusNote：鍛える前 → 後（画面では「→」の後ろをアップの色で出す）
   aim:      { mult: 2, text: 'タワー1つの攻撃力をこのターンだけ2倍。', plusNote: ['攻撃力の倍率', '1.5倍', '2倍'] },
+  energize: { n: 2, text: 'エネルギー+2。', plusNote: ['もらえるエネルギー', '+1', '+2'] },
   supply:   { n: 3, text: 'カードを3枚引く。', plusNote: ['引く枚数', '2枚', '3枚'] },
   whet:     { amount: 5, text: 'タワー1つの攻撃力を+5（この戦闘中ずっと）。', plusNote: ['攻撃力', '+3', '+5'] },
   tax:      { gold: 32, text: 'お金+32。使い切り（この戦闘中は戻らない）。', plusNote: ['もらえるお金', '+20', '+32'] },
@@ -429,12 +432,34 @@ Object.keys(G.CARDS).forEach(function (id) {
 G.START_DECK = ['bowman', 'bowman', 'bowman', 'bowman', 'sling', 'sling', 'sling', 'aim'];
 
 // ---- 指揮官（ランの最初に1人選ぶ）。初期デッキ・最大ライフ・固有の能力が違う ----
+// ============================================================
+// アセンション（難易度）。1つ前の難易度でクリアすると、次を選べる（今は5まで。のちに10まで）
+// 効果は下の段ほど足されていく（A3 なら A1〜A3 のすべて）
+// ============================================================
+G.ASCENSION = [
+  { lv: 1, text: 'エリートの体力+15%', elite: 1.15 },
+  { lv: 2, text: '最大ライフ-4', life: 4 },
+  { lv: 3, text: '敵の体力+5%', hp: 1.05 },
+  { lv: 4, text: 'ボスの体力+6%', boss: 1.06 },
+  { lv: 5, text: '戦闘で手に入るお金-15%', gold: 0.85 }
+];
+G.ASC_MAX = 5;
+// a までのアセンションの効果をまとめる（倍率はかけ算、ライフ・攻撃は足し算）
+G.ascMods = function (a) {
+  var m = { hp: 1, elite: 1, life: 0, boss: 1, bossHit: 0, speed: 1, gold: 1 };
+  G.ASCENSION.forEach(function (x) {
+    if (x.lv > (a || 0)) return;
+    ['hp', 'elite', 'boss', 'speed', 'gold'].forEach(function (k) { if (x[k]) m[k] *= x[k]; });
+    if (x.life) m.life += x.life; if (x.bossHit) m.bossHit += x.bossHit;
+  });
+  return m;
+};
 G.COMMANDERS = {
-  captain:  { name: '隊長', icon: 'bowman', life: 40, deck: G.START_DECK,
+  captain:  { name: '隊長', icon: 'bowman', life: 40, deck: G.START_DECK, relic: 'cmd_captain',
               text: '戦闘に勝つたびにお金+8。', sub: 'バランス型。弓と投石で戦う' },
-  witch:    { name: '魔女', icon: 'mage', life: 38, deck: ['bowman', 'bowman', 'bowman', 'poison', 'poison', 'frost', 'sling', 'aim'],
+  witch:    { name: '魔女', icon: 'mage', life: 38, relic: 'cmd_witch', deck: ['bowman', 'bowman', 'bowman', 'poison', 'poison', 'frost', 'sling', 'aim'],
               text: '魔法のタワーの攻撃力+25%。毒とやけどが1秒長く続く。', sub: '毒と氷から始まる。ライフは少なめ' },
-  engineer: { name: '工兵', icon: 'barracks', life: 44, deck: ['bowman', 'bowman', 'bowman', 'sling', 'sling', 'spikes', 'spikes', 'barricade'],
+  engineer: { name: '工兵', icon: 'barracks', life: 44, relic: 'cmd_engineer', deck: ['bowman', 'bowman', 'bowman', 'sling', 'sling', 'spikes', 'spikes', 'barricade'],
               text: 'タワーの強化の値段が20%安い。', sub: '罠とバリケードから始まる。ライフは多め' }
 };
 
@@ -629,7 +654,11 @@ G.RELICS = {
   magnet:    { name: '金の磁石',   kind: 'number', rarity: 'uncommon', unlock: true, text: '敵を倒した時のお金+25%。' },
   anvil:     { name: '見習いの金床', kind: 'change', rarity: 'uncommon', unlock: true, text: '戦闘で最初に建てたタワーは、強化1回分のレベルで置かれる。' },
   crown:     { name: '小さな王冠', kind: 'number', rarity: 'rare',     unlock: true, text: '毎ターン引くカード+1枚。' },
-  phoenix:   { name: '不死鳥の羽', kind: 'change', rarity: 'rare',     unlock: true, text: 'ライフが0になった時、1回だけライフ10で立ち直る（使うと消える）。' }
+  phoenix:   { name: '不死鳥の羽', kind: 'change', rarity: 'rare',     unlock: true, text: 'ライフが0になった時、1回だけライフ10で立ち直る（使うと消える）。' },
+  // ---- 指揮官のレリック（最初から1つだけ持っている。報酬・商人・イベントでは出ない） ----
+  cmd_captain:  { name: '隊長の勲章',   kind: 'commander', rarity: 'starter', text: '戦闘に勝つたびにお金+8。' },
+  cmd_witch:    { name: '魔女の杖',     kind: 'commander', rarity: 'starter', text: '魔法のタワーの攻撃力+25%。毒とやけどが1秒長く続く。' },
+  cmd_engineer: { name: '工兵の工具箱', kind: 'commander', rarity: 'starter', text: 'タワーの強化の値段が20%安い。' }
 };
 Object.keys(G.RELICS).forEach(function (k) { G.RELICS[k].id = k; });
 

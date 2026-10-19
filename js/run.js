@@ -29,12 +29,17 @@ var G = window.G = window.G || {};
     var floors = (run.act - 1) * (G.RULES.floors + 1) + (n ? (n.type === 'boss' ? G.RULES.floors + 1 : n.floor + 1) : 0);
     var rows = [['通常戦闘の勝利', normal, X.battle], ['エリートの勝利', elites, X.elite], ['ボスの撃破', bosses, X.boss], ['進んだ階', floors, X.floor]];
     if (run.won) rows.push(['3層クリア', 1, X.clear]);
+    if (run.asc) rows.push(['アセンション' + run.asc + 'のおまけ（+' + run.asc * 10 + '%）', 1, 0]);
     var add = rows.reduce(function (a, r) { return a + r[1] * r[2]; }, 0);
-    var m = metaLoad(), before = m.xp;
+    add = Math.round(add * (1 + 0.1 * (run.asc || 0)));
+    if (run.asc) rows[rows.length - 1][2] = add - Math.round(add / (1 + 0.1 * run.asc));
+    var m = metaLoad(), before = m.xp, ascBefore = m.ascMax || 0;
     m.xp += add; m.runs = (m.runs || 0) + 1; if (run.won) m.wins = (m.wins || 0) + 1;
+    // クリアすると次のアセンションが選べるようになる
+    if (run.won && (run.asc || 0) >= ascBefore && ascBefore < G.ASC_MAX) m.ascMax = (run.asc || 0) + 1;
     metaSave(m);
     var newly = G.UNLOCKS.filter(function (u) { return u.xp > before && u.xp <= m.xp; });
-    return { rows: rows, add: add, before: before, after: m.xp, newly: newly };
+    return { rows: rows, add: add, before: before, after: m.xp, newly: newly, ascUnlocked: (m.ascMax || 0) > ascBefore ? m.ascMax : 0 };
   }
   function nextUnlock(xp) { return G.UNLOCKS.filter(function (u) { return u.xp > xp; })[0] || null; }
 
@@ -150,13 +155,14 @@ var G = window.G = window.G || {};
   }
 
   // cmdId：指揮官（G.COMMANDERS のid）。初期デッキと最大ライフが変わる
-  function create(seed, cmdId) {
+  // asc：アセンション（難易度、0＝ノーマル）
+  function create(seed, cmdId, asc) {
     var r = B.rng(seed || (Date.now() & 0xffffff));
-    var C = G.COMMANDERS[cmdId] || G.COMMANDERS.captain;
+    var C = G.COMMANDERS[cmdId] || G.COMMANDERS.captain, AM = G.ascMods(asc), life = C.life - AM.life;
     var run = {
-      rand: r, world: makeWorld(r), at: null, visited: [], cmd: cmdId || 'captain',
-      act: 1, deck: C.deck.slice(), life: C.life, maxLife: C.life, gold: G.RULES.startGold,
-      relics: [], stats: { battles: 0, elites: 0, cardsTaken: 0 }, over: false, won: false
+      rand: r, world: makeWorld(r), at: null, visited: [], cmd: cmdId || 'captain', asc: asc || 0,
+      act: 1, deck: C.deck.slice(), life: life, maxLife: life, gold: G.RULES.startGold,
+      relics: C.relic ? [C.relic] : [], stats: { battles: 0, elites: 0, cardsTaken: 0 }, over: false, won: false
     };
     run.boss = pickBoss(run);
     return run;
@@ -221,8 +227,9 @@ var G = window.G = window.G || {};
         return { gate: gate, type: g[0], n: g[1], gap: E.gap, delay: g[2] };
       });
     });
-    return { map: mapId, theme: A.theme, waves: waves, hpMult: scale, deck: run.deck.slice(), life: run.life, maxLife: run.maxLife,
-             bossMult: A.hp * G.RULES.bossHp, gold: run.gold, seed: Math.floor(r() * 1e9), kind: kind, relics: run.relics.slice(), cmd: run.cmd,
+    var AM = G.ascMods(run.asc);   // アセンションで敵を強く
+    return { map: mapId, theme: A.theme, waves: waves, hpMult: scale * AM.hp * (kind === 'elite' ? AM.elite : 1), deck: run.deck.slice(), life: run.life, maxLife: run.maxLife,
+             bossMult: A.hp * G.RULES.bossHp * AM.hp * AM.boss, enemySpeed: AM.speed, bossHitAdd: AM.bossHit, ascGold: AM.gold, gold: run.gold, seed: Math.floor(r() * 1e9), kind: kind, relics: run.relics.slice(), cmd: run.cmd,
              phoenix: Math.max(0, count(run.relics, 'phoenix') - (run.phoenixUsed || 0)) };
   }
   // 戦闘の結果をランに戻す
@@ -239,8 +246,8 @@ var G = window.G = window.G || {};
     if (n.type === 'battle') run.actBattles = (run.actBattles || 0) + 1;
     run.phoenixUsed = (run.phoenixUsed || 0) + (s.phoenixUsed || 0);
     if (count(run.relics, 'spring')) run.life = Math.min(run.maxLife, run.life + 3 * count(run.relics, 'spring'));
-    run.gold += G.RULES.battleGold[n.type] || 0;
-    if (run.cmd === 'captain') run.gold += G.RULES.captainGold;
+    run.gold += Math.round((G.RULES.battleGold[n.type] || 0) * G.ascMods(run.asc).gold);
+    run.gold += G.RULES.captainGold * count(run.relics, 'cmd_captain');   // 隊長の勲章
   }
 
   // ---- カードを選ぶ（報酬・商人・イベント） ----
@@ -271,7 +278,7 @@ var G = window.G = window.G || {};
   // 同じレリックも出る（重ねがけ）。ただし持っている物は出にくい（持っている数ごとに 0.35倍）
   function rollRelic(run, table) {
     // 1回の挑戦で同じレリックは1個まで（持っている物は出ない）
-    var w = RELIC_W[table] || RELIC_W.event, all = Object.keys(G.RELICS).filter(function (k) { return unlocked('relic', k) && run.relics.indexOf(k) < 0; });
+    var w = RELIC_W[table] || RELIC_W.event, all = Object.keys(G.RELICS).filter(function (k) { return G.RELICS[k].rarity !== 'starter' && unlocked('relic', k) && run.relics.indexOf(k) < 0; });
     if (!all.length) return null;
     var x = run.rand() * (w.common + w.uncommon + w.rare);
     var rar = x < w.common ? 'common' : x < w.common + w.uncommon ? 'uncommon' : 'rare';
@@ -339,11 +346,15 @@ var G = window.G = window.G || {};
   // ---- セーブ用：ランを文字にできる形にする／元に戻す ----
   function toSave(run) {
     return { world: run.world, at: run.at, visited: run.visited, deck: run.deck, life: run.life, maxLife: run.maxLife,
-             gold: run.gold, stats: run.stats, rng: run.rand.state(), relics: run.relics, act: run.act, cmd: run.cmd, boss: run.boss, phoenixUsed: run.phoenixUsed || 0, actBattles: run.actBattles || 0, lastMap: run.lastMap || null, shop: run.shop || null };
+             gold: run.gold, stats: run.stats, rng: run.rand.state(), relics: run.relics, act: run.act, cmd: run.cmd, asc: run.asc || 0, boss: run.boss, phoenixUsed: run.phoenixUsed || 0, actBattles: run.actBattles || 0, lastMap: run.lastMap || null, shop: run.shop || null };
   }
   function fromSave(d) {
+    // 前の版のセーブ：指揮官のレリックがなければ足す
+    var C = G.COMMANDERS[d.cmd || 'captain'], rel = (d.relics || []).slice();
+    if (C && C.relic && rel.indexOf(C.relic) < 0) rel.unshift(C.relic);
+    d.relics = rel;
     return { rand: B.rng(d.rng), world: d.world, at: d.at, visited: d.visited, deck: d.deck, life: d.life, maxLife: d.maxLife,
-             gold: d.gold, stats: d.stats, relics: d.relics || [], act: d.act || 1, cmd: d.cmd || 'captain', boss: d.boss || 0, phoenixUsed: d.phoenixUsed || 0, actBattles: d.actBattles || 0, lastMap: d.lastMap || null, shop: d.shop || null, over: false, won: false };
+             gold: d.gold, stats: d.stats, relics: d.relics || [], act: d.act || 1, cmd: d.cmd || 'captain', asc: d.asc || 0, boss: d.boss || 0, phoenixUsed: d.phoenixUsed || 0, actBattles: d.actBattles || 0, lastMap: d.lastMap || null, shop: d.shop || null, over: false, won: false };
   }
 
   function rest(run) { var before = run.life; run.life = Math.min(run.maxLife, run.life + G.RULES.restHeal); return run.life - before; }
