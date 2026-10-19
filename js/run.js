@@ -302,7 +302,7 @@ var G = window.G = window.G || {};
   function rollEvent(run) { return pick(G.EVENTS.filter(function (e) { return !e.acts || e.acts.indexOf(run.act) >= 0; }), run.rand); }
   // 次の層へ：新しいワールドマップ、ライフ回復
   function nextAct(run) {
-    run.act++; run.actClear = false;
+    run.act++; run.actClear = false; run.shop = null;
     run.world = makeWorld(run.rand); run.at = null; run.visited = []; run.boss = pickBoss(run); run.actBattles = 0;
     var before = run.life; run.life = Math.min(run.maxLife, run.life + G.RULES.actHeal);
     return run.life - before;
@@ -339,11 +339,11 @@ var G = window.G = window.G || {};
   // ---- セーブ用：ランを文字にできる形にする／元に戻す ----
   function toSave(run) {
     return { world: run.world, at: run.at, visited: run.visited, deck: run.deck, life: run.life, maxLife: run.maxLife,
-             gold: run.gold, stats: run.stats, rng: run.rand.state(), relics: run.relics, act: run.act, cmd: run.cmd, boss: run.boss, phoenixUsed: run.phoenixUsed || 0, actBattles: run.actBattles || 0, lastMap: run.lastMap || null };
+             gold: run.gold, stats: run.stats, rng: run.rand.state(), relics: run.relics, act: run.act, cmd: run.cmd, boss: run.boss, phoenixUsed: run.phoenixUsed || 0, actBattles: run.actBattles || 0, lastMap: run.lastMap || null, shop: run.shop || null };
   }
   function fromSave(d) {
     return { rand: B.rng(d.rng), world: d.world, at: d.at, visited: d.visited, deck: d.deck, life: d.life, maxLife: d.maxLife,
-             gold: d.gold, stats: d.stats, relics: d.relics || [], act: d.act || 1, cmd: d.cmd || 'captain', boss: d.boss || 0, phoenixUsed: d.phoenixUsed || 0, actBattles: d.actBattles || 0, lastMap: d.lastMap || null, over: false, won: false };
+             gold: d.gold, stats: d.stats, relics: d.relics || [], act: d.act || 1, cmd: d.cmd || 'captain', boss: d.boss || 0, phoenixUsed: d.phoenixUsed || 0, actBattles: d.actBattles || 0, lastMap: d.lastMap || null, shop: d.shop || null, over: false, won: false };
   }
 
   function rest(run) { var before = run.life; run.life = Math.min(run.maxLife, run.life + G.RULES.restHeal); return run.life - before; }

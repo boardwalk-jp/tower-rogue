@@ -280,14 +280,17 @@ var G = window.G = window.G || {};
       if (run.visited.indexOf(k) >= 0) b.classList.add('visited');
       if (k === run.at) b.classList.add('here');
       if (reach.indexOf(k) >= 0) b.classList.add('reach');
-      if (view || reach.indexOf(k) < 0) b.disabled = true;
-      b.addEventListener('click', function () { tapNode(k, b); });
+      var backShop = !view && k === run.at && n.type === 'shop' && run.shop && run.shop.node === k;
+      if (backShop) b.classList.add('reach');
+      if (view || (reach.indexOf(k) < 0 && !backShop)) b.disabled = true;
+      b.addEventListener('click', function () { if (backShop) { if (G.Sound) G.Sound.play('tap'); lastResume = { type: 'node' }; save(lastResume); return showShop(); } tapNode(k, b); });
       box.appendChild(b);
     });
     renderRelics();
     var A = G.ACTS[run.act - 1];
     $('world').querySelector('.rb-title').textContent = A.name + ' ' + A.area;
-    $('world-hint').textContent = view ? '見るだけ（マスは選べません）' : run.at ? '次に進むマスを選んでください' : '最初のマスを選んでください（下から上へ進みます）';
+    var inShop = run.at && nodes[run.at].type === 'shop' && run.shop && run.shop.node === run.at;
+    $('world-hint').textContent = view ? '見るだけ（マスは選べません）' : inShop ? '次のマスを選ぶ（今いる商人をタップでお店に戻れる）' : run.at ? '次に進むマスを選んでください' : '最初のマスを選んでください（下から上へ進みます）';
     // 今いる階が見えるようにスクロール
     var cur = run.at ? nodes[run.at] : { floor: -1, lane: 2 };
     var target = nodePos({ floor: Math.max(0, cur.floor + 1), lane: 2 }, width).y - $('world-scroll').clientHeight * 0.6;
@@ -303,6 +306,7 @@ var G = window.G = window.G || {};
       return;
     }
     R.enter(run, k);
+    run.shop = null;   // 次のマスに進んだら、前の商人には戻れない
     enterNode(n);
   }
   function renderRelics() { UI.relicBar($('relic-strip'), run.relics, 'レリックなし（エリートを倒す・商人・イベントで手に入る）'); }
@@ -464,8 +468,11 @@ var G = window.G = window.G || {};
   // 商人：カード3枚、カードを手放す、ライフ回復
   // ============================================================
   function showShop() {
-    var shop = R.shopStock(run), stock = shop.cards, P = G.RULES.shop, used = { remove: false, heal: false };
+    // 同じ商人のマスにいる間は、出た時と同じ品ぞろえ（売り切れも）で入り直せる
+    if (!run.shop || run.shop.node !== run.at) { var st0 = R.shopStock(run); run.shop = { node: run.at, cards: st0.cards, relic: st0.relic || null, used: { remove: false, heal: false } }; }
+    var shop = run.shop, stock = shop.cards, P = G.RULES.shop, used = shop.used;
     function render() {
+      save({ type: 'node' });
       openPanel('商人', function (body, foot) {
         body.appendChild(el('h2', 'panel-title', '旅の商人'));
         var grid = el('div', 'cards-grid shop'), desc = el('div', 'card-detail empty', 'カードをタップすると詳細、もう一度タップで買う'), picked = null;
@@ -520,7 +527,7 @@ var G = window.G = window.G || {};
         hl.disabled = used.heal || run.life >= run.maxLife;
         sv.appendChild(rm); sv.appendChild(hl);
         body.appendChild(sv);
-        foot.appendChild(button('店を出る', 'go', showWorld));
+        foot.appendChild(button('店を出る', 'go', function () { save({ type: 'map' }); showWorld(); }));
       });
     }
     render();
@@ -549,11 +556,6 @@ var G = window.G = window.G || {};
       openPanel('休憩', function (body, foot) {
         body.appendChild(el('h2', 'panel-title', 'たき火'));
         body.appendChild(el('p', 'panel-text', text));
-        if (rid) {
-          var RR = G.RELICS[rid], line = el('div', 'card-detail relic-get r-' + RR.rarity), h3 = el('h3', 'relic-line');
-          h3.appendChild(UI.relicCanvas(rid)); h3.appendChild(el('span', 'relic-line-name', RR.name)); h3.appendChild(el('span', 'rar-label r-' + RR.rarity, UI.RARITY[RR.rarity]));
-          line.appendChild(h3); body.appendChild(line);
-        }
         foot.appendChild(button('先へ進む', 'go', showWorld));
       });
     }
