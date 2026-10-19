@@ -398,3 +398,12 @@ dt{color:var(--muted);text-align:right} dd{margin:0;text-align:left}
 .cmp-text{margin-top:6px;font-size:13px;text-align:left}
 .cmp-text p{margin:2px 0!important}
 .cmp-t0{color:var(--muted)}
+
+/* ワールドマップの背景（層ごとの景色・js/worldbg.js）と、上に重ねる動き（ホタル・雪・火の粉） */
+.world-scroll{overflow-x:hidden}
+.world-map canvas.world-bg{position:absolute;top:0;z-index:0;image-rendering:pixelated;pointer-events:none;filter:brightness(.78) saturate(.9)}
+#world-lines{z-index:1}
+.world-map .node{z-index:2}
+.world-fx{position:fixed;z-index:3;pointer-events:none;image-rendering:pixelated}
+#world[hidden] .world-fx{display:none}
+#world-lines line{stroke:rgba(236,226,196,.55)}

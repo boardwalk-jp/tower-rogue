@@ -288,6 +288,7 @@ var G = window.G = window.G || {};
     });
     renderRelics();
     var A = G.ACTS[run.act - 1];
+    if (G.worldBg) G.worldBg(run.act, A.theme, box, $('world-scroll'));   // 層ごとの景色（草原・雪山・火山）
     $('world').querySelector('.rb-title').textContent = A.name + ' ' + A.area;
     var inShop = run.at && nodes[run.at].type === 'shop' && run.shop && run.shop.node === run.at;
     $('world-hint').textContent = view ? '見るだけ（マスは選べません）' : inShop ? '次のマスを選ぶ（今いる商人をタップでお店に戻れる）' : run.at ? '次に進むマスを選んでください' : '最初のマスを選んでください（下から上へ進みます）';
