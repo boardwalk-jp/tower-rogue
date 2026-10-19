@@ -347,3 +347,20 @@ dt{color:var(--muted);text-align:right} dd{margin:0;text-align:left}
 .xp-bar{height:8px;border-radius:4px;background:var(--panel2);overflow:hidden}
 .xp-bar i{display:block;height:100%;background:var(--accent)}
 .xp-new{color:var(--r-rare)!important}
+
+/* ---- 遊び方 ---- */
+#help{z-index:55}
+.help-box{max-width:460px;height:calc(100dvh - 32px);display:flex;flex-direction:column;gap:10px}
+.help-box h2{margin:0;font-weight:400;font-size:20px;color:var(--accent)}
+.help-body{flex:1 1 auto;overflow-y:auto;-webkit-overflow-scrolling:touch;touch-action:pan-y;text-align:left;font-size:14px;line-height:1.7;padding-right:4px}
+.help-body h3{margin:16px 0 6px;font-weight:400;font-size:16px;color:var(--accent);border-bottom:1px solid var(--line);padding-bottom:2px}
+.help-body h3:first-child{margin-top:0}
+.help-body p{margin:4px 0}
+.help-body ol,.help-body ul{margin:4px 0;padding-left:1.3em}
+.help-body li{margin:3px 0}
+.help-body b{font-weight:400;color:#fff3d0}
+.help-body .ico{display:inline-block;vertical-align:-5px;margin:0 3px 0 0;image-rendering:pixelated}
+.help-body .tip{background:var(--panel2);border-radius:8px;padding:6px 10px;margin:6px 0;color:var(--muted)}
+.help-body .rr{display:inline-block;padding:0 6px;border-radius:6px;border:1px solid currentColor;font-size:12px;line-height:18px}
+.title-help{min-height:40px;padding:0 16px;font-size:14px;background:rgba(18,12,16,.78);border-color:rgba(246,217,138,.6);color:#f6d98a}
+.help-btn{min-width:34px;padding:0;font-size:16px}

@@ -36,8 +36,8 @@ var G = window.G = window.G || {};
     var sky = g.createLinearGradient(0, 0, 0, H * 0.8);
     sky.addColorStop(0, '#120a24'); sky.addColorStop(0.45, '#3a1638'); sky.addColorStop(0.72, '#9a3a2a'); sky.addColorStop(0.86, '#e8843a'); sky.addColorStop(1, '#ffc46a');
     g.fillStyle = sky; g.fillRect(0, 0, W, H);
-    g.fillStyle = '#ffe9c0'; g.beginPath(); g.arc(124, 94, 8, 0, Math.PI * 2); g.fill();
-    g.fillStyle = '#f6d6a0'; g.beginPath(); g.arc(121, 92, 2, 0, Math.PI * 2); g.fill(); g.beginPath(); g.arc(127, 97, 1.5, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#ffe9c0'; g.beginPath(); g.arc(24, 14, 7, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#f6d6a0'; g.beginPath(); g.arc(21, 12, 2, 0, Math.PI * 2); g.fill(); g.beginPath(); g.arc(27, 17, 1.5, 0, Math.PI * 2); g.fill();
     function ridge(y0, amp, col, seed) {
       g.fillStyle = col; g.beginPath(); g.moveTo(0, H);
       for (var x = 0; x <= W; x += 2) g.lineTo(x, y0 - Math.abs(Math.sin(x * 0.045 + seed) * amp) - Math.abs(Math.sin(x * 0.13 + seed * 2)) * amp * 0.35);
@@ -155,6 +155,9 @@ var G = window.G = window.G || {};
   }
   // ---- 指揮官を選ぶ（はじめから） ----
   function chooseCommander() {
+    // はじめての人には、指揮官を選ぶ前に遊び方を1回だけ出す
+    var seen = false; try { seen = !!localStorage.getItem('towerRogue.helpSeen'); } catch (e) { seen = true; }
+    if (!seen) setTimeout(showHelp, 50);
     openPanel('指揮官', function (body, foot) {
       body.appendChild(el('h2', 'panel-title', '指揮官を選ぶ'));
       body.appendChild(el('p', 'panel-text', '最初のデッキ・最大ライフ・能力が違う。'));
@@ -308,9 +311,11 @@ var G = window.G = window.G || {};
   // ---- 画面の上の「マップ」「デッキ」（いつでも見られる） ----
   document.querySelectorAll('[data-nav]').forEach(function (b) {
     b.addEventListener('click', function () {
+      if (b.dataset.nav === 'help') return showHelp();
       if (!run) return;
       if (G.Sound) G.Sound.play('tap');
       if (b.dataset.nav === 'deck') return showDeck();
+      if (b.dataset.nav === 'help') return showHelp();
       if (G.currentScreen === 'world') return;
       viewFrom = G.currentScreen;       // 戦闘中は、マップを見ている間 戦闘が止まる
       showWorld(true);
@@ -552,6 +557,76 @@ var G = window.G = window.G || {};
       foot.appendChild(button('最後のデッキを見る', '', function () { UI.showList('デッキ', run.deck); }));
     });
   }
+
+  // ============================================================
+  // 遊び方（はじめての人向けの説明）。{node:battle} などはドット絵のアイコンに置きかえる
+  // ============================================================
+  var HELP = [
+    '<h3>どんなゲーム？</h3>',
+    '<p>カードで<b>タワーを建てて</b>、城に向かってくる魔物を止めるゲームです。戦いながらカードやレリック（持っているだけで効く道具）を集めて、自分だけのデッキを強くしていきます。</p>',
+    '<p>全部で<b>3つの層</b>（草原・雪山・火山）があり、第3層のボスを倒せばクリア。<b>ライフ</b>（左上の♥）が0になると、その挑戦は終わりです。</p>',
+    '<h3>1回の挑戦の流れ</h3>',
+    '<ol><li><b>指揮官を選ぶ</b>：最初のデッキ・ライフ・能力が違います。</li>',
+    '<li><b>ワールドマップ</b>で、下から上へ進むマスを選びます（光っているマスをタップ → もう一度タップで進む）。<br>',
+    '{node:battle}戦闘　{node:elite}エリート（強い敵・レリックがもらえる）　{node:event}イベント<br>{node:shop}商人　{node:rest}たき火（休憩）　{node:boss}ボス</li>',
+    '<li>ボスを倒すと次の層へ（ライフは全回復）。</li></ol>',
+    '<h3>戦闘のやり方</h3>',
+    '<p>戦闘は「<b>準備ターン</b> → <b>攻撃ターン</b>」のくり返しです。上の「1/3」は何回目の攻撃か。最後までしのげば勝ち。</p>',
+    '<ol><li><b>準備ターン</b>：毎回カードを4枚引き、<b>エネルギー</b>（◆）が3回復します。カードの左上の数字が使うエネルギー。</li>',
+    '<li><b>タワーを建てる</b>：カードをタップ → 置きたいマスをタップ（仮置き・射程が見える）→ <b>同じマスをもう一度タップ</b>で建設。カードを引っぱってマップに置いてもOK。</li>',
+    '<li>準備ができたら<b>「攻撃開始」</b>。敵が入口から出てきて、道を通って城へ向かいます。城に着いた敵の分だけライフが減ります。</li></ol>',
+    '<div class="tip">入口の<b>「！」</b>をタップすると、次に来る敵が見られます。</div>',
+    '<h3>カードの種類</h3>',
+    '<ul><li>{tower:archer}<b>タワー</b>：建てると、射程に入った敵を自動で攻撃。種類ごとに 物理・魔法・毒・炎・氷（遅くする）・雷（飛び移る）などの特徴があります。</li>',
+    '<li>{tower:spikes}<b>道に置く物</b>：トゲ・沼・樽・バリケードは道の上にだけ置けます。</li>',
+    '<li>{tower:barracks}<b>兵舎</b>：近くの道に兵士を出して、敵を止めて戦います。</li>',
+    '<li>{icon:eye}<b>スキル</b>：タワーを強くする・カードを引くなど。タワーに使うものは、使うタワーをタップ → もう一度タップ。</li></ul>',
+    '<div class="tip">カードを<b>長押し</b>すると、くわしい説明が出ます。枠の色は<span class="rr" style="color:var(--r-common)">ノーマル</span> <span class="rr" style="color:var(--r-uncommon)">アンコモン</span> <span class="rr" style="color:var(--r-rare)">レア</span>。</div>',
+    '<h3>お金とタワーの強化</h3>',
+    '<p>敵を倒すと<b>お金</b>（●）がもらえます。建てたタワーをタップすると、強さの表と<b>「強化」</b>ボタン（お金を使う）が出ます。強化は戦闘の間だけ有効です（戦闘が終わるとタワーはなくなります）。</p>',
+    '<p>お金は「<b>ドロー</b>」（カードを1枚追加で引く）にも使えます。お金は戦闘をまたいで持ち越し、商人でも使えます。</p>',
+    '<h3>気をつける敵</h3>',
+    '<ul><li>{enemy:bat}<b>空を飛ぶ敵</b>：道を通らず、入口から城へまっすぐ飛んできます（準備ターンに紫の点線で表示）。罠や兵士では止められず、大砲・臼砲は当たりません。</li>',
+    '<li>{enemy:shaman}<b>呪術師</b>：近くの仲間の体力を回復します。タワーをタップして「狙う敵」を変えると、ねらう相手を選べます。</li>',
+    '<li>{enemy:ogre}<b>ボス</b>：体力がとても多く、城の前まで来ると<b>止まって城をたたき</b>、そのたびにライフが大きく減ります（倒すまで終わりません）。手下を呼ぶボスもいます。</li></ul>',
+    '<h3>戦闘のあと・休憩・商人</h3>',
+    '<ul><li><b>報酬</b>：カード3枚から1枚もらえます（もらわなくてもOK）。エリート・ボスに勝つとレリックも。ボスの報酬はレアだけ。</li>',
+    '<li>{node:rest}<b>たき火</b>：「休む」（ライフ回復）・「鍛える」（カードを＋にして強くする）・「整理する」（カードを1枚手放す）から1つ。</li>',
+    '<li>{node:shop}<b>商人</b>：カード・レリックを買う、カードを手放す、ライフ回復。</li></ul>',
+    '<h3>くり返し遊ぶと</h3>',
+    '<p>挑戦が終わる（負け・クリア）たびに<b>経験値</b>がたまり、決まった量をこえると、次の挑戦から新しいカードやレリックが出るようになります。</p>',
+    '<h3>便利な機能</h3>',
+    '<ul><li>画面の上の<b>「マップ」「デッキ」</b>：いつでもマップと手持ちのカードを確認できます。</li>',
+    '<li>戦闘中の<b>速度のつまみ</b>：横にずらすと1〜4倍速。</li>',
+    '<li>レリックのアイコンをタップすると説明が出ます。</li>',
+    '<li><b>自動セーブ</b>：マスに入るたびに保存。タイトルの「つづきから」で再開できます（戦闘はその戦闘の最初から）。</li>',
+    '<li>ワールドマップの<b>「メニュー」</b>：効果音・BGMのオン/オフ、タイトルに戻る。</li></ul>'
+  ].join('');
+  function helpIcon(key) {
+    var k = key.split(':'), img = null, sc = 2;
+    try {
+      if (k[0] === 'node') img = SPR.node[k[1]];
+      else if (k[0] === 'icon') img = SPR.icon[k[1]];
+      else if (k[0] === 'tower') { img = G.towerImg(k[1], 0); sc = 1; }
+      else if (k[0] === 'enemy') { img = SPR[k[1]][0].r; sc = k[1] === 'ogre' ? 0.6 : 1; }
+    } catch (e) { img = null; }
+    if (!img) return '';
+    var w = Math.round(img.width * sc), h = Math.round(img.height * sc);
+    if (h > 26) { w = Math.round(w * 26 / h); h = 26; }
+    var c = document.createElement('canvas'); c.width = img.width; c.height = img.height; c.getContext('2d').drawImage(img, 0, 0);
+    return '<img class="ico" alt="" width="' + w + '" height="' + h + '" src="' + c.toDataURL() + '">';
+  }
+  function showHelp() {
+    var body = $('help-body');
+    if (!body.dataset.done) { body.innerHTML = HELP.replace(/\{(\w+:\w+)\}/g, function (m, k) { return helpIcon(k); }); body.dataset.done = '1'; }
+    body.scrollTop = 0;
+    $('help').hidden = false;
+    try { localStorage.setItem('towerRogue.helpSeen', '1'); } catch (e) {}
+  }
+  $('help-close').addEventListener('click', function () { $('help').hidden = true; });
+  $('t-help').addEventListener('click', showHelp);
+  $('wm-help').addEventListener('click', function () { $('world-menu').hidden = true; showHelp(); });
+  G.showHelp = showHelp;
 
   // ---- 経験値の結果：内訳・合計・次の解放までのバー・新しく解放されたもの ----
   function unlockName(u) { return u.kind === 'card' ? 'カード「' + G.CARDS[u.id].name + '」' : 'レリック「' + G.RELICS[u.id].name + '」'; }
