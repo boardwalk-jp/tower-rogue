@@ -30,25 +30,11 @@ button[aria-pressed="true"]{background:var(--accent);color:#1d1606;border-color:
 #start[hidden] #title-bg{display:none}
 #start::after{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;background:radial-gradient(ellipse at 50% 40%,transparent 45%,rgba(0,0,0,.55) 100%)}
 .logo{display:flex;flex-direction:column;align-items:center;gap:2px}
-/* タイトルの文字：黄色い手書き風（Henny Penny）、こげ茶のふち、オレンジの光。「Slay」の右下に小さな「the」、下の段に大きく「Syoppaiya」 */
-.logo-title{margin:0;font-family:'Henny Penny',Georgia,serif;font-weight:400;line-height:.95;display:flex;flex-direction:column;align-items:center;color:#f7d23e;
-  --o:#2e1408;
-  text-shadow:3px 0 0 var(--o),-3px 0 0 var(--o),0 3px 0 var(--o),0 -3px 0 var(--o),2px 2px 0 var(--o),-2px 2px 0 var(--o),2px -2px 0 var(--o),-2px -2px 0 var(--o),
-    0 6px 0 #1a0904,0 0 22px rgba(255,140,40,.65),0 0 46px rgba(255,90,30,.4)}
-.logo-title span{display:inline-block;color:inherit}
-.logo-title .lg-r1,.lg-r2 span{font-size:inherit}
-.logo-title .lg-big{font-size:clamp(56px,17.5vw,82px)}
-.lg-r1{display:flex;align-items:flex-end;transform:translateX(-.35em) rotate(-3deg)}
-.lg-slay{letter-spacing:.01em}
-.logo-title .lg-the{font-size:clamp(30px,9vw,42px);margin:0 0 .35em .25em;transform:rotate(-4deg)}
-.lg-r2{margin-top:-.12em;letter-spacing:.005em;transform:translateX(.2em) rotate(-2deg)}
-.lg-r2 span{animation:logoBob 3.2s ease-in-out infinite}
-.lg-r2 span:nth-child(odd){--rt:-3deg}.lg-r2 span:nth-child(even){--rt:3deg}
-.lg-r2 span:nth-child(2){animation-delay:.12s}.lg-r2 span:nth-child(3){animation-delay:.24s}.lg-r2 span:nth-child(4){animation-delay:.36s}.lg-r2 span:nth-child(5){animation-delay:.48s}
-.lg-r2 span:nth-child(6){animation-delay:.6s}.lg-r2 span:nth-child(7){animation-delay:.72s}.lg-r2 span:nth-child(8){animation-delay:.84s}.lg-r2 span:nth-child(9){animation-delay:.96s}
-@keyframes logoBob{0%,100%{transform:translateY(0) rotate(var(--rt,0deg))}50%{transform:translateY(-4px) rotate(var(--rt,0deg))}}
-@media (prefers-reduced-motion: reduce){.lg-r2 span{animation:none;transform:rotate(var(--rt,0deg))}}
-.logo-sub{margin:16px 0 0;font-size:13px;color:#e8c9a0;letter-spacing:.12em;padding:3px 12px;border-top:1px solid rgba(246,217,138,.45);border-bottom:1px solid rgba(246,217,138,.45);background:rgba(20,8,10,.35)}
+/* タイトルの文字：js/logo.js がドット絵で描く（黄色い手書き風・こげ茶のふち・i の点は炎）。光はCSSの影で */
+.logo-title{margin:0;line-height:0}
+#logo-cv{display:block;width:auto;height:min(43vw,184px,21vh);image-rendering:pixelated;filter:drop-shadow(0 0 10px rgba(255,130,40,.45)) drop-shadow(0 0 26px rgba(255,80,30,.3))}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.logo-sub{margin:6px 0 0;font-size:13px;color:#e8c9a0;letter-spacing:.12em;padding:3px 12px;border-top:1px solid rgba(246,217,138,.45);border-bottom:1px solid rgba(246,217,138,.45);background:rgba(20,8,10,.35)}
 #start .title-opt{background:rgba(18,12,16,.78);border-color:rgba(246,217,138,.45);backdrop-filter:blur(2px)}
 #start .title-opt[aria-pressed="true"]{background:linear-gradient(#f2c55a,#d9952e);border-color:#ffe08a;box-shadow:0 0 16px rgba(255,170,60,.45)}
 #start .meta-line{text-shadow:0 1px 2px #000;background:rgba(18,12,16,.7);border-radius:12px;padding:3px 12px}
