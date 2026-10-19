@@ -364,3 +364,12 @@ dt{color:var(--muted);text-align:right} dd{margin:0;text-align:left}
 .help-body .rr{display:inline-block;padding:0 6px;border-radius:6px;border:1px solid currentColor;font-size:12px;line-height:18px}
 .title-help{min-height:40px;padding:0 16px;font-size:14px;background:rgba(18,12,16,.78);border-color:rgba(246,217,138,.6);color:#f6d98a}
 .help-btn{min-width:34px;padding:0;font-size:16px}
+.help-box{height:auto;max-height:calc(100dvh - 32px)}
+.help-body{font-size:15px}
+.help-list{list-style:none;padding-left:0!important}
+.help-list li{display:flex;align-items:center;gap:8px;margin:6px 0;line-height:1.45}
+.help-list li .ico{flex:0 0 auto;margin:0}
+.help-list li b{flex:0 0 auto}
+.help-how{background:var(--panel2);border-radius:8px;padding:6px 10px;margin:8px 0 0!important;font-size:14px}
+.c-life{color:#ff7a7a!important}.c-en{color:var(--energy)!important}.c-gold{color:var(--gold)!important}
+.help-list li>span{flex:1 1 auto;min-width:0}
