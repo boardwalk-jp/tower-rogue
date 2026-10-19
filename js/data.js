@@ -147,7 +147,38 @@ Object.keys(G.MAPS).forEach(function (k) {
   var m = G.MAPS[k];
   m.id = k; m.cols = m.rows[0].length; m.rowsN = m.rows.length;
   m.rows.forEach(function (r, i) { if (r.length !== m.cols) throw new Error('map ' + k + ' row ' + i + ' width'); });
+  m.bridges = findBridges(m);
 });
+// ---- 道が十字に交わるマスを探して「橋」にする（見た目だけ。通る順番は変わらない）----
+// 先に通る向き（d が小さい方）を橋の上、あとから通る向きを橋の下にする
+// 戻り値：[{ x, y, axis:'h'|'v' }]  axis＝橋の上の道の向き（h＝横、v＝縦）
+function findBridges(m) {
+  var seen = {};
+  Object.keys(m.paths).forEach(function (gk) {
+    var P = m.paths[gk], d = 0;
+    for (var i = 0; i < P.length - 1; i++) {
+      var a = P[i], b = P[i + 1], ax = a[0] === b[0] ? 'v' : 'h';
+      var x0 = Math.floor(a[0]), y0 = Math.floor(a[1]), x1 = Math.floor(b[0]), y1 = Math.floor(b[1]);
+      var sx = Math.sign(x1 - x0), sy = Math.sign(y1 - y0), x = x0 + sx, y = y0 + sy, step = 1;
+      // 曲がり角のマスは除いて、まっすぐ通り抜けるマスだけを記録
+      while (x !== x1 || y !== y1) {
+        var key = x + ',' + y;
+        (seen[key] = seen[key] || []).push({ ax: ax, d: d + step });
+        x += sx; y += sy; step++;
+      }
+      d += Math.hypot(b[0] - a[0], b[1] - a[1]);
+    }
+  });
+  var out = [];
+  Object.keys(seen).forEach(function (key) {
+    var v = seen[key], h = v.filter(function (q) { return q.ax === 'h'; }), w = v.filter(function (q) { return q.ax === 'v'; });
+    if (!h.length || !w.length) return;
+    var first = v.slice().sort(function (p, q) { return p.d - q.d; })[0];
+    var xy = key.split(',');
+    out.push({ x: +xy[0], y: +xy[1], axis: first.ax });
+  });
+  return out;
+}
 G.MAP = G.MAPS.field;   // 互換用（最初のマップ）
 
 // ============================================================

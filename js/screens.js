@@ -577,6 +577,7 @@ var G = window.G = window.G || {};
     '<ul class="help-list">',
     '<li><span><b class="c-life">♥ ライフ</b>：城に敵が着くと減る。戦闘をまたいで続く</span></li>',
     '<li><span><b class="c-en">◆ エネルギー</b>：カードを使う力。毎ターン3。カード左上の数字だけ減る</span></li>',
+    '<li><span><b>■ カード</b>：毎ターン' + G.RULES.drawPerTurn + '枚引く。<b class="c-gold">' + G.RULES.extraDrawCost + '金</b>払うと「ドロー」で1枚追加</span></li>',
     '<li><span><b class="c-gold">● お金</b>：敵を倒すともらえる。タワーをタップ →「強化」で強くできる</span></li>',
     '</ul>',
     '<p class="help-how">建て方：カードをタップ → 置くマスを<b>2回</b>タップ</p>',

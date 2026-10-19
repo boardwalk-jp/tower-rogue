@@ -85,6 +85,8 @@ var G = window.G = window.G || {};
       if (!isPath(tx, ty - 1) && ty > 0) g.fillRect(x0, y0, TW, 1);
       if (!isPath(tx, ty + 1) && ty < M.rowsN - 1) { g.fillStyle = TH_.e[1]; g.fillRect(x0, y0 + TH - 1, TW, 1); }
     }
+    // 橋：道が十字に交わるマス。先に通る道が橋の上、あとから通る道が橋の下をくぐる
+    (M.bridges || []).forEach(function (br) { drawBridge(g, br); });
     // 台座・木・岩・入口・城（上の行から順に描いて重なりを正しくする）
     for (ty = 0; ty < M.rowsN; ty++) for (tx = 0; tx < M.cols; tx++) {
       var c = M.rows[ty][tx], cx = tx * TW + TW / 2, by = sy(ty + 1);
@@ -93,6 +95,51 @@ var G = window.G = window.G || {};
       if (isGate(c)) g.drawImage(S.gate, cx - 10, sy(0) - 6);
     }
     return cv;
+  }
+
+  // 橋を1つ描く（地面の作り置きに描く）
+  function drawBridge(g, br) {
+    var x0 = br.x * TW, y0 = sy(br.y), stone = M.theme === 'volcano';
+    var deck = stone ? '#7a7068' : '#a4743f', seam = stone ? '#58504a' : '#74502a', rail = stone ? '#4a4440' : '#5a3a1e',
+        hi = stone ? '#a89c90' : '#d09a5a', face = stone ? '#2e2a28' : '#3e2814', shade = 'rgba(0,0,0,0.38)', i;
+    if (br.axis === 'h') {
+      // くぐる道（縦）の、橋の下側に影
+      g.fillStyle = shade; g.fillRect(x0, y0 + TH, TW, 3);
+      g.fillStyle = 'rgba(0,0,0,0.18)'; g.fillRect(x0, y0 + TH + 3, TW, 2);
+      // 床板（横に進むので、板のつなぎ目は縦線）
+      g.fillStyle = deck; g.fillRect(x0 - 1, y0 + 1, TW + 2, TH - 2);
+      g.fillStyle = seam; for (i = 1; i < TW; i += 3) g.fillRect(x0 + i, y0 + 2, 1, TH - 4);
+      // 手すり（上と下）と柱
+      g.fillStyle = hi; g.fillRect(x0 - 1, y0 - 1, TW + 2, 1);
+      g.fillStyle = rail; g.fillRect(x0 - 1, y0, TW + 2, 1); g.fillRect(x0 - 1, y0 + TH - 2, TW + 2, 1);
+      for (i = 0; i <= TW; i += 5) { g.fillStyle = rail; g.fillRect(x0 - 1 + i, y0 - 2, 2, 3); g.fillRect(x0 - 1 + i, y0 + TH - 3, 2, 2); g.fillStyle = hi; g.fillRect(x0 - 1 + i, y0 - 2, 1, 1); }
+      // 橋の前の面（厚み）
+      g.fillStyle = face; g.fillRect(x0 - 1, y0 + TH - 1, TW + 2, 2);
+      // 橋のたもとの石
+      g.fillStyle = '#8d8a84'; g.fillRect(x0 - 2, y0 - 1, 1, TH + 2); g.fillRect(x0 + TW + 1, y0 - 1, 1, TH + 2);
+    } else {
+      // くぐる道（横）の、橋の左右に影
+      g.fillStyle = shade; g.fillRect(x0 + TW, y0, 3, TH); g.fillRect(x0 - 2, y0, 2, TH);
+      // 床板（縦に進むので、板のつなぎ目は横線）
+      g.fillStyle = deck; g.fillRect(x0 + 1, y0 - 1, TW - 2, TH + 2);
+      g.fillStyle = seam; for (i = 1; i < TH + 1; i += 3) g.fillRect(x0 + 2, y0 + i, TW - 4, 1);
+      g.fillStyle = rail; g.fillRect(x0, y0 - 1, 2, TH + 2); g.fillRect(x0 + TW - 2, y0 - 1, 2, TH + 2);
+      g.fillStyle = hi; g.fillRect(x0, y0 - 1, 1, TH + 2); g.fillRect(x0 + TW - 2, y0 - 1, 1, TH + 2);
+      for (i = -1; i <= TH; i += 4) { g.fillStyle = face; g.fillRect(x0 - 1, y0 + i, 1, 2); g.fillRect(x0 + TW, y0 + i, 1, 2); }
+    }
+  }
+  // 敵が橋の下をくぐっている途中か（そのマスにいて、橋と違う向きに歩いている）
+  function underBridge(s, e) {
+    if (e.fly || !M.bridges || !M.bridges.length) return null;
+    var tx = Math.floor(e.x), ty = Math.floor(e.y), br = null;
+    for (var i = 0; i < M.bridges.length; i++) if (M.bridges[i].x === tx && M.bridges[i].y === ty) br = M.bridges[i];
+    if (!br) return null;
+    var P = s.paths && s.paths[e.gate]; if (!P) return null;
+    for (var j = 0; j < P.segs.length; j++) {
+      var sg = P.segs[j];
+      if (e.d <= sg.s + sg.l || j === P.segs.length - 1) return (sg.a[0] === sg.b[0] ? 'v' : 'h') !== br.axis ? br : null;
+    }
+    return null;
   }
 
   function addEvents(events) {
@@ -276,7 +323,9 @@ var G = window.G = window.G || {};
     var list = [];
     s.towers.forEach(function (tw) { list.push({ y: tw.y + (G.TOWERS[tw.type].trap ? -0.45 : 0.2), k: 'tower', o: tw }); });
     s.soldiers.forEach(function (u) { if (u.dead <= 0) list.push({ y: u.y + 0.05, k: 'soldier', o: u }); });
-    s.enemies.forEach(function (e) { list.push({ y: e.y, k: 'enemy', o: e }); });
+    // 橋の下をくぐる敵は橋より先に描いて、橋で隠す
+    (M.bridges || []).forEach(function (br) { list.push({ y: br.y + 0.02, k: 'bridge', o: br }); });
+    s.enemies.forEach(function (e) { var ub = underBridge(s, e); list.push({ y: ub ? ub.y + 0.01 : e.y, k: 'enemy', o: e }); });
     var castleAt = null;
     M.rows.forEach(function (r, y) { var x = r.indexOf('G'); if (x >= 0) castleAt = { x: x + 0.5, y: y }; });
     list.push({ y: castleAt.y + 0.4, k: 'castle' });
@@ -284,6 +333,11 @@ var G = window.G = window.G || {};
 
     for (var i = 0; i < list.length; i++) {
       var it = list[i], o = it.o;
+      if (it.k === 'bridge') {
+        var bx = o.x * TW - 2, byy = sy(o.y) - 2;
+        b.drawImage(bgCache[M.id], bx, byy, TW + 4, TH + 5, bx, byy, TW + 4, TH + 5);
+        continue;
+      }
       if (it.k === 'castle') {
         blitB(S.castle, sx(castleAt.x), sy(castleAt.y + 1) + 4);
         if (fx.castleHit > 0) { b.globalCompositeOperation = 'lighter'; b.globalAlpha = fx.castleHit * 2; b.filter = 'none'; blitB(S.castle, sx(castleAt.x), sy(castleAt.y + 1) + 4); b.globalAlpha = 1; b.globalCompositeOperation = 'source-over'; }
