@@ -124,7 +124,7 @@
         x += gm.adv + L.gap + (L.scale >= 1 ? 1 : 1);
       }
     });
-    built = { items: items, W: maxX + 5, H: maxY + 4 };
+    built = { items: items, W: maxX + 5, H: maxY + 7 };
     return built;
   }
 
@@ -135,6 +135,8 @@
   }
 
   // 描く（t：秒。文字の上下ゆれと炎の動き）
+  // 文字の上下ゆれ（1文字ずつずらして波のように）。大きい文字は±2ドット、小さい the は±1ドット
+  function bobY(it, t) { return Math.round(Math.sin(t * 2.6 + it.ph) * (it.big ? 1.6 : 1.1)); }
   function draw(cv, t) {
     var B = built || build(), W = B.W, H = B.H;
     var img = new ImageData(W, H), d = img.data;
@@ -144,9 +146,9 @@
       var mask = new Uint8Array(W * H), rel = new Float32Array(W * H);
       B.items.forEach(function (it) {
         if (it.layer !== layer) return;
-        var oy = it.big ? Math.round(Math.sin(t * 2 + it.ph) * 0.6) : 0, g = it.g;
+        var oy = bobY(it, t), g = it.g;
         for (var y = 0; y < g.h; y++) for (var x = 0; x < g.w; x++) if (g.m[y * g.w + x]) {
-          var X = it.x + x + 2, Y = it.y + y + 2 + oy; if (X < 0 || Y < 0 || X >= W || Y >= H) continue;
+          var X = it.x + x + 2, Y = it.y + y + 4 + oy; if (X < 0 || Y < 0 || X >= W || Y >= H) continue;
           mask[Y * W + X] = 1; rel[Y * W + X] = (y - 2 * (g.h / 32)) / (g.h * 0.75);
         }
       });
@@ -166,7 +168,7 @@
     var fr = FLAME[[0, 1, 3, 0, 2][Math.floor(t * 9) % 5]];
     B.items.forEach(function (it) {
       if (!it.g.dot) return;
-      var fx = it.x + it.g.dot[0] + 2 - 4, fy = it.y + it.g.dot[1] + 2 - 12;
+      var fx = it.x + it.g.dot[0] + 2 - 4, fy = it.y + it.g.dot[1] + 4 - 12 + bobY(it, t);
       // 炎のふち（こい紺）
       c.fillStyle = '#0c1430';
       for (var yy = 0; yy < fr.length; yy++) for (var xx = 0; xx < fr[yy].length; xx++) {
@@ -184,12 +186,12 @@
   // タイトル画面にいる間だけ、0.1秒ごとに描き直す（炎のゆれ・文字のゆれ）
   function run() {
     var cv = document.getElementById('logo-cv'); if (!cv) return;
-    var t0 = performance.now(), still = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var t0 = performance.now();
     draw(cv, 0.3);
     var id = setInterval(function () {
       var st = document.getElementById('start');
       if (st && st.hidden) { clearInterval(id); return; }
-      if (!still) draw(cv, (performance.now() - t0) / 1000);
+      draw(cv, (performance.now() - t0) / 1000);
     }, 100);
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run); else run();
