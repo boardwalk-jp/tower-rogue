@@ -22,6 +22,7 @@ var G = window.G = window.G || {};
     var d = noiseBuf.getChannelData(0); for (var i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
     boss = null; bossOut = null;      // ボスの曲は音の準備ごとに作り直す
     tried = false;
+    watchState();
   }
   // 音の準備は「本当のタップ」の中でだけする。
   //  ・スワイプ（指が動いた）の終わりはタップとして認められないので使わない
@@ -40,9 +41,12 @@ var G = window.G = window.G || {};
     try { if (navigator.audioSession && navigator.audioSession.type !== 'playback') navigator.audioSession.type = 'playback'; } catch (e2) {}
     var now = Date.now();
     if (!ac) build(C);
-    else if (ac.state !== 'running' && tried && now - triedAt > 800 && rebuilds < 3) {
-      // 前のタップで再開できなかった（ブラウザを開き直した後など）：音の準備を作り直す
+    else if ((needFresh && now - shownAt < 600000) || (ac.state !== 'running' && tried && now - triedAt > 800)) {
+      // ・別のアプリから戻ってきた後の最初のタップ：iPhone では「鳴らせる状態」と出ていても実は音が出ないことがあるので、毎回作り直す
+      // ・前のタップで再開できなかった（ブラウザを開き直した後など）：作り直す（回数の上限なし）
+      needFresh = false;
       rebuilds++;
+      if (boss) try { boss.stop(); } catch (e6) {}   // 古い方のボス曲を止めてから
       try { ac.close(); } catch (e3) {}
       build(C);
       if (bossOn) { bossOn = false; bossTheme(true); }
@@ -59,12 +63,17 @@ var G = window.G = window.G || {};
   }
   ['touchend', 'click', 'keydown'].forEach(function (n) { document.addEventListener(n, unlock, { passive: true, capture: true }); });
   // 別のアプリに切り替えたら止め、戻ったら再開（だめなら次のタップで作り直す）
+  // 戻った後の最初のタップで、音の準備を作り直す（needFresh）
+  var needFresh = false, shownAt = 0;
   document.addEventListener('visibilitychange', function () {
     if (!ac) return;
-    if (document.hidden) ac.suspend(); else try { ac.resume(); } catch (e) {}
+    if (document.hidden) { try { ac.suspend(); } catch (e) {} }
+    else { needFresh = true; shownAt = Date.now(); try { ac.resume(); } catch (e) {} }
   });
-  // ブラウザの「戻る」やアプリの切り替えでページがそのまま戻ってきた時も、次のタップで作り直せるように
-  window.addEventListener('pageshow', function (e) { if (e.persisted && ac) { tried = true; triedAt = 0; } });
+  // ブラウザの「戻る」やアプリの切り替えでページがそのまま戻ってきた時も、次のタップで作り直す
+  window.addEventListener('pageshow', function (e) { if (e.persisted && ac) { needFresh = true; shownAt = Date.now(); } });
+  // 電話・アラーム・他のアプリの音で止められた（iPhone の 'interrupted'）時も、次のタップで作り直す
+  function watchState() { if (ac) ac.onstatechange = function () { if (ac.state === 'interrupted') { needFresh = true; shownAt = Date.now(); } }; }
   function ready() { return ac && ac.state === 'running'; }
 
   // ---- 音の部品 ----
@@ -259,7 +268,7 @@ var G = window.G = window.G || {};
   // 曲を流したいのに音がまだ出せない時は、画面の下に「タップすると音が出ます」を出す
   setInterval(function () {
     var el = document.getElementById('tap-sound'); if (!el) return;
-    el.hidden = !(G.started && (cfg.bgm || cfg.se) && (wantTrack || bossOn) && !ready());
+    el.hidden = !(G.started && (cfg.bgm || cfg.se) && (wantTrack || bossOn) && (!ready() || needFresh));
   }, 500);
   G.Sound = { play: play, music: music, set: set, bossTheme: bossTheme, track: function () { return playing; }, bossPlaying: function () { return bossOn && !!boss && boss.playing; }, get: function (k) { return cfg[k]; }, state: state, test: test };
 })();
