@@ -22,7 +22,16 @@ var G = window.G = window.G || {};
     document.querySelectorAll('.rb-deck').forEach(function (e) { e.textContent = run.deck.length; });
   }
   function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; }
-  function button(label, cls, fn) { var b = el('button', cls, label); b.type = 'button'; b.addEventListener('click', function (e) { if (G.Sound) G.Sound.play('tap'); fn(e); }); return b; }
+  // 画面に入った直後は、ダブルタップの2回目が選択肢に当たらないように、短い間だけタップを無視する
+  var TAP_LOCK_MS = 700;
+  var tapLockUntil = 0, tapLockTimer = 0;
+  function lockTaps(ms) {
+    tapLockUntil = Date.now() + ms;
+    var pn = $('panel'); pn.classList.add('tap-lock');
+    clearTimeout(tapLockTimer);
+    tapLockTimer = setTimeout(function () { pn.classList.remove('tap-lock'); }, ms);
+  }
+  function button(label, cls, fn) { var b = el('button', cls, label); b.type = 'button'; b.addEventListener('click', function (e) { if (Date.now() < tapLockUntil) return; if (G.Sound) G.Sound.play('tap'); fn(e); }); return b; }
   function music(name) { if (G.Sound) G.Sound.music(name); }
 
   // ---- スタート画面 ----
@@ -450,6 +459,7 @@ var G = window.G = window.G || {};
   // ============================================================
   function showEvent() {
     var ev = R.rollEvent(run);
+    lockTaps(TAP_LOCK_MS);
     // イベントの場面の絵（js/eventart.js）
     function eventArt(box) { var a = G.eventArt && G.eventArt(ev.id, run.act); if (a) box.appendChild(a); }
     openPanel('イベント', function (body, foot) {
@@ -483,6 +493,7 @@ var G = window.G = window.G || {};
     function afterEvent(text, rid) {
       if (run.life <= 0) { run.over = true; clearSave(); return showEnd(); }
       lastResume = { type: 'map' }; save(lastResume);   // 選択肢が決まった時点で保存（つづきからはマップに戻る）
+      lockTaps(TAP_LOCK_MS);
       openPanel('イベント', function (body, foot) {
         eventArt(body); body.appendChild(el('h2', 'panel-title', ev.title));
         body.appendChild(el('p', 'panel-text', text));
@@ -569,6 +580,7 @@ var G = window.G = window.G || {};
   // 休憩：ライフ回復 または カードを1枚手放す
   // ============================================================
   function showRest() {
+    lockTaps(TAP_LOCK_MS);
     openPanel('休憩', function (body, foot) {
       body.appendChild(el('h2', 'panel-title', 'たき火'));
       body.appendChild(el('p', 'panel-text', 'ひと休みできる。どれか1つを選ぶ。'));
@@ -585,6 +597,7 @@ var G = window.G = window.G || {};
     });
     function done(text) {
       lastResume = { type: 'map' }; save(lastResume);
+      lockTaps(TAP_LOCK_MS);
       openPanel('休憩', function (body, foot) {
         body.appendChild(el('h2', 'panel-title', 'たき火'));
         body.appendChild(el('p', 'panel-text', text));
@@ -730,5 +743,5 @@ var G = window.G = window.G || {};
   }
 
   // 開発用
-  G.Screens = { newRun: newRun, showWorld: showWorld, enterNode: enterNode, showEnd: showEnd, get run() { return run; } };
+  G.Screens = { showRest: showRest, showEvent: showEvent, newRun: newRun, showWorld: showWorld, enterNode: enterNode, showEnd: showEnd, get run() { return run; } };
 })();

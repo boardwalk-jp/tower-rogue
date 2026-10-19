@@ -440,3 +440,6 @@ dt{color:var(--muted);text-align:right} dd{margin:0;text-align:left}
 .cmd-relic{display:flex;align-items:center;gap:6px;margin-top:2px}
 .cmd-relic .relic-ico{width:24px;height:24px;min-height:24px}
 .cmd-relic .relic-ico canvas{width:18px;height:18px}
+
+/* 画面に入った直後はタップを受け付けない間、ボタンを少し暗くして知らせる */
+#panel.tap-lock .choice,#panel.tap-lock .panel-foot button{opacity:.55}
