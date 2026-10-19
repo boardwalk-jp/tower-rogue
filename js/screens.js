@@ -427,8 +427,10 @@ var G = window.G = window.G || {};
   // ============================================================
   function showEvent() {
     var ev = R.rollEvent(run);
+    // イベントの場面の絵（js/eventart.js）
+    function eventArt(box) { var a = G.eventArt && G.eventArt(ev.id, run.act); if (a) box.appendChild(a); }
     openPanel('イベント', function (body, foot) {
-      body.appendChild(el('h2', 'panel-title', ev.title));
+      eventArt(body); body.appendChild(el('h2', 'panel-title', ev.title));
       body.appendChild(el('p', 'panel-text', ev.text));
       var list = el('div', 'choices');
       ev.choices.forEach(function (ch) {
@@ -441,7 +443,7 @@ var G = window.G = window.G || {};
           if (res.next === 'pickUpgrade') return pickFromDeck('鍛えるカードを選ぶ', function (i) { var nm = G.CARDS[run.deck[i]].name; R.upgradeCard(run, i); afterEvent('「' + nm + '」を鍛えて「' + G.CARDS[run.deck[i]].name + '」にした。'); }, true, null, R.canUpgradeCard);
           if (res.next === 'pickCard') {
             return openPanel('イベント', function (b2, f2) {
-              b2.appendChild(el('h2', 'panel-title', ev.title));
+              eventArt(b2); b2.appendChild(el('h2', 'panel-title', ev.title));
               b2.appendChild(el('p', 'panel-text', res.msg + ' カードを1枚えらぶ。'));
               choose(b2, f2, res.cards, '受け取る', function (id) { R.addCard(run, id); afterEvent('「' + G.CARDS[id].name + '」を手に入れた。'); });
             });
@@ -459,7 +461,7 @@ var G = window.G = window.G || {};
       if (run.life <= 0) { run.over = true; clearSave(); return showEnd(); }
       lastResume = { type: 'map' }; save(lastResume);   // 選択肢が決まった時点で保存（つづきからはマップに戻る）
       openPanel('イベント', function (body, foot) {
-        body.appendChild(el('h2', 'panel-title', ev.title));
+        eventArt(body); body.appendChild(el('h2', 'panel-title', ev.title));
         body.appendChild(el('p', 'panel-text', text));
         if (rid) {
           var RR = G.RELICS[rid], line = el('div', 'card-detail relic-get r-' + RR.rarity), h3 = el('h3', 'relic-line');

@@ -420,3 +420,6 @@ dt{color:var(--muted);text-align:right} dd{margin:0;text-align:left}
 .world-map .node.reach{border-color:var(--accent);animation:pulse 1.2s ease-in-out infinite}
 .world-map .node.here{border-color:#ffffff}
 .world-map .node.pick{background:var(--accent);animation:none}
+
+/* イベントの場面の絵（js/eventart.js） */
+.event-art{display:block;width:100%;max-width:440px;height:auto;aspect-ratio:120/56;margin:0 auto 10px;image-rendering:pixelated;border-radius:10px;border:2px solid #4a3a26;box-shadow:0 3px 0 rgba(0,0,0,.45)}
