@@ -327,9 +327,9 @@ var G = window.G = window.G || {};
       case 'removeCard': return { msg: '手放すカードを選んでください。', next: 'pickRemove' };
       case 'upgradeCard': return { msg: '鍛えるカードを選んでください。', next: 'pickUpgrade' };
       case 'copyCard': return { msg: '複製するカードを選んでください。', next: 'pickCopy' };
-      case 'relic': var rl = rollRelic(run, 'event'); addRelic(run, rl); return { msg: rl ? 'レリック「' + G.RELICS[rl].name + '」を手に入れた。' + G.RELICS[rl].text : 'お礼を言われた。' };
+      case 'relic': var rl = rollRelic(run, 'event'); addRelic(run, rl); return { msg: rl ? 'レリック「' + G.RELICS[rl].name + '」を手に入れた。' + G.RELICS[rl].text : 'お礼を言われた。', relic: rl };
       case 'box':
-        if (run.rand() < 0.5) { var rb = rollRelic(run, 'event'); addRelic(run, rb); return { msg: rb ? 'レリック「' + G.RELICS[rb].name + '」が入っていた！ ' + G.RELICS[rb].text : '空っぽだった。' }; }
+        if (run.rand() < 0.5) { var rb = rollRelic(run, 'event'); addRelic(run, rb); return { msg: rb ? 'レリック「' + G.RELICS[rb].name + '」が入っていた！ ' + G.RELICS[rb].text : '空っぽだった。', relic: rb }; }
         run.life = Math.max(1, run.life - 6); return { msg: '罠だった！ ライフ-6。' };
       case 'rareCard': return { msg: '祭壇が光った。', next: 'pickCard', cards: rollCards(run, 3, 'rare') };
       default: return { msg: 'その場を後にした。' };

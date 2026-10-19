@@ -366,7 +366,15 @@ var G = window.G = window.G || {};
       if (big) {
         if (!savedCards) { lastResume.relic = R.rollRelic(run, 'elite'); R.addRelic(run, lastResume.relic); save(lastResume); }
         var rid = savedCards ? s.relic : lastResume.relic;
-        if (rid) { var rb = el('div', 'card-detail relic-get'); rb.innerHTML = '<h3></h3><p></p>'; rb.querySelector('h3').textContent = 'レリック獲得：' + G.RELICS[rid].name; rb.querySelector('p').textContent = G.RELICS[rid].text; body.appendChild(rb); }
+        if (rid) {
+          var RR = G.RELICS[rid], rb = el('div', 'card-detail relic-get r-' + RR.rarity);
+          rb.innerHTML = '<h3 class="relic-line"></h3><p></p>';
+          var h3 = rb.querySelector('h3');
+          h3.appendChild(UI.relicCanvas(rid));
+          h3.appendChild(el('span', 'relic-line-name', 'レリック獲得：' + RR.name));
+          h3.appendChild(el('span', 'rar-label r-' + RR.rarity, UI.RARITY[RR.rarity]));
+          rb.querySelector('p').textContent = RR.text; body.appendChild(rb);
+        }
       }
       body.appendChild(el('p', 'panel-sub', 'カードを1枚えらんでデッキに加えます'));
       choose(body, foot, cards, '受け取る', function (id) { R.addCard(run, id); after(); }, 'カードを受け取らない', after);
@@ -427,7 +435,7 @@ var G = window.G = window.G || {};
               choose(b2, f2, res.cards, '受け取る', function (id) { R.addCard(run, id); afterEvent('「' + G.CARDS[id].name + '」を手に入れた。'); });
             });
           }
-          afterEvent(res.msg);
+          afterEvent(res.msg, res.relic);
         });
         b.appendChild(el('b', '', ch.label));
         if (ch.note) b.appendChild(el('small', '', ch.note));
@@ -436,12 +444,17 @@ var G = window.G = window.G || {};
       body.appendChild(list);
       var msg = el('p', 'panel-sub'); body.appendChild(msg);
     });
-    function afterEvent(text) {
+    function afterEvent(text, rid) {
       if (run.life <= 0) { run.over = true; clearSave(); return showEnd(); }
       lastResume = { type: 'map' }; save(lastResume);   // 選択肢が決まった時点で保存（つづきからはマップに戻る）
       openPanel('イベント', function (body, foot) {
         body.appendChild(el('h2', 'panel-title', ev.title));
         body.appendChild(el('p', 'panel-text', text));
+        if (rid) {
+          var RR = G.RELICS[rid], line = el('div', 'card-detail relic-get r-' + RR.rarity), h3 = el('h3', 'relic-line');
+          h3.appendChild(UI.relicCanvas(rid)); h3.appendChild(el('span', 'relic-line-name', RR.name)); h3.appendChild(el('span', 'rar-label r-' + RR.rarity, UI.RARITY[RR.rarity]));
+          line.appendChild(h3); body.appendChild(line);
+        }
         foot.appendChild(button('先へ進む', 'go', showWorld));
       });
     }
@@ -485,7 +498,9 @@ var G = window.G = window.G || {};
             if (run.gold < rl.price) { say('お金が足りません'); return; }
             run.gold -= rl.price; rl.sold = true; R.addRelic(run, rl.id); render();
           });
-          rbtn.appendChild(el('b', '', 'レリック：' + RD.name)); rbtn.appendChild(el('small', '', rl.sold ? '購入済み' : RD.text + '　● ' + rl.price));
+          rbtn.className += ' r-' + RD.rarity;
+          var rline = el('b', 'relic-line'); rline.appendChild(UI.relicCanvas(rl.id)); rline.appendChild(el('span', 'relic-line-name', 'レリック：' + RD.name)); rline.appendChild(el('span', 'rar-label r-' + RD.rarity, UI.RARITY[RD.rarity]));
+          rbtn.appendChild(rline); rbtn.appendChild(el('small', '', rl.sold ? '購入済み' : RD.text + '　● ' + rl.price));
           rbtn.disabled = rl.sold;
           sv.appendChild(rbtn);
         }
@@ -534,6 +549,11 @@ var G = window.G = window.G || {};
       openPanel('休憩', function (body, foot) {
         body.appendChild(el('h2', 'panel-title', 'たき火'));
         body.appendChild(el('p', 'panel-text', text));
+        if (rid) {
+          var RR = G.RELICS[rid], line = el('div', 'card-detail relic-get r-' + RR.rarity), h3 = el('h3', 'relic-line');
+          h3.appendChild(UI.relicCanvas(rid)); h3.appendChild(el('span', 'relic-line-name', RR.name)); h3.appendChild(el('span', 'rar-label r-' + RR.rarity, UI.RARITY[RR.rarity]));
+          line.appendChild(h3); body.appendChild(line);
+        }
         foot.appendChild(button('先へ進む', 'go', showWorld));
       });
     }
@@ -658,7 +678,7 @@ var G = window.G = window.G || {};
         grid.querySelectorAll('.card').forEach(function (x) { x.classList.remove('sel'); });
         c.classList.add('sel'); picked = i; $('pk-ok').disabled = false;
         // 鍛える時は、鍛えた後（＋）の中身を見せる
-        var box = ok === R.canUpgradeCard ? UI.detailBox(id + '+', '鍛えると「' + G.CARDS[id + '+'].name + '」になる') : UI.detailBox(id); box.id = 'pk-text'; $('pk-text').replaceWith(box);
+        var box = ok === R.canUpgradeCard ? UI.compareBox(id) : UI.detailBox(id); box.id = 'pk-text'; $('pk-text').replaceWith(box);
       });
       grid.appendChild(c);
     });

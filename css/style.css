@@ -373,3 +373,30 @@ dt{color:var(--muted);text-align:right} dd{margin:0;text-align:left}
 .help-how{background:var(--panel2);border-radius:8px;padding:6px 10px;margin:8px 0 0!important;font-size:14px}
 .c-life{color:#ff7a7a!important}.c-en{color:var(--energy)!important}.c-gold{color:var(--gold)!important}
 .help-list li>span{flex:1 1 auto;min-width:0}
+/* レリックのレア度：獲得・商人・イベントの表示（枠の色＝レア度） */
+.relic-get.r-common,.relic-buy.r-common{border-color:var(--r-common)}
+.relic-get.r-uncommon,.relic-buy.r-uncommon{border-color:var(--r-uncommon)}
+.relic-get.r-rare,.relic-buy.r-rare{border-color:var(--r-rare);box-shadow:0 0 8px rgba(255,216,74,.35)}
+.relic-get.r-common h3{color:var(--text,#f2f2f2)}
+.relic-get.r-uncommon h3{color:var(--r-uncommon)}
+.relic-line{display:flex!important;align-items:center;gap:8px;flex-wrap:wrap}
+.relic-line .relic-ico{width:30px;height:30px;min-height:30px}
+.relic-line .relic-ico canvas{width:24px;height:24px}
+.relic-line-name{flex:0 1 auto}
+.relic-line .rar-label{font-weight:400}
+.relic-buy .relic-line{margin-bottom:2px}
+/* 鍛える前と後の比べ表 */
+.cmp-head,.cmp-row{display:grid;grid-template-columns:5.6em 1fr 1.2em 1fr;align-items:center;gap:4px}
+.cmp-head{font-size:12px;color:var(--muted);margin:4px 0 2px}
+.cmp-head span:first-child{grid-column:2}
+.cmp-head span:last-child{grid-column:4;color:var(--up,#ff6b5b)}
+.cmp-row{padding:4px 0;border-top:1px solid rgba(255,255,255,.07);font-size:14px;color:var(--muted)}
+.cmp-row .cmp-k{font-size:12px}
+.cmp-row.ch{color:inherit}
+.cmp-row.ch .cmp-k{color:inherit;font-weight:700}
+.cmp-row.ch .cmp-b{color:var(--up,#ff6b5b);font-weight:700}
+.cmp-row.ch .cmp-a{text-decoration:line-through;text-decoration-color:rgba(255,255,255,.35)}
+.cmp-ar{text-align:center;color:var(--up,#ff6b5b)}
+.cmp-text{margin-top:6px;font-size:13px;text-align:left}
+.cmp-text p{margin:2px 0!important}
+.cmp-t0{color:var(--muted)}

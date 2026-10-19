@@ -107,6 +107,12 @@ var G = window.G = window.G || {};
       box.appendChild(b);
     });
   }
+  // レリックのアイコン（枠の色＝レア度）
+  function relicCanvas(id, cls) {
+    var w = document.createElement('span'); w.className = 'relic-ico r-' + G.RELICS[id].rarity + (cls ? ' ' + cls : '');
+    var c = document.createElement('canvas'); c.width = 14; c.height = 14; c.getContext('2d').drawImage(G.relicIcon(id), 0, 0); w.appendChild(c);
+    return w;
+  }
   function showRelic(id, n) {
     var R2 = G.RELICS[id];
     $('p-title').textContent = R2.name + (n > 1 ? '　×' + n : '');
@@ -519,6 +525,39 @@ var G = window.G = window.G || {};
     if (extra) box.querySelector('.extra').textContent = extra;
     return box;
   }
+  // 鍛える前と後を並べて見せる箱（たき火・鍛冶屋で使う）。変わる項目はアップの色、変わらない項目はうすく
+  function statPairs(id) {
+    var out = [], re = /<dt>(.*?)<\/dt><dd>(.*?)<\/dd>/g, m, h = detailStats(id);
+    while ((m = re.exec(h))) if (m[1] !== 'レア度' && m[1] !== '鍛えた効果') out.push([m[1], m[2]]);
+    return out;
+  }
+  function compareBox(id) {
+    var A = G.CARDS[id], P = G.CARDS[id + '+'], before = statPairs(id), after = statPairs(id + '+');
+    var box = document.createElement('div'); box.className = 'card-detail cmp-box';
+    var keys = [];
+    before.concat(after).forEach(function (r) { if (keys.indexOf(r[0]) < 0) keys.push(r[0]); });
+    function val(list, k) { for (var i = 0; i < list.length; i++) if (list[i][0] === k) return list[i][1]; return '―'; }
+    var rows = keys.map(function (k) {
+      var a = val(before, k), b = val(after, k), ch = a.replace(/<[^>]+>/g, '') !== b.replace(/<[^>]+>/g, '');
+      return { k: k, a: a, b: b, ch: ch };
+    });
+    // スキルの倍率など、表に出ない数字は plusNote（前・後）から1行足す
+    if (P.plusNote && !rows.some(function (r) { return r.k === P.plusNote[0] && r.ch; })) rows.unshift({ k: P.plusNote[0], a: P.plusNote[1], b: P.plusNote[2], ch: true });
+    // 変わる項目だけ出す（変わらない項目は省く）
+    var chRows = rows.filter(function (r) { return r.ch; });
+    if (chRows.length) rows = chRows;
+    var h = '<h3></h3><div class="cmp-head"><span>今</span><span></span><span>鍛えた後</span></div><div class="cmp">';
+    rows.forEach(function (r) {
+      h += '<div class="cmp-row' + (r.ch ? ' ch' : '') + '"><span class="cmp-k">' + (r.k === '強化' ? '強化の値段' : r.k) + '</span>' +
+        '<span class="cmp-a">' + r.a + '</span><span class="cmp-ar">' + (r.ch ? '→' : '') + '</span><span class="cmp-b">' + r.b + '</span></div>';
+    });
+    h += '</div>';
+    if (A.text !== P.text) h += '<div class="cmp-text"><p class="cmp-t0"></p><p class="cmp-t1"></p></div>';
+    box.innerHTML = h;
+    box.querySelector('h3').textContent = A.name + ' → ' + P.name;
+    if (A.text !== P.text) { box.querySelector('.cmp-t0').textContent = '今：' + A.text; box.querySelector('.cmp-t1').textContent = '後：' + P.text; }
+    return box;
+  }
   function showDetail(id) {
     var def = G.CARDS[id], c = $('detail-art').getContext('2d');
     c.clearRect(0, 0, 34, 36);
@@ -684,7 +723,7 @@ var G = window.G = window.G || {};
   }
   requestAnimationFrame(frame);
 
-  G.BattleUI = { relicBar: relicBar, showRelic: showRelic, start: start, cardEl: cardEl, cardArt: cardArt, showDetail: showDetail, showList: showList, detailBox: detailBox, fit: fit };
+  G.BattleUI = { relicBar: relicBar, showRelic: showRelic, compareBox: compareBox, relicCanvas: relicCanvas, RARITY: RARITY, start: start, cardEl: cardEl, cardArt: cardArt, showDetail: showDetail, showList: showList, detailBox: detailBox, fit: fit };
   // 開発用：コンソールから状態を見られるように
   G.debug = { get state() { return s; }, ui: ui, renderHand: function () { renderHand(); }, openSheet: openTowerSheet };
 })();
