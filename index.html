@@ -4,21 +4,24 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#121815">
-<title>タワーローグ 試作</title>
+<title>Slay the しょっぱいわ</title>
 <script>/* 起きたエラーを覚えておき、メニューの「音のテスト」に出す（実機で原因を調べるため） */window.__errs=[];window.addEventListener('error',function(e){window.__errs.push((e.message||'?')+' @'+String(e.filename||'').split('/').pop().split('?')[0]+':'+e.lineno);});window.addEventListener('unhandledrejection',function(e){window.__errs.push('promise: '+(e.reason&&e.reason.message||e.reason));});</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap">
-<link rel="stylesheet" href="css/style.css?v=20261019174003">
+<link rel="stylesheet" href="css/style.css?v=20261019180529">
 </head>
 <body>
 
 <!-- スタート画面：上にスワイプ（＝ページを下へ読み進める）で Safari のアドレスバーを細くしてから始める -->
 <section id="start">
+  <canvas id="title-bg" width="144" height="256" aria-hidden="true"></canvas>
   <div class="start-inner">
-    <p class="eyebrow">段階2 3層の試作</p>
-    <h1>タワーローグ<span>（仮）</span></h1>
-    <canvas id="title-art" width="112" height="40" aria-hidden="true"></canvas>
+    <div class="logo">
+      <p class="logo-top">SLAY THE</p>
+      <h1 class="logo-main"><span>しょ</span><span>っ</span><span>ぱ</span><span>い</span><span>わ</span></h1>
+      <p class="logo-sub">デッキ構築 × タワーディフェンス</p>
+    </div>
     <div class="title-menu" role="radiogroup" aria-label="始め方">
       <button type="button" id="t-cont" class="title-opt" aria-pressed="false"><b>つづきから</b><small id="t-cont-info"></small></button>
       <button type="button" id="t-new" class="title-opt" aria-pressed="true"><b>はじめから</b><small id="t-new-info">新しい挑戦を始める</small></button>
@@ -29,7 +32,7 @@
       <p>上にスワイプしてスタート</p>
       <button type="button" id="pc-start" class="pc-only">クリックでスタート</button>
     </div>
-    <p class="ver" id="ver">版 10/19 17:40</p>
+    <p class="ver" id="ver">版 10/19 18:05</p>
   </div>
 </section>
 
@@ -152,14 +155,14 @@
 <div id="tap-sound" hidden>♪ 画面をタップすると音が出ます</div>
 <div id="rotate"><p>画面を縦にしてください</p></div>
 
-<script src="js/data.js?v=20261019174003"></script>
-<script src="js/battle.js?v=20261019174003"></script>
-<script src="js/run.js?v=20261019174003"></script>
-<script src="js/sprites.js?v=20261019174003"></script>
-<script src="js/render.js?v=20261019174003"></script>
-<script src="js/sound.js?v=20261019174003"></script>
-<script src="js/bossbgm.js?v=20261019174003"></script>
-<script src="js/ui.js?v=20261019174003"></script>
-<script src="js/screens.js?v=20261019174003"></script>
+<script src="js/data.js?v=20261019180529"></script>
+<script src="js/battle.js?v=20261019180529"></script>
+<script src="js/run.js?v=20261019180529"></script>
+<script src="js/sprites.js?v=20261019180529"></script>
+<script src="js/render.js?v=20261019180529"></script>
+<script src="js/sound.js?v=20261019180529"></script>
+<script src="js/bossbgm.js?v=20261019180529"></script>
+<script src="js/ui.js?v=20261019180529"></script>
+<script src="js/screens.js?v=20261019180529"></script>
 </body>
 </html>

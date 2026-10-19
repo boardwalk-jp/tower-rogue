@@ -26,16 +26,86 @@ var G = window.G = window.G || {};
   function music(name) { if (G.Sound) G.Sound.music(name); }
 
   // ---- スタート画面 ----
-  (function titleArt() {
-    var c = $('title-art').getContext('2d');
-    c.fillStyle = '#2f5a2a'; c.fillRect(0, 30, 112, 10);
-    c.fillStyle = '#94744a'; c.fillRect(0, 34, 112, 4);
-    c.drawImage(G.towerImg('bowman', 2), 2, 10);
-    c.drawImage(G.towerImg('frost', 1), 20, 4);
-    c.drawImage(G.towerImg('sling', 0), 38, 20);
-    c.drawImage(SPR.wolf[0].l, 60, 26);
-    c.drawImage(SPR.goblin[1].l, 78, 22);
-    c.drawImage(SPR.knight[0].l, 92, 17);
+  // ---- タイトルの背景：夕暮れの空、星、月、山、城、タワーが魔物の行列に矢を撃つ（ずっと動く） ----
+  (function titleScene() {
+    var cv = $('title-bg'), c = cv.getContext('2d'), W = cv.width, H = cv.height;
+    c.imageSmoothingEnabled = false;
+    // 動かない部分（空・山・城）は先に描いておく
+    var bg = document.createElement('canvas'); bg.width = W; bg.height = H;
+    var g = bg.getContext('2d');
+    var sky = g.createLinearGradient(0, 0, 0, H * 0.8);
+    sky.addColorStop(0, '#120a24'); sky.addColorStop(0.45, '#3a1638'); sky.addColorStop(0.72, '#9a3a2a'); sky.addColorStop(0.86, '#e8843a'); sky.addColorStop(1, '#ffc46a');
+    g.fillStyle = sky; g.fillRect(0, 0, W, H);
+    g.fillStyle = '#ffe9c0'; g.beginPath(); g.arc(124, 22, 8, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#f6d6a0'; g.beginPath(); g.arc(121, 20, 2, 0, Math.PI * 2); g.fill(); g.beginPath(); g.arc(127, 25, 1.5, 0, Math.PI * 2); g.fill();
+    function ridge(y0, amp, col, seed) {
+      g.fillStyle = col; g.beginPath(); g.moveTo(0, H);
+      for (var x = 0; x <= W; x += 2) g.lineTo(x, y0 - Math.abs(Math.sin(x * 0.045 + seed) * amp) - Math.abs(Math.sin(x * 0.13 + seed * 2)) * amp * 0.35);
+      g.lineTo(W, H); g.fill();
+    }
+    ridge(178, 26, '#4a1e3a', 1.3); ridge(192, 18, '#2a1428', 4.1);
+    // 城（右の丘の上）
+    g.fillStyle = '#160c18';
+    g.fillRect(96, 150, 40, 50); g.fillRect(92, 138, 10, 62); g.fillRect(130, 136, 10, 64); g.fillRect(110, 128, 12, 30);
+    for (var k = 0; k < 6; k++) { g.fillRect(92 + k * 9, 146, 4, 4); }
+    g.fillRect(93, 134, 2, 4); g.fillRect(98, 134, 2, 4); g.fillRect(131, 132, 2, 4); g.fillRect(137, 132, 2, 4); g.fillRect(112, 124, 2, 4); g.fillRect(118, 124, 2, 4);
+    g.fillRect(115, 112, 1, 16); g.fillStyle = '#d94a3a'; g.fillRect(116, 112, 7, 4);
+    // 地面と道
+    g.fillStyle = '#1a1a14'; g.fillRect(0, 200, W, H - 200);
+    g.fillStyle = '#3a2a1a'; g.fillRect(0, 214, W, 9); g.fillStyle = '#4a3622'; g.fillRect(0, 214, W, 2);
+    for (var x2 = 0; x2 < W; x2 += 3) { g.fillStyle = (x2 * 7) % 5 ? '#22281a' : '#2e3820'; g.fillRect(x2, 200 + (x2 * 13) % 6, 2, 2); }
+    var stars = []; for (var i2 = 0; i2 < 46; i2++) stars.push({ x: (i2 * 53) % W, y: (i2 * 37) % 110, p: i2 * 0.7 });
+    var embers = [], arrows = [], mons = [], t = 0, spawnT = 0, last = performance.now();
+    [-6, 22, 48].forEach(function (x0, i0) { mons.push({ type: ['goblin', 'slime', 'wolf'][i0], x: x0, hp: 7 }); });   // 最初から何体か歩いている
+    var TYPES = ['goblin', 'slime', 'wolf', 'orc', 'skeleton', 'goblin', 'bat'];
+    var TOWERS = [{ type: 'bowman', lv: 2, x: 18, cd: 0 }, { type: 'frost', lv: 1, x: 44, cd: 0.5 }, { type: 'mage', lv: 1, x: 70, cd: 1 }];
+    function frame(now) {
+      var dt = Math.max(0, Math.min(0.05, (now - last) / 1000)); last = now;
+      if (!$('start').hidden) {
+        t += dt;
+        c.drawImage(bg, 0, 0);
+        stars.forEach(function (st) { var a = 0.35 + 0.65 * Math.abs(Math.sin(t * 1.3 + st.p)); c.globalAlpha = a; c.fillStyle = '#fff6e0'; c.fillRect(st.x, st.y, 1, 1); });
+        c.globalAlpha = 1;
+        // 城の窓（ゆらぐ灯り）
+        c.fillStyle = Math.sin(t * 9) > -0.6 ? '#ffcf6a' : '#d9952e';
+        [[100, 160], [110, 160], [124, 160], [97, 176], [133, 150], [115, 138]].forEach(function (w) { c.fillRect(w[0], w[1], 2, 3); });
+        // 魔物の行列（左から城へ）
+        spawnT -= dt;
+        if (spawnT <= 0) { spawnT = 1.1 + Math.random() * 1.0; var ty = TYPES[Math.floor(Math.random() * TYPES.length)]; mons.push({ type: ty, x: -20, hp: 7, fly: ty === 'bat' }); }
+        for (var m = mons.length - 1; m >= 0; m--) {
+          var mo = mons[m]; mo.x += dt * (mo.type === 'wolf' ? 14 : mo.type === 'orc' ? 6 : 9);
+          var fr = Math.abs(Math.floor(t * 4 + m)) % 2, spr = SPR[mo.type][fr].r, my = mo.fly ? 196 + Math.sin(t * 5 + m) * 3 : 220;
+          c.drawImage(spr, Math.round(mo.x - spr.width / 2), Math.round(my - spr.height));
+          if (mo.x > 96 || mo.hp <= 0) {
+            if (mo.hp <= 0) for (var q = 0; q < 8; q++) embers.push({ x: mo.x, y: my - 6, vx: (Math.random() - 0.5) * 30, vy: -Math.random() * 30, life: 0.6, col: '#ffd84a' });
+            mons.splice(m, 1);
+          }
+        }
+        // タワー（矢を撃つ）
+        TOWERS.forEach(function (tw) {
+          var img = G.towerImg(tw.type, tw.lv); c.drawImage(img, Math.round(tw.x - img.width / 2), 204 - img.height);
+          tw.cd -= dt;
+          var tgt = mons.filter(function (mo) { return mo.hp > 0 && Math.abs(mo.x - tw.x) < 50; })[0];
+          if (tgt && tw.cd <= 0) { tw.cd = 1.8 + Math.random() * 1.0; arrows.push({ x: tw.x, y: 204 - img.height + 6, tgt: tgt, col: tw.type === 'frost' ? '#bfe8ff' : tw.type === 'mage' ? '#c79bff' : '#ffffff' }); }
+        });
+        for (var a2 = arrows.length - 1; a2 >= 0; a2--) {
+          var ar = arrows[a2], tx = ar.tgt.x, ty2 = ar.tgt.fly ? 190 : 212, dx = tx - ar.x, dy = ty2 - ar.y, d = Math.hypot(dx, dy);
+          if (d < 4) { ar.tgt.hp--; for (var q2 = 0; q2 < 4; q2++) embers.push({ x: tx, y: ty2, vx: (Math.random() - 0.5) * 20, vy: -Math.random() * 20, life: 0.35, col: ar.col }); arrows.splice(a2, 1); continue; }
+          ar.x += dx / d * 90 * dt; ar.y += dy / d * 90 * dt;
+          c.fillStyle = ar.col; c.fillRect(Math.round(ar.x), Math.round(ar.y), 2, 1);
+        }
+        // 火の粉（下からふわっと上る）
+        if (Math.random() < 0.5) embers.push({ x: Math.random() * W, y: H, vx: (Math.random() - 0.5) * 6, vy: -12 - Math.random() * 14, life: 4, col: Math.random() < 0.5 ? '#ff9a3a' : '#ffd84a' });
+        for (var e2 = embers.length - 1; e2 >= 0; e2--) {
+          var em = embers[e2]; em.life -= dt; if (em.life <= 0) { embers.splice(e2, 1); continue; }
+          em.x += em.vx * dt + Math.sin(t * 2 + e2) * 0.1; em.y += em.vy * dt;
+          c.globalAlpha = Math.min(1, em.life); c.fillStyle = em.col; c.fillRect(Math.round(em.x), Math.round(em.y), 1, 1);
+        }
+        c.globalAlpha = 1;
+      }
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
   })();
   // ============================================================
   // 自動セーブ（このブラウザの中に保存。マスに入る時・報酬が出た時・マップに戻った時）
