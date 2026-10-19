@@ -372,6 +372,7 @@ var G = window.G = window.G || {};
       case 'gear':   g.ell(8, 8, 6, 6, '#8b8f94'); for (var q = 0; q < 8; q++) { var an = q * Math.PI / 4; g.rect(Math.round(8 + Math.cos(an) * 6.5) - 1, Math.round(8 + Math.sin(an) * 6.5) - 1, 2, 2, '#8b8f94'); } g.ell(8, 8, 2.5, 2.5, '#16120f'); g.px(4, 5, '#c3c7cc'); g.rect(10, 1, 1, 4, '#ffe14d'); g.rect(11, 3, 1, 3, '#ffe14d'); break;
       case 'scroll': g.rect(3, 3, 10, 10, '#4a7ad0'); g.rect(3, 3, 10, 1, '#7aa8f0'); for (var y2 = 5; y2 < 12; y2 += 2) g.rect(5, y2, 6, 1, '#d8e8ff'); g.rect(2, 2, 2, 12, '#e8d9b0'); g.rect(12, 2, 2, 12, '#e8d9b0'); break;
       case 'meteor': g.ell(10, 10, 4, 4, '#8a4a2a'); g.ell(10, 10, 2.5, 2.5, '#ff8a2a'); g.px(11, 9, '#ffd84a'); for (var k2 = 0; k2 < 6; k2++) { g.px(1 + k2, 1 + k2, '#ff6a2a'); g.px(2 + k2, 1 + k2, '#ffd84a'); } break;
+      case 'sword':  for (var k3 = 0; k3 < 9; k3++) { g.px(12 - k3, 2 + k3, '#e8ecf0'); g.px(13 - k3, 2 + k3, '#b4b8bc'); } g.rect(3, 10, 4, 1, '#d9b24a'); g.rect(4, 11, 1, 3, '#8a5a2b'); g.rect(6, 9, 1, 4, '#d9b24a'); break;
       case 'saw':    g.rect(2, 7, 12, 4, '#b4b8bc'); for (var x = 2; x < 14; x += 2) g.px(x, 11, '#8b8f94'); g.rect(11, 4, 4, 4, '#8a5a2b'); g.rect(3, 2, 6, 3, '#8a5a2b'); g.rect(4, 3, 4, 1, '#c08a4a'); break;
     }
     return g.outline(OUT).bake();
@@ -513,6 +514,26 @@ var G = window.G = window.G || {};
     g.px(8, 7, '#8a6a2a');
     return both(g.outline(OUT));
   }
+  function sniperTower(lv, fire) {   // 狙撃塔：細く高い石の塔と長い弩
+    var g = new Grid(18, 36);
+    stoneBase(g, 6, 12, 6, 23);
+    g.rect(4, 10, 10, 2, '#9fa3a8'); g.rect(5, 8, 8, 2, '#6b4422'); g.rect(5, 8, 8, 1, '#9a6e40');
+    g.rect(2, 6, 14, 1, fire ? '#ffffff' : '#d8d8d8'); g.px(16, 6, '#ffffff'); g.px(15, 5, '#ffffff'); g.px(15, 7, '#ffffff');
+    g.rect(11, 3, 1, 7, '#7a5230'); g.px(10, 3, '#7a5230'); g.px(10, 9, '#7a5230');
+    g.rect(7, 4, 3, 2, '#4a7ad0'); g.px(8, 3, '#bfe0ff');                        // 照準
+    g.rect(13, 15 - lv, 1, 5 + lv, '#5b4632'); g.rect(14, 15 - lv, 2, 2, FLAG[lv]);
+    return both(g.outline(OUT));
+  }
+  function stormTower(lv, fire) {    // 嵐の塔：黒い塔の上に浮かぶ雷雲
+    var g = new Grid(20, 36);
+    stoneBase(g, 5, 16, 10, 19);
+    g.rect(4, 14, 12, 2, '#5a5e64'); g.rect(9, 9, 2, 5, '#6b6e74');
+    g.ell(10, 6, 8, 4, fire ? '#8a8aa8' : '#5a5a78'); g.ell(7, 5, 3, 2, '#7a7a98'); g.ell(13, 5, 3, 2, '#7a7a98');
+    g.rect(9, 9, 2, 2, '#ffe14d'); g.px(8, 11, '#ffe14d');
+    if (fire) { g.rect(3, 9, 1, 4, '#ffffff'); g.rect(16, 9, 1, 3, '#ffe14d'); g.rect(12, 11, 1, 3, '#ffffff'); }
+    g.rect(15, 19 - lv, 1, 5 + lv, '#5b4632'); g.rect(16, 19 - lv, 2, 2, FLAG[lv]);
+    return g.outline(OUT).bake();
+  }
   function castle() {
     var g = new Grid(28, 26);
     stoneBase(g, 3, 10, 22, 15);
@@ -560,12 +581,12 @@ var G = window.G = window.G || {};
     var makers = { archer: archerTower, mage: mageTower, cannon: cannonTower, bowman: bowmanTower, sling: slingTower,
                    watch: watchTower, poison: poisonTower, frost: frostTower, ballista: ballistaTower,
                    fire: fireTower, thunder: thunderTower, mine: mineTower,
-                   spikes: spikesTower, tar: tarTower, barrel: barrelTower, barricade: barricadeTower, barracks: barracksTower };
+                   sniper: sniperTower, storm: stormTower, spikes: spikesTower, tar: tarTower, barrel: barrelTower, barricade: barricadeTower, barracks: barracksTower };
     Object.keys(makers).forEach(function (k) {
       S[k] = [];
       for (var lv = 0; lv < 3; lv++) S[k].push([makers[k](lv, false), makers[k](lv, true)]);
     });
-    ['eye', 'bag', 'stone', 'coin', 'hammer', 'horn', 'saw', 'gear', 'scroll', 'meteor'].forEach(function (k) { S.icon[k] = icon(k); });
+    ['eye', 'bag', 'stone', 'coin', 'hammer', 'horn', 'saw', 'gear', 'scroll', 'meteor', 'sword'].forEach(function (k) { S.icon[k] = icon(k); });
     ['battle', 'elite', 'event', 'shop', 'rest', 'boss'].forEach(function (k) { S.node[k] = nodeIcon(k); });
     G.SPR = S;
     return S;

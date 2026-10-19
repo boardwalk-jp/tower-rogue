@@ -107,10 +107,10 @@ function playRun(seed, log, cmdId) {
       var s = fight(G.Run.battleOpts(run));
       G.Run.finishBattle(run, s);
       steps.push(n.floor + n.type[0] + '(-' + (lifeBefore - s.life) + ')');
-      if (run.actClear) { var cs = G.Run.rollCards(run, 3, 'elite'); G.Run.addCard(run, cs[0]); G.Run.addRelic(run, G.Run.rollRelic(run, 'elite')); G.Run.nextAct(run); steps.push('| 第' + run.act + '層'); continue; }
+      if (run.actClear) { var cs = G.Run.rollCards(run, 3, 'boss'); G.Run.addCard(run, cs[0]); G.Run.addRelic(run, G.Run.rollRelic(run, 'elite')); G.Run.nextAct(run); steps.push('| 第' + run.act + '層'); continue; }
       if (!run.over) {
         if (n.type === 'elite' || n.type === 'boss') G.Run.addRelic(run, G.Run.rollRelic(run, 'elite'));
-        var cards = G.Run.rollCards(run, 3, n.type === 'elite' ? 'elite' : 'battle');
+        var cards = G.Run.rollCards(run, 3, n.type === 'boss' ? 'boss' : n.type === 'elite' ? 'elite' : 'battle');
         G.Run.addCard(run, cards[0]);
       }
     } else if (n.type === 'rest') {

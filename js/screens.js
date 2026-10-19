@@ -280,7 +280,7 @@ var G = window.G = window.G || {};
   // ---- 報酬：カード3枚から1枚（取らなくてもよい） ----
   function showReward(n, bonus, s, savedCards) {
     var big = n.type === 'elite' || n.type === 'boss';
-    var cards = savedCards || R.rollCards(run, 3, big ? 'elite' : 'battle');
+    var cards = savedCards || R.rollCards(run, 3, n.type === 'boss' ? 'boss' : big ? 'elite' : 'battle');
     // ボスに勝った後は、報酬を選んだら次の層の案内へ
     var after = function () { if (run.actClear) showActClear(); else showWorld(); };
     lastResume = { type: 'reward', cards: cards, bonus: bonus, stats: { killed: s.stats.killed, leaked: s.stats.leaked, goldEarned: s.stats.goldEarned } };

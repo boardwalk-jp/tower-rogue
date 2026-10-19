@@ -249,6 +249,17 @@ G.TOWERS = {
     text: '近くの道に兵士2人を出す。兵士は敵1体ずつを止めて戦う。倒れても8秒で戻る。ボスは止められない。',
     up: [{ cost: 30, soldiers: { n: 2, hp: 120, dmg: 12, rate: 1.0, respawn: 7 } }, { cost: 60, soldiers: { n: 3, hp: 160, dmg: 16, rate: 0.9, respawn: 6 } }]
   },
+  // ---- レア（ボスの報酬に出る） ----
+  sniper: {
+    name: '狙撃塔', muzzle: 1.9, cost: 2, range: 4.0, dmg: 34, rate: 2.2, dmgType: 'physical', shot: 'bolt', speed: 18, vsBoss: 1.5, defTarget: 'strong',
+    text: 'とても遠くまで届く。最初は体力が一番多い敵をねらう。ボスには1.5倍のダメージ。',
+    up: [{ cost: 40, dmg: 50, range: 4.2 }, { cost: 80, dmg: 72, range: 4.2, rate: 2.0 }]
+  },
+  storm: {
+    name: '嵐の塔', muzzle: 1.9, cost: 3, range: 2.6, dmg: 14, rate: 1.2, dmgType: 'magic', shot: 'spark', speed: 16, chain: 4, chainFull: true,
+    text: '雷が近くの敵へ4体まで飛び移る。飛び移っても威力が落ちない。',
+    up: [{ cost: 40, dmg: 19, chain: 5 }, { cost: 80, dmg: 26, range: 2.8, chain: 6 }]
+  },
   ballista: {
     name: '大型弩砲', muzzle: 0.9, cost: 3, range: 3.6, dmg: 40, rate: 2.4, dmgType: 'physical', shot: 'bolt', speed: 14,
     text: '遠くまで届く重い矢。1発が大きい。',
@@ -276,6 +287,8 @@ G.CARDS = {
   cannon:   { kind: 'tower', tower: 'cannon', rarity: 'uncommon' },
   frost:    { kind: 'tower', tower: 'frost', rarity: 'uncommon' },
   ballista: { kind: 'tower', tower: 'ballista', rarity: 'rare' },
+  sniper:   { kind: 'tower', tower: 'sniper', rarity: 'rare' },
+  storm:    { kind: 'tower', tower: 'storm', rarity: 'rare' },
   fire:     { kind: 'tower', tower: 'fire', rarity: 'uncommon' },
   thunder:  { kind: 'tower', tower: 'thunder', rarity: 'uncommon' },
   mine:     { kind: 'tower', tower: 'mine', rarity: 'common' },
@@ -295,6 +308,8 @@ G.CARDS = {
               text: 'タワー1つをお金を使わずにLv+1（この戦闘中ずっと）。' },
   warcry:   { kind: 'skill', name: '号令', cost: 1, target: 'none', rarity: 'uncommon', icon: 'horn', mult: 1.5,
               text: 'すべてのタワーの攻撃速度をこのターンだけ1.5倍。' },
+  rally:    { kind: 'skill', name: '総攻撃', cost: 1, target: 'none', rarity: 'rare', icon: 'sword', mult: 1.6,
+              text: 'すべてのタワーの攻撃力をこのターンだけ1.6倍。' },
   // ---- ここから下は、経験値をためると解放されるカード（unlock: true） ----
   overclock: { kind: 'skill', name: '過負荷', cost: 1, target: 'none', rarity: 'rare', icon: 'gear', mult: 2, unlock: true,
               text: 'すべてのタワーの攻撃速度をこのターンだけ2倍。' },
@@ -323,6 +338,7 @@ G.PLUS_SKILL = {
   forge:    { cost: 0, text: 'タワー1つをお金を使わずにLv+1（この戦闘中ずっと）。', plusNote: ['エネルギー', '1', '0'] },
   warcry:   { mult: 1.8, text: 'すべてのタワーの攻撃速度をこのターンだけ1.8倍。', plusNote: ['攻撃速度の倍率', '1.5倍', '1.8倍'] },
   workshop: { cost: 1, text: '「弓兵の塔（エネルギー0・使い切り）」を2枚手札に加える。使い切り。', plusNote: ['エネルギー', '2', '1'] },
+  rally:    { mult: 2, text: 'すべてのタワーの攻撃力をこのターンだけ2倍。', plusNote: ['攻撃力の倍率', '1.6倍', '2倍'] },
   overclock: { cost: 0, text: 'すべてのタワーの攻撃速度をこのターンだけ2倍。', plusNote: ['エネルギー', '1', '0'] },
   architect: { n: 3, text: 'このターン、次に使うタワーのカード3枚のエネルギーが0になる。', plusNote: ['0になる枚数', '2枚', '3枚'] },
   meteor:   { dmg: 140, text: '今マップにいるすべての敵に140ダメージ（魔法）。攻撃中に使う。', plusNote: ['ダメージ', '90', '140'] }
@@ -587,7 +603,7 @@ G.RULES = {
   floorScale: 0.04,   // 1階進むごとに敵の体力が4%ずつ増える（数はひな形どおり）
   battleGold: { battle: 10, elite: 30 },   // 戦闘に勝った時のおまけのお金
   restHeal: 12,
-  bossHit: { every: 2.5, dmg: 3 },   // 城の前で止まったボスの攻撃（間隔の秒・1回で減るライフ。ラスボスは dmg+1）
+  bossHit: { every: 2.5, dmg: 7, finalDmg: 10 },   // 城の前で止まったボスの攻撃（間隔の秒・1回で減るライフ。ラスボスは finalDmg）
   bossHp: 0.7,        // ボスの体力の倍率（階が進む分の倍率はボスにはかけず、層の倍率×これ）
   easyBattles: 3,     // 各層の最初の3回の通常戦闘は、その層で弱い方の攻撃のひな形から選ぶ
   easyPool: 3,        // 弱い順に何個のひな形から選ぶか

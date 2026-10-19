@@ -248,6 +248,15 @@ var G = window.G = window.G || {};
                  shop: { common: 50, uncommon: 35, rare: 15 }, rare: { common: 0, uncommon: 40, rare: 60 } };
   function cardPool() { return Object.keys(G.CARDS).filter(function (id) { return G.CARDS[id].rarity !== 'starter' && !G.CARDS[id].plus && unlocked('card', id); }); }
   function rollCards(run, n, table) {
+    // ボスの報酬：レアのカードだけから選ぶ。足りない時はアンコモンで埋める
+    if (table === 'boss') {
+      var bp = cardPool(), out0 = [];
+      ['rare', 'uncommon'].forEach(function (rar) {
+        var c = bp.filter(function (id) { return G.CARDS[id].rarity === rar; });
+        while (out0.length < n && c.length) out0.push(c.splice(Math.floor(run.rand() * c.length), 1)[0]);
+      });
+      return out0;
+    }
     var w = WEIGHT[table] || WEIGHT.battle, out = [], pool = cardPool(), guard = 0;
     while (out.length < n && guard++ < 200) {
       var x = run.rand() * (w.common + w.uncommon + w.rare);

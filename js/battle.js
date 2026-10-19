@@ -179,7 +179,7 @@ var G = window.G = window.G || {};
     if (def.kind === 'tower') {
       var TD0 = G.TOWERS[def.tower];
       var t = { id: s.nextId++, type: def.tower, tx: target.tx, ty: target.ty, x: target.tx + 0.5, y: target.ty + 0.5,
-                lv: Math.min(def.startLv || 0, TD0.up.length), bonusDmg: 0, turnDmgMult: 1, cd: 0.2, aim: 0, fire: 0, target: 'first' };
+                lv: Math.min(def.startLv || 0, TD0.up.length), bonusDmg: 0, turnDmgMult: 1, cd: 0.2, aim: 0, fire: 0, target: TD0.defTarget || 'first' };
       var TD = G.TOWERS[def.tower];
       if (TD.blocker) t.hp = t.maxHp = baseStats(t.type, t.lv).blocker.hp;
       if (TD.trap) t.hitSet = {};
@@ -205,6 +205,7 @@ var G = window.G = window.G || {};
       case 'supply': for (var d = 0; d < def.n; d++) drawOne(s); break;
       case 'tax': s.gold += def.gold; s.stats.goldEarned += def.gold; break;
       case 'warcry': case 'overclock': s.buff.speedMult *= def.mult; break;
+      case 'rally': s.towers.forEach(function (t2) { t2.turnDmgMult *= def.mult; }); break;
       case 'architect': s.freeTowers += def.n; break;
       case 'meteor':
         // 隕石：今マップにいる敵すべてにダメージ（準備ターンに使うと、次の攻撃の最初の敵には当たらない）
@@ -544,7 +545,7 @@ var G = window.G = window.G || {};
         if (!e.atCastle) { e.atCastle = true; e.atkT = 1.0; ev(s, { k: 'bossArrive', x: e.x, y: e.y, type: e.type }); }
         e.atkT -= dt; if (e.atkAnim > 0) e.atkAnim -= dt;
         if (e.atkT <= 0) {
-          var BH = G.RULES.bossHit, hit = BH.dmg + (E.final ? 1 : 0);
+          var BH = G.RULES.bossHit, hit = E.final ? BH.finalDmg : BH.dmg;
           e.atkT = BH.every; e.atkAnim = 0.45;
           s.life = Math.max(0, s.life - hit); s.stats.bossHits = (s.stats.bossHits || 0) + hit;
           ev(s, { k: 'bossHit', x: e.x, y: e.y + 0.6, life: hit, type: e.type });
@@ -579,7 +580,7 @@ var G = window.G = window.G || {};
         var sy = tw.y - (T.muzzle !== undefined ? T.muzzle : 1.5);
         s.shots.push({ kind: T.shot, x: tw.x, y: sy, sx: tw.x, sy: sy, target: best.id,
                        tx: best.x, ty: best.y, speed: T.speed, dmg: st.dmg, dmgType: T.dmgType,
-                       splash: st.splash, poison: st.poison, slow: st.slow, burn: st.burn, chain: st.chain, t: 0, src: tw.type, noAir: noAir });
+                       splash: st.splash, poison: st.poison, slow: st.slow, burn: st.burn, chain: st.chain, t: 0, src: tw.type, noAir: noAir, vsBoss: T.vsBoss || 0, chainMul: T.chainFull ? 1 : 0.7 });
         ev(s, { k: 'fire', type: tw.type, x: tw.x, y: sy });
       }
     }
@@ -614,7 +615,7 @@ var G = window.G = window.G || {};
             var se = s.enemies[j];
             if (se.hp > 0 && Math.hypot(se.x - sh.tx, se.y - (sh.ty + 0.3)) <= sh.splash) { hurt(s, se, sh.dmg, sh.dmgType, sh.src); applyOnHit(s, se, sh); }
           }
-        } else if (tgt && tgt.hp > 0) { hurt(s, tgt, sh.dmg, sh.dmgType, sh.src); applyOnHit(s, tgt, sh); }
+        } else if (tgt && tgt.hp > 0) { hurt(s, tgt, sh.dmg * (sh.vsBoss && G.ENEMIES[tgt.type].boss ? sh.vsBoss : 1), sh.dmgType, sh.src); applyOnHit(s, tgt, sh); }
         // 雷：近くの敵へ順に飛び移る（70%のダメージ）
         if (sh.chain && tgt) {
           var hit = [tgt.id], from = tgt;
@@ -627,7 +628,7 @@ var G = window.G = window.G || {};
             }
             if (!nx) break;
             ev(s, { k: 'chain', x0: from.x, y0: from.y - 0.4, x1: nx.x, y1: nx.y - 0.4 });
-            hurt(s, nx, sh.dmg * 0.7, sh.dmgType, sh.src); hit.push(nx.id); from = nx;
+            hurt(s, nx, sh.dmg * sh.chainMul, sh.dmgType, sh.src); hit.push(nx.id); from = nx;
           }
         }
         ev(s, { k: sh.kind === 'orb' ? 'zap' : sh.kind === 'ice' ? 'frost' : sh.kind === 'drip' ? 'splat' : sh.kind === 'flame' ? 'flame' : sh.kind === 'spark' ? 'zap' : 'pin', x: sh.tx, y: sh.ty });
