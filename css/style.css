@@ -406,4 +406,17 @@ dt{color:var(--muted);text-align:right} dd{margin:0;text-align:left}
 .world-map .node{z-index:2}
 .world-fx{position:fixed;z-index:3;pointer-events:none;image-rendering:pixelated}
 #world[hidden] .world-fx{display:none}
-#world-lines line{stroke:rgba(236,226,196,.55)}
+#world-lines line{stroke:rgba(244,236,210,.85);stroke-width:2}
+#world-lines line.under{stroke:rgba(8,10,8,.6);stroke-width:5;stroke-dasharray:none;stroke-linecap:round}
+#world-lines line.walked{stroke:#d8d2bc}
+/* マス：背景の景色に負けないよう、中をすけない濃い色・明るいふち・下に影。進めないマスはアイコンだけ少し暗く */
+.world-map .node{opacity:1;background:#141b16;border-color:rgba(232,222,190,.7);box-shadow:0 2px 0 rgba(0,0,0,.55),0 0 0 2px rgba(0,0,0,.35)}
+.world-map .node canvas{opacity:.85}
+.world-map .node.t-boss{border-color:#d0605a}
+.world-map .node.visited{border-color:#6a7268}
+.world-map .node.visited canvas{opacity:.35}
+.world-map .node.here,.world-map .node.reach{box-shadow:0 0 0 3px rgba(232,232,232,.25)}
+.world-map .node.here canvas,.world-map .node.reach canvas,.world-map .node.pick canvas{opacity:1}
+.world-map .node.reach{border-color:var(--accent);animation:pulse 1.2s ease-in-out infinite}
+.world-map .node.here{border-color:#ffffff}
+.world-map .node.pick{background:var(--accent);animation:none}

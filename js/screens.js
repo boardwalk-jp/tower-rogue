@@ -264,7 +264,9 @@ var G = window.G = window.G || {};
       n.next.forEach(function (nk) {
         var b = nodePos(nodes[nk], width), walked = run.visited.indexOf(k) >= 0 && run.visited.indexOf(nk) >= 0 && run.visited.indexOf(nk) === run.visited.indexOf(k) + 1;
         var open = k === run.at && reach.indexOf(nk) >= 0;
-        lines += '<line x1="' + a.x + '" y1="' + a.y + '" x2="' + b.x + '" y2="' + b.y + '" class="' + (walked ? 'walked' : open ? 'open' : '') + '"/>';
+        var xy = 'x1="' + a.x + '" y1="' + a.y + '" x2="' + b.x + '" y2="' + b.y + '"';
+        // 下に濃い影の線を敷いて、背景の景色の上でも線が見えるように
+        lines = '<line ' + xy + ' class="under"/>' + lines + '<line ' + xy + ' class="' + (walked ? 'walked' : open ? 'open' : '') + '"/>';
       });
     });
     svg.innerHTML = lines;
