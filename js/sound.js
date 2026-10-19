@@ -21,6 +21,7 @@ var G = window.G = window.G || {};
     noiseBuf = ac.createBuffer(1, ac.sampleRate * 0.6, ac.sampleRate);
     var d = noiseBuf.getChannelData(0); for (var i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
     boss = null; bossOut = null;      // ボスの曲は音の準備ごとに作り直す
+    for (var k in lastAt) delete lastAt[k];   // 効果音の「最後に鳴らした時刻」も消す（新しい時計は0から）
     tried = false;
     watchState();
   }
@@ -146,7 +147,8 @@ var G = window.G = window.G || {};
   function play(name) {
     if (!cfg.se || !ready() || !SFX[name]) return;
     var t = ac.currentTime;
-    if (lastAt[name] && t - lastAt[name] < (GAP[name] || 0.03)) return;
+    // 同じ音の鳴らしすぎを防ぐ。音の準備を作り直すと時計が0に戻るので、前の時刻より小さい時は気にしない
+    if (lastAt[name] && t >= lastAt[name] && t - lastAt[name] < (GAP[name] || 0.03)) return;
     lastAt[name] = t;
     SFX[name](t);
   }
