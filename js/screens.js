@@ -36,8 +36,8 @@ var G = window.G = window.G || {};
     var sky = g.createLinearGradient(0, 0, 0, H * 0.8);
     sky.addColorStop(0, '#120a24'); sky.addColorStop(0.45, '#3a1638'); sky.addColorStop(0.72, '#9a3a2a'); sky.addColorStop(0.86, '#e8843a'); sky.addColorStop(1, '#ffc46a');
     g.fillStyle = sky; g.fillRect(0, 0, W, H);
-    g.fillStyle = '#ffe9c0'; g.beginPath(); g.arc(124, 22, 8, 0, Math.PI * 2); g.fill();
-    g.fillStyle = '#f6d6a0'; g.beginPath(); g.arc(121, 20, 2, 0, Math.PI * 2); g.fill(); g.beginPath(); g.arc(127, 25, 1.5, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#ffe9c0'; g.beginPath(); g.arc(124, 94, 8, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#f6d6a0'; g.beginPath(); g.arc(121, 92, 2, 0, Math.PI * 2); g.fill(); g.beginPath(); g.arc(127, 97, 1.5, 0, Math.PI * 2); g.fill();
     function ridge(y0, amp, col, seed) {
       g.fillStyle = col; g.beginPath(); g.moveTo(0, H);
       for (var x = 0; x <= W; x += 2) g.lineTo(x, y0 - Math.abs(Math.sin(x * 0.045 + seed) * amp) - Math.abs(Math.sin(x * 0.13 + seed * 2)) * amp * 0.35);
