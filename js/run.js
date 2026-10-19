@@ -8,6 +8,35 @@ var G = window.G = window.G || {};
   var LANES = 5;
 
   function pick(arr, r) { return arr[Math.floor(r() * arr.length)]; }
+  function count(arr, id) { var n = 0; for (var i = 0; i < arr.length; i++) if (arr[i] === id) n++; return n; }
+
+  // ============================================================
+  // 経験値と解放（このブラウザに保存。ランをまたいで残る）
+  // ============================================================
+  var META_KEY = 'towerRogue.meta.v1';
+  var hasLS = typeof localStorage !== 'undefined';
+  function metaLoad() { try { return (hasLS && JSON.parse(localStorage.getItem(META_KEY) || 'null')) || { xp: 0, runs: 0 }; } catch (e) { return { xp: 0, runs: 0 }; } }
+  function metaSave(m) { try { if (hasLS) localStorage.setItem(META_KEY, JSON.stringify(m)); } catch (e) {} }
+  // 解放済みか（解放の一覧にないものは最初から使える。自動対戦（保存場所なし）ではすべて使える）
+  function unlocked(kind, id) {
+    var u = G.UNLOCKS.filter(function (x) { return x.kind === kind && x.id === (kind === 'card' ? String(id).replace('+', '') : id); })[0];
+    return !u || !hasLS || metaLoad().xp >= u.xp;
+  }
+  // ランの終わりに経験値を計算して足す。返り値：内訳・前後の経験値・新しく解放されたもの
+  function gainXp(run) {
+    var X = G.XP_RULES, n = node(run), bosses = run.won ? G.RULES.acts : run.act - 1;
+    var elites = run.stats.elites, normal = Math.max(0, run.stats.battles - elites - bosses);
+    var floors = (run.act - 1) * (G.RULES.floors + 1) + (n ? (n.type === 'boss' ? G.RULES.floors + 1 : n.floor + 1) : 0);
+    var rows = [['通常戦闘の勝利', normal, X.battle], ['エリートの勝利', elites, X.elite], ['ボスの撃破', bosses, X.boss], ['進んだ階', floors, X.floor]];
+    if (run.won) rows.push(['3層クリア', 1, X.clear]);
+    var add = rows.reduce(function (a, r) { return a + r[1] * r[2]; }, 0);
+    var m = metaLoad(), before = m.xp;
+    m.xp += add; m.runs = (m.runs || 0) + 1; if (run.won) m.wins = (m.wins || 0) + 1;
+    metaSave(m);
+    var newly = G.UNLOCKS.filter(function (u) { return u.xp > before && u.xp <= m.xp; });
+    return { rows: rows, add: add, before: before, after: m.xp, newly: newly };
+  }
+  function nextUnlock(xp) { return G.UNLOCKS.filter(function (u) { return u.xp > xp; })[0] || null; }
 
   // ---- ワールドマップ（スレイザスパイア式の分かれ道） ----
   // 下（0階）から上へ進む。最後の階（floors-1）はすべて休憩、その上がボス
@@ -193,7 +222,8 @@ var G = window.G = window.G || {};
       });
     });
     return { map: mapId, theme: A.theme, waves: waves, hpMult: scale, deck: run.deck.slice(), life: run.life, maxLife: run.maxLife,
-             bossMult: A.hp * G.RULES.bossHp, gold: run.gold, seed: Math.floor(r() * 1e9), kind: kind, relics: run.relics.slice(), cmd: run.cmd };
+             bossMult: A.hp * G.RULES.bossHp, gold: run.gold, seed: Math.floor(r() * 1e9), kind: kind, relics: run.relics.slice(), cmd: run.cmd,
+             phoenix: Math.max(0, count(run.relics, 'phoenix') - (run.phoenixUsed || 0)) };
   }
   // 戦闘の結果をランに戻す
   function finishBattle(run, s) {
@@ -207,7 +237,8 @@ var G = window.G = window.G || {};
     }
     if (n.type === 'elite') run.stats.elites++;
     if (n.type === 'battle') run.actBattles = (run.actBattles || 0) + 1;
-    if (run.relics.indexOf('spring') >= 0) run.life = Math.min(run.maxLife, run.life + 3);
+    run.phoenixUsed = (run.phoenixUsed || 0) + (s.phoenixUsed || 0);
+    if (count(run.relics, 'spring')) run.life = Math.min(run.maxLife, run.life + 3 * count(run.relics, 'spring'));
     run.gold += G.RULES.battleGold[n.type] || 0;
     if (run.cmd === 'captain') run.gold += G.RULES.captainGold;
   }
@@ -215,7 +246,7 @@ var G = window.G = window.G || {};
   // ---- カードを選ぶ（報酬・商人・イベント） ----
   var WEIGHT = { battle: { common: 60, uncommon: 32, rare: 8 }, elite: { common: 30, uncommon: 45, rare: 25 },
                  shop: { common: 50, uncommon: 35, rare: 15 }, rare: { common: 0, uncommon: 40, rare: 60 } };
-  function cardPool() { return Object.keys(G.CARDS).filter(function (id) { return G.CARDS[id].rarity !== 'starter' && !G.CARDS[id].plus; }); }
+  function cardPool() { return Object.keys(G.CARDS).filter(function (id) { return G.CARDS[id].rarity !== 'starter' && !G.CARDS[id].plus && unlocked('card', id); }); }
   function rollCards(run, n, table) {
     var w = WEIGHT[table] || WEIGHT.battle, out = [], pool = cardPool(), guard = 0;
     while (out.length < n && guard++ < 200) {
@@ -228,19 +259,19 @@ var G = window.G = window.G || {};
   }
   // まだ持っていないレリックを1つ（table：elite/shop/rare）
   var RELIC_W = { elite: { common: 50, uncommon: 35, rare: 15 }, shop: { common: 40, uncommon: 40, rare: 20 }, event: { common: 45, uncommon: 40, rare: 15 } };
+  // 同じレリックも出る（重ねがけ）。ただし持っている物は出にくい（持っている数ごとに 0.35倍）
   function rollRelic(run, table) {
-    var w = RELIC_W[table] || RELIC_W.event, all = Object.keys(G.RELICS).filter(function (k) { return run.relics.indexOf(k) < 0; });
+    var w = RELIC_W[table] || RELIC_W.event, all = Object.keys(G.RELICS).filter(function (k) { return unlocked('relic', k); });
     if (!all.length) return null;
-    for (var g = 0; g < 50; g++) {
-      var x = run.rand() * (w.common + w.uncommon + w.rare);
-      var rar = x < w.common ? 'common' : x < w.common + w.uncommon ? 'uncommon' : 'rare';
-      var c = all.filter(function (k) { return G.RELICS[k].rarity === rar; });
-      if (c.length) return pick(c, run.rand);
-    }
-    return pick(all, run.rand);
+    var x = run.rand() * (w.common + w.uncommon + w.rare);
+    var rar = x < w.common ? 'common' : x < w.common + w.uncommon ? 'uncommon' : 'rare';
+    var c = all.filter(function (k) { return G.RELICS[k].rarity === rar; }); if (!c.length) c = all;
+    var ws = c.map(function (k) { return Math.pow(0.35, count(run.relics, k)); }), tot = ws.reduce(function (a, b) { return a + b; }, 0), y = run.rand() * tot;
+    for (var i = 0; i < c.length; i++) { y -= ws[i]; if (y <= 0) return c[i]; }
+    return c[c.length - 1];
   }
-  function addRelic(run, id) { if (id && run.relics.indexOf(id) < 0) run.relics.push(id); }
-  function price(run, base) { return Math.round(base * (run.relics.indexOf('seal') >= 0 ? 0.75 : 1)); }
+  function addRelic(run, id) { if (id) run.relics.push(id); }
+  function price(run, base) { return Math.round(base * Math.pow(0.75, Math.min(2, count(run.relics, 'seal')))); }
   function addCard(run, id) { run.deck.push(id); run.stats.cardsTaken++; }
   function removeCard(run, index) { run.deck.splice(index, 1); }
   // カードを鍛える（＋版にする）。もう＋なら何もしない
@@ -298,11 +329,11 @@ var G = window.G = window.G || {};
   // ---- セーブ用：ランを文字にできる形にする／元に戻す ----
   function toSave(run) {
     return { world: run.world, at: run.at, visited: run.visited, deck: run.deck, life: run.life, maxLife: run.maxLife,
-             gold: run.gold, stats: run.stats, rng: run.rand.state(), relics: run.relics, act: run.act, cmd: run.cmd, boss: run.boss, actBattles: run.actBattles || 0, lastMap: run.lastMap || null };
+             gold: run.gold, stats: run.stats, rng: run.rand.state(), relics: run.relics, act: run.act, cmd: run.cmd, boss: run.boss, phoenixUsed: run.phoenixUsed || 0, actBattles: run.actBattles || 0, lastMap: run.lastMap || null };
   }
   function fromSave(d) {
     return { rand: B.rng(d.rng), world: d.world, at: d.at, visited: d.visited, deck: d.deck, life: d.life, maxLife: d.maxLife,
-             gold: d.gold, stats: d.stats, relics: d.relics || [], act: d.act || 1, cmd: d.cmd || 'captain', boss: d.boss || 0, actBattles: d.actBattles || 0, lastMap: d.lastMap || null, over: false, won: false };
+             gold: d.gold, stats: d.stats, relics: d.relics || [], act: d.act || 1, cmd: d.cmd || 'captain', boss: d.boss || 0, phoenixUsed: d.phoenixUsed || 0, actBattles: d.actBattles || 0, lastMap: d.lastMap || null, over: false, won: false };
   }
 
   function rest(run) { var before = run.life; run.life = Math.min(run.maxLife, run.life + G.RULES.restHeal); return run.life - before; }
@@ -310,6 +341,6 @@ var G = window.G = window.G || {};
   G.Run = {
     create: create, reachable: reachable, enter: enter, node: node, battleOpts: battleOpts, finishBattle: finishBattle,
     rollCards: rollCards, addCard: addCard, removeCard: removeCard, shopStock: shopStock,
-    rollEvent: rollEvent, eventChoice: eventChoice, easyTemplates: easyTemplates, tplScore: tplScore, upgradeCard: upgradeCard, canUpgradeCard: canUpgradeCard, bossName: bossName, nextAct: nextAct, allRoutes: allRoutes, rest: rest, rollRelic: rollRelic, addRelic: addRelic, price: price, toSave: toSave, fromSave: fromSave
+    rollEvent: rollEvent, eventChoice: eventChoice, gainXp: gainXp, nextUnlock: nextUnlock, unlocked: unlocked, metaLoad: metaLoad, count: count, easyTemplates: easyTemplates, tplScore: tplScore, upgradeCard: upgradeCard, canUpgradeCard: canUpgradeCard, bossName: bossName, nextAct: nextAct, allRoutes: allRoutes, rest: rest, rollRelic: rollRelic, addRelic: addRelic, price: price, toSave: toSave, fromSave: fromSave
   };
 })();

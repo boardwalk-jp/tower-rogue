@@ -148,7 +148,21 @@ var G = window.G = window.G || {};
     return 440 * Math.pow(2, (k - 69) / 12);
   }
   function seq(str) { return str.trim().split(/\s+/).map(function (x) { return x === '-' ? 0 : freq(x); }); }
+  function roots(str) { return seq(str.trim().split(/\s+/).map(function (n) { return n + ' - - -'; }).join(' ')); }   // 1小節の頭だけ鳴らすベース
   var TRACKS = {
+    // ---- ワールドマップ・イベント・商人・休憩の曲（戦闘よりゆったり） ----
+    m1: { bpm: 92, lead: 'triangle', vol: 0.75,
+          mel: seq('G4 - C5 - E5 - D5 C5 D5 - - - G4 - - - A4 - C5 - F5 - E5 D5 C5 - - - - - - - ' +
+                   'E5 - G5 - E5 - D5 C5 D5 - E5 - C5 - - - A4 - C5 - D5 - B4 - C5 - - - - - - -'),
+          bass: roots('C3 G2 F2 G2 A2 F2 C3 G2 C3 E2 F2 C3 A2 G2 C3 C3') },
+    m2: { bpm: 78, lead: 'sine', vol: 0.9,
+          mel: seq('E5 - - - D5 - C5 - B4 - - - A4 - - - C5 - - - D5 - E5 - G5 - - - E5 - - - ' +
+                   'F5 - - - E5 - D5 - C5 - - - B4 - - - A4 - B4 - C5 - D5 - E5 - - - - - - -'),
+          bass: roots('A2 E2 F2 C3 A2 G2 C3 E2 D2 A2 F2 E2 F2 G2 A2 A2') },
+    m3: { bpm: 100, lead: 'triangle', vol: 0.75,
+          mel: seq('E4 - G4 - B4 - - - A4 - G4 - F#4 - - - E4 - G4 - B4 - E5 - D5 - - - - - - - ' +
+                   'C5 - B4 - A4 - - - B4 - A4 - G4 - - - F#4 - G4 - A4 - B4 - E4 - - - - - - -'),
+          bass: roots('E2 E2 D2 B1 E2 G2 D2 D2 C2 C2 G2 G2 D2 E2 B1 E2') },
     // 第1層 草原：明るい長調
     a1: { bpm: 112, lead: 'square', vol: 0.5,
           mel: seq('E5 - G5 E5 D5 - C5 - D5 E5 G5 - A5 G5 E5 - C5 - E5 D5 C5 - A4 - G4 A4 C5 D5 E5 - - - ' +

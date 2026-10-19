@@ -369,10 +369,43 @@ var G = window.G = window.G || {};
       case 'coin':   g.ell(8, 8, 6.5, 6.5, '#d9a82a'); g.ell(8, 8, 5, 5, '#ffd84a'); g.rect(7, 4, 2, 8, '#b08218'); g.rect(5, 6, 6, 1, '#b08218'); g.rect(5, 9, 6, 1, '#b08218'); break;
       case 'hammer': g.rect(7, 6, 2, 9, '#8a5a2b'); g.rect(3, 2, 10, 4, '#8b8f94'); g.rect(3, 2, 10, 1, '#c3c7cc'); g.rect(12, 1, 2, 2, '#ffd84a'); break;
       case 'horn':   for (var i = 0; i < 10; i++) g.rect(2 + i, 9 - Math.floor(i / 2), 2, 2 + Math.floor(i / 2), '#d9b24a'); g.rect(12, 3, 2, 8, '#b08218'); g.px(1, 9, '#ffffff'); g.px(0, 7, '#ffffff'); break;
+      case 'gear':   g.ell(8, 8, 6, 6, '#8b8f94'); for (var q = 0; q < 8; q++) { var an = q * Math.PI / 4; g.rect(Math.round(8 + Math.cos(an) * 6.5) - 1, Math.round(8 + Math.sin(an) * 6.5) - 1, 2, 2, '#8b8f94'); } g.ell(8, 8, 2.5, 2.5, '#16120f'); g.px(4, 5, '#c3c7cc'); g.rect(10, 1, 1, 4, '#ffe14d'); g.rect(11, 3, 1, 3, '#ffe14d'); break;
+      case 'scroll': g.rect(3, 3, 10, 10, '#4a7ad0'); g.rect(3, 3, 10, 1, '#7aa8f0'); for (var y2 = 5; y2 < 12; y2 += 2) g.rect(5, y2, 6, 1, '#d8e8ff'); g.rect(2, 2, 2, 12, '#e8d9b0'); g.rect(12, 2, 2, 12, '#e8d9b0'); break;
+      case 'meteor': g.ell(10, 10, 4, 4, '#8a4a2a'); g.ell(10, 10, 2.5, 2.5, '#ff8a2a'); g.px(11, 9, '#ffd84a'); for (var k2 = 0; k2 < 6; k2++) { g.px(1 + k2, 1 + k2, '#ff6a2a'); g.px(2 + k2, 1 + k2, '#ffd84a'); } break;
       case 'saw':    g.rect(2, 7, 12, 4, '#b4b8bc'); for (var x = 2; x < 14; x += 2) g.px(x, 11, '#8b8f94'); g.rect(11, 4, 4, 4, '#8a5a2b'); g.rect(3, 2, 6, 3, '#8a5a2b'); g.rect(4, 3, 4, 1, '#c08a4a'); break;
     }
     return g.outline(OUT).bake();
   }
+
+  // ---- レリックの絵（14×14）。1つずつ違う形 ----
+  function relicIcon(id) {
+    var g = new Grid(14, 14), i;
+    switch (id) {
+      case 'sharp': for (i = 0; i < 6; i++) g.rect(7 - i, 1 + i, 1 + i * 2 > 11 ? 11 : 1 + i * 2, 1, i % 2 ? '#c3c7cc' : '#e8ecf0'); g.rect(6, 7, 2, 6, '#8a5a2b'); g.px(7, 1, '#ffffff'); break;
+      case 'crystal': g.rect(5, 2, 4, 10, '#9a6ad8'); g.rect(4, 4, 6, 6, '#9a6ad8'); g.rect(6, 2, 1, 9, '#d8b8ff'); g.px(7, 1, '#d8b8ff'); g.px(7, 12, '#6a3aa8'); break;
+      case 'oldmap': g.rect(1, 2, 12, 10, '#e8d9b0'); g.rect(1, 2, 12, 1, '#c8b88a'); g.rect(4, 4, 1, 4, '#a08a5a'); g.rect(4, 7, 4, 1, '#a08a5a'); g.px(9, 8, '#d94a3a'); g.px(10, 9, '#d94a3a'); g.px(10, 7, '#d94a3a'); g.px(8, 9, '#d94a3a'); break;
+      case 'scale': g.rect(6, 2, 2, 10, '#d9a82a'); g.rect(1, 3, 12, 1, '#ffd84a'); g.rect(1, 4, 1, 3, '#d9a82a'); g.rect(12, 4, 1, 3, '#d9a82a'); g.rect(0, 7, 3, 1, '#ffd84a'); g.rect(11, 7, 3, 1, '#ffd84a'); g.rect(4, 12, 6, 1, '#d9a82a'); break;
+      case 'vial': g.rect(5, 1, 4, 2, '#a8742e'); g.rect(6, 3, 2, 2, '#c8d8e0'); g.ell(7, 9, 4.5, 4, '#c8d8e0'); g.ell(7, 10, 3.5, 2.8, '#6ac83a'); g.px(5, 9, '#c8ffb0'); break;
+      case 'frostbell': g.ell(7, 7, 5, 5.5, '#7ab8e0'); g.rect(2, 9, 10, 3, '#7ab8e0'); g.rect(1, 11, 12, 1, '#4a7aa8'); g.px(5, 4, '#e0f4ff'); g.px(7, 12, '#ffd84a'); g.rect(6, 0, 2, 2, '#4a7aa8'); break;
+      case 'banner': g.rect(2, 1, 1, 12, '#8a5a2b'); g.rect(3, 1, 9, 6, '#d94a3a'); g.rect(3, 1, 9, 1, '#ff7a6a'); g.px(11, 7, '#d94a3a'); g.px(9, 7, '#d94a3a'); g.rect(6, 3, 3, 2, '#ffd84a'); break;
+      case 'spring': g.ell(7, 8.5, 4.5, 4.5, '#3a8ad0'); g.rect(6, 2, 2, 3, '#3a8ad0'); g.px(7, 1, '#3a8ad0'); g.rect(5, 4, 4, 2, '#3a8ad0'); g.px(5, 7, '#bfe8ff'); g.px(5, 8, '#bfe8ff'); break;
+      case 'seal': g.ell(7, 7, 6, 6, '#a82a2a'); g.ell(7, 7, 4, 4, '#d94a3a'); g.rect(5, 5, 4, 1, '#ffd84a'); g.rect(6, 6, 2, 3, '#ffd84a'); break;
+      case 'blueprint': g.rect(1, 3, 11, 9, '#2a5aa8'); g.rect(3, 1, 11, 9, '#3a7ad0'); for (i = 3; i < 9; i += 2) g.rect(5, i, 7, 1, '#bfe0ff'); g.rect(5, 3, 1, 5, '#bfe0ff'); break;
+      case 'wall': g.rect(0, 3, 14, 10, '#8b8f94'); for (i = 3; i < 13; i += 3) g.rect(0, i, 14, 1, '#5a5e64'); g.rect(4, 4, 1, 2, '#5a5e64'); g.rect(10, 4, 1, 2, '#5a5e64'); g.rect(7, 7, 1, 2, '#5a5e64'); g.rect(2, 10, 1, 2, '#5a5e64'); g.rect(11, 10, 1, 2, '#5a5e64'); g.rect(0, 3, 14, 1, '#b4b8bc'); break;
+      case 'stone': g.rect(6, 1, 2, 12, '#5fd8ff'); g.rect(4, 3, 6, 8, '#5fd8ff'); g.rect(2, 5, 10, 4, '#5fd8ff'); g.rect(5, 4, 2, 3, '#e0faff'); g.rect(8, 8, 2, 2, '#2a98c8'); break;
+      case 'conductor': g.rect(2, 3, 10, 9, '#a8d8f0'); g.rect(2, 3, 10, 1, '#e0f4ff'); g.rect(8, 1, 2, 4, '#ffe14d'); g.rect(6, 5, 3, 2, '#ffe14d'); g.rect(5, 7, 2, 4, '#ffe14d'); g.px(4, 11, '#ffe14d'); break;
+      case 'oil': g.ell(7, 9, 5, 4.5, '#8a5a2b'); g.rect(5, 2, 4, 4, '#8a5a2b'); g.rect(4, 2, 6, 1, '#6b4422'); g.ell(7, 9, 2.5, 2.5, '#1e1a22'); g.px(6, 8, '#6a6478'); break;
+      case 'brittle': g.rect(3, 1, 4, 6, '#e8f4ff'); g.rect(7, 4, 4, 7, '#c8e0f0'); g.rect(2, 8, 4, 5, '#d8ecf8'); g.px(6, 7, '#5fc8ff'); g.px(7, 8, '#5fc8ff'); g.px(5, 9, '#5fc8ff'); break;
+      case 'plague': g.ell(7, 10, 6, 3, '#6a7a5a'); g.ell(7, 6, 4, 3.5, '#a8b890'); g.rect(5, 6, 1, 1, '#2a3a1a'); g.rect(8, 6, 1, 1, '#2a3a1a'); g.px(3, 2, '#a6e85a'); g.px(10, 1, '#a6e85a'); g.px(12, 4, '#a6e85a'); break;
+      case 'magnet': g.rect(2, 2, 3, 8, '#d94a3a'); g.rect(9, 2, 3, 8, '#d94a3a'); g.ell(7, 9, 5, 3.5, '#d94a3a'); g.ell(7, 8, 2, 2, null); g.rect(5, 2, 4, 7, null); g.rect(2, 1, 3, 2, '#e8ecf0'); g.rect(9, 1, 3, 2, '#e8ecf0'); g.px(6, 12, '#ffd84a'); g.px(8, 12, '#ffd84a'); break;
+      case 'anvil': g.rect(1, 3, 10, 3, '#5a5e64'); g.rect(11, 3, 3, 2, '#5a5e64'); g.rect(4, 6, 5, 3, '#4a4e54'); g.rect(2, 9, 9, 3, '#5a5e64'); g.rect(1, 3, 10, 1, '#8b8f94'); g.px(6, 1, '#ff8a2a'); g.px(8, 0, '#ffd84a'); break;
+      case 'crown': g.rect(1, 6, 12, 6, '#ffd84a'); g.rect(1, 3, 2, 3, '#ffd84a'); g.rect(6, 1, 2, 5, '#ffd84a'); g.rect(11, 3, 2, 3, '#ffd84a'); g.rect(1, 11, 12, 1, '#d9a82a'); g.px(3, 8, '#d94a3a'); g.px(7, 8, '#3a7bd9'); g.px(10, 8, '#d94a3a'); break;
+      case 'phoenix': for (i = 0; i < 11; i++) g.rect(2 + i, 12 - i, 2, 2, i < 4 ? '#ffd84a' : i < 8 ? '#ff8a2a' : '#d94a3a'); g.rect(8, 2, 3, 3, '#d94a3a'); g.px(4, 8, '#ff8a2a'); g.px(6, 6, '#ffd84a'); g.px(1, 13, '#8a5a2b'); break;
+      default: g.ell(7, 7, 5, 5, '#c8b88a');
+    }
+    return g.outline(OUT).bake();
+  }
+  G.relicIcon = function (id) { if (!G.SPR.relic[id]) G.SPR.relic[id] = relicIcon(id); return G.SPR.relic[id]; };
 
   // ---- ワールドマップのマスの絵（14×14） ----
   function nodeIcon(kind) {
@@ -521,7 +554,7 @@ var G = window.G = window.G || {};
       goblinlord: [ogre(0, { skin: '#7aa83a', dark: '#4e7a22', belly: '#a8c870' }), ogre(1, { skin: '#7aa83a', dark: '#4e7a22', belly: '#a8c870' })],
       lich: [ogre(0, { skin: '#8a8aa8', dark: '#4e4e6a', belly: '#c8c8e0' }), ogre(1, { skin: '#8a8aa8', dark: '#4e4e6a', belly: '#c8c8e0' })],
       demonlord: [ogre(0, { skin: '#7a1e1e', dark: '#3a0a0a', belly: '#b04030' }), ogre(1, { skin: '#7a1e1e', dark: '#3a0a0a', belly: '#b04030' })],
-      icon: {}, node: {},
+      icon: {}, node: {}, relic: {},
       tree: [tree(0), tree(1)], rock: rock(), gate: gate(), castle: castle(), heart: heart()
     };
     var makers = { archer: archerTower, mage: mageTower, cannon: cannonTower, bowman: bowmanTower, sling: slingTower,
@@ -532,7 +565,7 @@ var G = window.G = window.G || {};
       S[k] = [];
       for (var lv = 0; lv < 3; lv++) S[k].push([makers[k](lv, false), makers[k](lv, true)]);
     });
-    ['eye', 'bag', 'stone', 'coin', 'hammer', 'horn', 'saw'].forEach(function (k) { S.icon[k] = icon(k); });
+    ['eye', 'bag', 'stone', 'coin', 'hammer', 'horn', 'saw', 'gear', 'scroll', 'meteor'].forEach(function (k) { S.icon[k] = icon(k); });
     ['battle', 'elite', 'event', 'shop', 'rest', 'boss'].forEach(function (k) { S.node[k] = nodeIcon(k); });
     G.SPR = S;
     return S;

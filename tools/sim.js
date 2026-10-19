@@ -53,7 +53,7 @@ function playTurn(s) {
     played = false;
     for (var i = 0; i < s.hand.length; i++) {
       var c = s.hand[i], def = B.cardDef(c);
-      if (B.cardCost(c) > s.energy) continue;
+      if (B.cardCost(c, s) > s.energy) continue;
       var target = null;
       if (def.kind === 'tower') { target = bestSpot(s, def.tower); if (!target) continue; }
       else if (def.target === 'tower') {

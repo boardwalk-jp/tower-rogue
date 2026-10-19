@@ -62,6 +62,8 @@ var G = window.G = window.G || {};
       var dt = new Date(d.at);
       $('t-cont-info').textContent = (G.COMMANDERS[r.cmd] || G.COMMANDERS.captain).name + '・' + where + '・ライフ' + r.life + '/' + r.maxLife + '・デッキ' + r.deck.length + '枚・' + (dt.getMonth() + 1) + '/' + dt.getDate() + ' ' + dt.getHours() + ':' + String(dt.getMinutes()).padStart(2, '0');
     } else $('t-cont-info').textContent = '保存されたデータはありません';
+    var m = R.metaLoad(), nx = R.nextUnlock(m.xp), got = G.UNLOCKS.filter(function (u) { return u.xp <= m.xp; }).length;
+    $('t-meta').textContent = '経験値 ' + m.xp + '　解放 ' + got + '/' + G.UNLOCKS.length + (nx ? '（次まで あと' + (nx.xp - m.xp) + '）' : '');
     setChoice(d ? 'cont' : 'new');
   }
   function setChoice(c) {
@@ -173,7 +175,7 @@ var G = window.G = window.G || {};
   var viewFrom = null;
   function showWorld(view) {
     view = view === true;
-    if (!view) { lastResume = { type: 'map' }; save(lastResume); music('a' + run.act); viewFrom = null; }
+    if (!view) { lastResume = { type: 'map' }; save(lastResume); music('m' + run.act); viewFrom = null; }
     G.showScreen('world');
     $('world-menu-btn').hidden = view; $('world-back').hidden = !view;
     pendingNode = null;
@@ -230,21 +232,7 @@ var G = window.G = window.G || {};
     R.enter(run, k);
     enterNode(n);
   }
-  function renderRelics() {
-    var box = $('relic-strip'); box.innerHTML = '';
-    if (!run.relics.length) { box.innerHTML = '<span class="relic-none">レリックなし（エリートを倒す・商人・イベントで手に入る）</span>'; return; }
-    run.relics.forEach(function (id) {
-      var R2 = G.RELICS[id], b = button(R2.name, 'relic-chip r-' + R2.rarity, function () { showRelic(id); });
-      box.appendChild(b);
-    });
-  }
-  function showRelic(id) {
-    var R2 = G.RELICS[id];
-    $('p-title').textContent = R2.name;
-    $('p-note').textContent = R2.text + '（' + (R2.kind === 'change' ? '遊び方が変わる' : R2.kind === 'combo' ? '組み合わせで強くなる' : '数値が上がる') + '）';
-    $('p-list').innerHTML = '';
-    $('pile').hidden = false;
-  }
+  function renderRelics() { UI.relicBar($('relic-strip'), run.relics, 'レリックなし（エリートを倒す・商人・イベントで手に入る）'); }
   function showDeck() { if (run) UI.showList('デッキ', run.deck, 'カードをタップすると詳しい説明が出ます。'); }
   $('world').querySelector('.deck-btn').addEventListener('click', showDeck);
   // ---- 画面の上の「マップ」「デッキ」（いつでも見られる） ----
@@ -269,6 +257,7 @@ var G = window.G = window.G || {};
     // マスに入る時点で保存（途中でやめても、つづきからは同じマスに入り直す。戦闘は最初から）
     lastResume = { type: 'node' }; save(lastResume);
     if (n.type === 'battle' || n.type === 'elite' || n.type === 'boss') return startBattle(n);
+    if (n.type !== 'battle' && n.type !== 'elite' && n.type !== 'boss') music('m' + run.act);
     if (n.type === 'event') return showEvent();
     if (n.type === 'shop') return showShop();
     if (n.type === 'rest') return showRest();
@@ -485,10 +474,29 @@ var G = window.G = window.G || {};
       var n = R.node(run);
       body.appendChild(el('p', 'panel-text', (run.won ? 'ラスボスの' + R.bossName(run) + 'を倒した。' : G.ACTS[run.act - 1].name + 'の' + (n ? (n.type === 'boss' ? 'ボス戦' : (n.floor + 1) + '階') : '') + 'で力つきた。') +
         ' 勝った戦闘 ' + run.stats.battles + '回（エリート ' + run.stats.elites + '回）、手に入れたカード ' + run.stats.cardsTaken + '枚、最後のデッキ ' + run.deck.length + '枚。'));
+      // 経験値（ランごとに1回だけ足す）
+      if (!run.xpResult) run.xpResult = R.gainXp(run);
+      body.appendChild(xpBox(run.xpResult));
       foot.appendChild(button('新しく始める', 'go', chooseCommander));
       foot.appendChild(button('タイトルに戻る', '', backToTitle));
       foot.appendChild(button('最後のデッキを見る', '', function () { UI.showList('デッキ', run.deck); }));
     });
+  }
+
+  // ---- 経験値の結果：内訳・合計・次の解放までのバー・新しく解放されたもの ----
+  function unlockName(u) { return u.kind === 'card' ? 'カード「' + G.CARDS[u.id].name + '」' : 'レリック「' + G.RELICS[u.id].name + '」'; }
+  function xpBox(x) {
+    var box = el('div', 'card-detail xp-box');
+    box.appendChild(el('h3', '', '経験値 +' + x.add));
+    var dl = el('dl', 'xp-rows');
+    x.rows.forEach(function (r) { if (!r[1]) return; dl.appendChild(el('dt', '', r[0])); dl.appendChild(el('dd', '', r[1] + ' × ' + r[2] + ' = ' + (r[1] * r[2]))); });
+    box.appendChild(dl);
+    var nx = R.nextUnlock(x.after), prev = G.UNLOCKS.filter(function (u) { return u.xp <= x.after; }).pop();
+    var lo = prev ? prev.xp : 0, hi = nx ? nx.xp : x.after;
+    box.appendChild(el('p', '', '合計 ' + x.after + (nx ? '　次の解放まで あと ' + (nx.xp - x.after) + '（' + unlockName(nx) + '）' : '　すべて解放済み')));
+    var bar = el('div', 'xp-bar'), fill = el('i'); fill.style.width = (nx ? Math.max(2, (x.after - lo) / (hi - lo) * 100) : 100) + '%'; bar.appendChild(fill); box.appendChild(bar);
+    x.newly.forEach(function (u) { box.appendChild(el('p', 'xp-new', '新しく解放：' + unlockName(u) + '（次のランから報酬・商人に出る）')); });
+    return box;
   }
 
   // ---- パネル画面（報酬・イベント・商人・休憩・終わり）の共通の入れ物 ----

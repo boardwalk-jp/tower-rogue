@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap">
-<link rel="stylesheet" href="css/style.css?v=20261019024159">
+<link rel="stylesheet" href="css/style.css?v=20261019163657">
 </head>
 <body>
 
@@ -23,12 +23,13 @@
       <button type="button" id="t-cont" class="title-opt" aria-pressed="false"><b>つづきから</b><small id="t-cont-info"></small></button>
       <button type="button" id="t-new" class="title-opt" aria-pressed="true"><b>はじめから</b><small id="t-new-info">新しい挑戦を始める</small></button>
     </div>
+    <p class="meta-line" id="t-meta"></p>
     <div class="swipe">
       <div class="arrow" aria-hidden="true">▲<br>▲</div>
       <p>上にスワイプしてスタート</p>
       <button type="button" id="pc-start" class="pc-only">クリックでスタート</button>
     </div>
-    <p class="ver" id="ver">版 10/19 02:41</p>
+    <p class="ver" id="ver">版 10/19 16:36</p>
   </div>
 </section>
 
@@ -61,6 +62,7 @@
     <span class="nav-btns"><button type="button" class="nav-btn" data-nav="map">マップ</button><button type="button" class="nav-btn" data-nav="deck">デッキ</button></span>
   </header>
 
+  <div class="relic-strip battle-relics scroll-y" id="b-relics"></div>
   <div class="stage" id="stage">
     <canvas id="map"></canvas>
     <div class="banner" id="banner"></div>
@@ -150,14 +152,14 @@
 <div id="tap-sound" hidden>♪ 画面をタップすると音が出ます</div>
 <div id="rotate"><p>画面を縦にしてください</p></div>
 
-<script src="js/data.js?v=20261019024159"></script>
-<script src="js/battle.js?v=20261019024159"></script>
-<script src="js/run.js?v=20261019024159"></script>
-<script src="js/sprites.js?v=20261019024159"></script>
-<script src="js/render.js?v=20261019024159"></script>
-<script src="js/sound.js?v=20261019024159"></script>
-<script src="js/bossbgm.js?v=20261019024159"></script>
-<script src="js/ui.js?v=20261019024159"></script>
-<script src="js/screens.js?v=20261019024159"></script>
+<script src="js/data.js?v=20261019163657"></script>
+<script src="js/battle.js?v=20261019163657"></script>
+<script src="js/run.js?v=20261019163657"></script>
+<script src="js/sprites.js?v=20261019163657"></script>
+<script src="js/render.js?v=20261019163657"></script>
+<script src="js/sound.js?v=20261019163657"></script>
+<script src="js/bossbgm.js?v=20261019163657"></script>
+<script src="js/ui.js?v=20261019163657"></script>
+<script src="js/screens.js?v=20261019163657"></script>
 </body>
 </html>

@@ -90,6 +90,37 @@ var G = window.G = window.G || {};
   }
 
   // ============================================================
+  // レリックの列（アイコンだけ。タップで説明）。ワールドマップと戦闘画面で共通
+  // ============================================================
+  var RARITY = { starter: '初期', common: 'ノーマル', uncommon: 'アンコモン', rare: 'レア' };
+  function relicBar(box, relics, emptyText) {
+    box.innerHTML = '';
+    if (!relics.length) { if (emptyText) { var sp = document.createElement('span'); sp.className = 'relic-none'; sp.textContent = emptyText; box.appendChild(sp); } return; }
+    var cnt = {}, order = [];
+    relics.forEach(function (id) { if (!cnt[id]) order.push(id); cnt[id] = (cnt[id] || 0) + 1; });
+    order.forEach(function (id) {
+      var R2 = G.RELICS[id], b = document.createElement('button');
+      b.type = 'button'; b.className = 'relic-ico r-' + R2.rarity; b.setAttribute('aria-label', R2.name + (cnt[id] > 1 ? ' ×' + cnt[id] : ''));
+      var c = document.createElement('canvas'); c.width = 14; c.height = 14; c.getContext('2d').drawImage(G.relicIcon(id), 0, 0); b.appendChild(c);
+      if (cnt[id] > 1) { var n = document.createElement('b'); n.className = 'relic-n'; n.textContent = '×' + cnt[id]; b.appendChild(n); }
+      b.addEventListener('click', function () { if (G.Sound) G.Sound.play('tap'); showRelic(id, cnt[id]); });
+      box.appendChild(b);
+    });
+  }
+  function showRelic(id, n) {
+    var R2 = G.RELICS[id];
+    $('p-title').textContent = R2.name + (n > 1 ? '　×' + n : '');
+    $('p-note').innerHTML = '';
+    var p1 = document.createElement('span'); p1.className = 'rar-label r-' + R2.rarity; p1.textContent = RARITY[R2.rarity]; $('p-note').appendChild(p1);
+    $('p-note').appendChild(document.createTextNode('　' + R2.text + '（' + (R2.kind === 'change' ? '遊び方が変わる' : R2.kind === 'combo' ? '組み合わせで強くなる' : '数値が上がる') + '）' + (n > 1 ? '　同じものを' + n + '個持っているので、効果が' + n + '回分重なる。' : '')));
+    var ul = $('p-list'); ul.innerHTML = '';
+    var li = document.createElement('li'); li.className = 'relic-big';
+    var c = document.createElement('canvas'); c.width = 14; c.height = 14; c.getContext('2d').drawImage(G.relicIcon(id), 0, 0); li.appendChild(c);
+    ul.appendChild(li);
+    $('pile').hidden = false;
+  }
+
+  // ============================================================
   // 戦闘の開始
   // ============================================================
   function start(opts, cb, extra) {
@@ -99,6 +130,7 @@ var G = window.G = window.G || {};
     s.events = [];
     G.showScreen('game');
     renderHand(); renderInfo(); renderHud(true);
+    relicBar($('b-relics'), s.relics, '');
     showBanner(info.title || '準備ターン', 'prep');
     requestAnimationFrame(fit);
   }
@@ -142,7 +174,7 @@ var G = window.G = window.G || {};
     var el = $('hand'); el.innerHTML = '';
     el.classList.toggle('two', s.hand.length > 4);
     s.hand.forEach(function (card, i) {
-      var d = cardEl(card);
+      var d = cardEl({ id: card.id, temp: card.temp, cost: B.cardCost(card, s) });
       if (i === ui.selIndex) d.classList.add('sel');
       d.dataset.index = i;
       bindCard(d, i);
@@ -157,7 +189,7 @@ var G = window.G = window.G || {};
     if (!s) return;
     document.querySelectorAll('#hand .card[data-index]').forEach(function (d) {
       var c = s.hand[+d.dataset.index]; if (!c) return;
-      d.classList.toggle('poor', B.cardCost(c) > s.energy);
+      d.classList.toggle('poor', B.cardCost(c, s) > s.energy);
     });
   }
 
@@ -182,7 +214,7 @@ var G = window.G = window.G || {};
     deselect();
     ui.selIndex = i;
     if (def.kind === 'tower') ui.selType = def.tower; else ui.selSkill = def;
-    if (B.cardCost(card) > s.energy) toast('エネルギーが足りません');
+    if (B.cardCost(card, s) > s.energy) toast('エネルギーが足りません');
     else if (def.kind === 'tower') toast('置く場所をタップ');
     else if (def.target === 'tower') toast(s.towers.length ? '使うタワーをタップ' : '先にタワーを建ててください');
     else toast('もう一度タップで使う');
@@ -378,7 +410,12 @@ var G = window.G = window.G || {};
     var tw = B.findTower(s, ui.selTower); if (!tw) { closeTowerSheet(); return; }
     var T = G.TOWERS[tw.type], st = B.towerStats(tw, s), c = B.upgradeCost(tw, s), R = G.Rank.ofStats(st);
     $('ts-name').textContent = T.name;
-    $('ts-lv').textContent = 'Lv' + (tw.lv + 1) + '/' + (T.up.length + 1) + (tw.bonusDmg ? '　研ぎ+' + tw.bonusDmg : '');
+    // かかっている効果（重ねがけした分もまとめて出す）
+    var fx = [];
+    if (tw.bonusDmg) fx.push('攻撃+' + tw.bonusDmg);
+    if (tw.turnDmgMult > 1) fx.push('攻撃×' + (Math.round(tw.turnDmgMult * 100) / 100));
+    if (s.buff.speedMult > 1 && !T.noAttack) fx.push('速さ×' + (Math.round(s.buff.speedMult * 100) / 100));
+    $('ts-lv').innerHTML = 'Lv' + (tw.lv + 1) + '/' + (T.up.length + 1) + (fx.length ? '　<b class="d-up">' + fx.join('・') + '</b>' : '');
     var n = B.nextStats(tw, s), RN = n ? G.Rank.ofStats(n) : null;
     // 1行＝1項目：[項目名, 今の値, 強化後の値]
     var rows = [
@@ -440,7 +477,8 @@ var G = window.G = window.G || {};
   // ============================================================
   function detailStats(id) {
     var def = G.CARDS[id];
-    var h = '<dt>エネルギー</dt><dd>' + def.cost + '</dd><dt>種類</dt><dd>' + (def.kind === 'tower' ? 'タワー' : 'スキル') + '</dd>';
+    var h = '<dt>エネルギー</dt><dd>' + def.cost + '</dd><dt>種類</dt><dd>' + (def.kind === 'tower' ? 'タワー' : 'スキル') + '</dd>' +
+      '<dt>レア度</dt><dd><span class="rar-label r-' + def.rarity + '">' + RARITY[def.rarity] + '</span></dd>';
     // 鍛えたカード：何がどう良くなったか（前 → 後）。後ろの値はアップの色
     if (def.plus && def.plusNote) h += '<dt>鍛えた効果</dt><dd>' + def.plusNote[0] + '：' + def.plusNote[1] + ' → <b class="d-up">' + def.plusNote[2] + '</b></dd>';
     if (def.kind === 'tower' && G.TOWERS[def.tower].noAir) h += '<dt>空の敵</dt><dd>当たらない</dd>';
@@ -641,7 +679,7 @@ var G = window.G = window.G || {};
   }
   requestAnimationFrame(frame);
 
-  G.BattleUI = { start: start, cardEl: cardEl, cardArt: cardArt, showDetail: showDetail, showList: showList, detailBox: detailBox, fit: fit };
+  G.BattleUI = { relicBar: relicBar, showRelic: showRelic, start: start, cardEl: cardEl, cardArt: cardArt, showDetail: showDetail, showList: showList, detailBox: detailBox, fit: fit };
   // 開発用：コンソールから状態を見られるように
   G.debug = { get state() { return s; }, ui: ui, renderHand: function () { renderHand(); }, openSheet: openTowerSheet };
 })();

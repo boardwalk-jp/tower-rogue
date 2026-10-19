@@ -86,7 +86,8 @@ var G = window.G = window.G || {};
       draw: [], hand: [], discard: [], exhaust: [],
       towers: [], enemies: [], shots: [], events: [],
       buff: { speedMult: 1 },     // 全タワーへのこのターンだけの強化（号令など）
-      relics: opts.relics || [],  // 持っているレリックのid
+      relics: opts.relics || [],  // 持っているレリックのid（同じものが複数あれば重ねがけ）
+      phoenix: opts.phoenix || 0, freeTowers: 0,
       bpUsed: false, wallUsed: false, pendingSpawn: [], soldiers: [],
       spawnQueue: [], time: 0, nextId: 1, uid: 1,
       stats: { killed: 0, leaked: 0, built: 0, goldEarned: 0 }
@@ -98,11 +99,16 @@ var G = window.G = window.G || {};
   }
 
   function ev(s, e) { s.events.push(e); }
-  function has(s, id) { return s && s.relics && s.relics.indexOf(id) >= 0; }
+  // レリックは同じものを複数持てる（重ねがけ）。has は持っている数を返す
+  function has(s, id) { if (!s || !s.relics) return 0; var n = 0; for (var i = 0; i < s.relics.length; i++) if (s.relics[i] === id) n++; return n; }
   function cmd(s, id) { return s && s.cmd === id; }
 
   function cardDef(card) { return G.CARDS[card.id]; }
-  function cardCost(card) { return card.cost !== undefined ? card.cost : cardDef(card).cost; }
+  function cardCost(card, s) {
+    var c = card.cost !== undefined ? card.cost : cardDef(card).cost;
+    if (s && s.freeTowers > 0 && cardDef(card).kind === 'tower') return 0;   // 設計の天才：タワーのカードが0
+    return c;
+  }
 
   // 山札から1枚引く。山札が空なら捨て札を混ぜて山札に戻す
   function drawOne(s) {
@@ -118,8 +124,8 @@ var G = window.G = window.G || {};
 
   function startPrep(s) {
     s.phase = 'prep';
-    s.energy = G.RULES.energyPerTurn + (has(s, 'stone') ? 1 : 0) + (has(s, 'banner') && s.turn === 0 ? 2 : 0);
-    s.bpUsed = false;
+    s.energy = G.RULES.energyPerTurn + has(s, 'stone') + (s.turn === 0 ? 2 * has(s, 'banner') : 0);
+    s.bpUsed = 0; s.freeTowers = 0;
     // 「このターンだけ」の強化を外す
     s.buff.speedMult = 1;
     s.towers.forEach(function (tw) { tw.turnDmgMult = 1; });
@@ -127,7 +133,7 @@ var G = window.G = window.G || {};
     s.soldiers.forEach(function (u) { u.dead = 0; u.hp = u.max; u.eng = null; u.x = u.hx; u.y = u.hy; });
     // 前のターンの手札は捨て札へ（使い切りの一時カードは消える）
     while (s.hand.length) { var c = s.hand.pop(); if (c.temp) s.exhaust.push(c); else s.discard.push(c); }
-    for (var i = 0; i < G.RULES.drawPerTurn; i++) drawOne(s);
+    for (var i = 0; i < G.RULES.drawPerTurn + has(s, 'crown'); i++) drawOne(s);
     ev(s, { k: 'prep', turn: s.turn });
   }
 
@@ -156,7 +162,7 @@ var G = window.G = window.G || {};
     if (s.phase !== 'prep' && s.phase !== 'attack') return '今は使えません';
     var card = s.hand[handIndex];
     if (!card) return 'カードがありません';
-    var def = cardDef(card), cost = cardCost(card);
+    var def = cardDef(card), cost = cardCost(card, s);
     if (s.energy < cost) return 'エネルギーが足りません';
     var tw = null;
     if (def.kind === 'tower') {
@@ -166,6 +172,7 @@ var G = window.G = window.G || {};
       var why = skillBlocked(s, def, tw); if (why) return why;
     }
     s.energy -= cost;
+    if (def.kind === 'tower' && s.freeTowers > 0) s.freeTowers--;
     s.hand.splice(handIndex, 1);
     if (card.temp || def.exhaust) s.exhaust.push(card); else s.discard.push(card);
 
@@ -180,7 +187,9 @@ var G = window.G = window.G || {};
       if (TD.soldiers) makeSoldiers(s, t);
       s.stats.built++;
       ev(s, { k: 'build', x: t.x, y: t.y });
-      if (has(s, 'blueprint') && !s.bpUsed) { s.bpUsed = true; drawOne(s); ev(s, { k: 'relic', id: 'blueprint' }); }
+      if (s.bpUsed < has(s, 'blueprint')) { s.bpUsed++; drawOne(s); ev(s, { k: 'relic', id: 'blueprint' }); }
+      // 見習いの金床：戦闘で最初に建てたタワーは強化1回分（持っている数だけ）
+      if (s.stats.built === 1 && has(s, 'anvil')) { t.lv = Math.min(TD.up.length, t.lv + has(s, 'anvil')); var ab = baseStats(t.type, t.lv); if (ab.blocker) t.hp = t.maxHp = ab.blocker.hp; if (ab.soldiers) makeSoldiers(s, t); ev(s, { k: 'relic', id: 'anvil', x: t.x, y: t.y }); }
       return null;
     }
     applySkill(s, def, tw);
@@ -195,7 +204,13 @@ var G = window.G = window.G || {};
       case 'forge': tw.lv++; ev(s, { k: 'upgrade', x: tw.x, y: tw.y, id: tw.id }); var fb = baseStats(tw.type, tw.lv); if (fb.blocker) { tw.hp += fb.blocker.hp - tw.maxHp; tw.maxHp = fb.blocker.hp; } if (fb.soldiers) makeSoldiers(s, tw); break;
       case 'supply': for (var d = 0; d < def.n; d++) drawOne(s); break;
       case 'tax': s.gold += def.gold; s.stats.goldEarned += def.gold; break;
-      case 'warcry': s.buff.speedMult *= def.mult; break;
+      case 'warcry': case 'overclock': s.buff.speedMult *= def.mult; break;
+      case 'architect': s.freeTowers += def.n; break;
+      case 'meteor':
+        // 隕石：今マップにいる敵すべてにダメージ（準備ターンに使うと、次の攻撃の最初の敵には当たらない）
+        s.enemies.forEach(function (e2) { if (e2.hp > 0) hurt(s, e2, def.dmg, 'magic'); });
+        ev(s, { k: 'boom', x: 5.5, y: 7, r: 6 });
+        break;
       case 'workshop':
         for (var i = 0; i < def.give.n; i++) {
           if (s.hand.length >= G.RULES.handMax) break;
@@ -220,11 +235,11 @@ var G = window.G = window.G || {};
     var T = G.TOWERS[tw.type];
     st.dmg = (st.dmg + (tw.bonusDmg || 0)) * (tw.turnDmgMult || 1);
     // レリックの数値アップ
-    if (has(s, 'sharp') && T.dmgType === 'physical') st.dmg *= 1.15;
-    if (has(s, 'crystal') && T.dmgType === 'magic') st.dmg *= 1.2;
+    if (T.dmgType === 'physical') st.dmg *= Math.pow(1.15, has(s, 'sharp'));
+    if (T.dmgType === 'magic') st.dmg *= Math.pow(1.2, has(s, 'crystal'));
     if (cmd(s, 'witch') && T.dmgType === 'magic') st.dmg *= 1.25;
-    if (has(s, 'oldmap') && st.range > 0) st.range = Math.round((st.range + 0.3) * 10) / 10;
-    var plusDur = (has(s, 'vial') ? 2 : 0) + (cmd(s, 'witch') ? 1 : 0);
+    if (has(s, 'oldmap') && st.range > 0) st.range = Math.round((st.range + 0.3 * has(s, 'oldmap')) * 10) / 10;
+    var plusDur = 2 * has(s, 'vial') + (cmd(s, 'witch') ? 1 : 0);
     if (plusDur) {
       if (st.poison) st.poison = { dps: st.poison.dps, dur: st.poison.dur + plusDur };
       if (st.burn) st.burn = { dps: st.burn.dps, dur: st.burn.dur + plusDur };
@@ -306,7 +321,7 @@ var G = window.G = window.G || {};
     if (s.phase !== 'prep') return;
     s.phase = 'attack';
     s.time = 0;
-    s.wallUsed = false;
+    s.wallUsed = 0;
     s.spawnQueue = [];
     nextWave(s).forEach(function (g) {
       for (var i = 0; i < g.n; i++) s.spawnQueue.push({ t: g.delay + i * g.gap, gate: g.gate, type: g.type });
@@ -340,9 +355,9 @@ var G = window.G = window.G || {};
     var E = G.ENEMIES[e.type], cut = 0, combo = false;
     // 組み合わせのレリック
     var slowed = e.slowT > 0 || e.tarT > 0;
-    if (src === 'thunder' && slowed && has(s, 'conductor')) { dmg *= 2; combo = true; }
-    if (src === 'fire' && e.tarT > 0 && has(s, 'oil')) { dmg *= 1.5; combo = true; }
-    if (type === 'physical' && slowed && has(s, 'brittle')) { dmg *= 1.25; combo = true; }
+    if (src === 'thunder' && slowed && has(s, 'conductor')) { dmg *= Math.pow(2, has(s, 'conductor')); combo = true; }
+    if (src === 'fire' && e.tarT > 0 && has(s, 'oil')) { dmg *= Math.pow(1.5, has(s, 'oil')); combo = true; }
+    if (type === 'physical' && slowed && has(s, 'brittle')) { dmg *= Math.pow(1.25, has(s, 'brittle')); combo = true; }
     if (type === 'physical') cut = E.armor;
     else if ((type === 'magic' || type === 'burn') && E.magicResist) cut = E.magicResist;
     var real = dmg * (1 - cut);
@@ -352,14 +367,14 @@ var G = window.G = window.G || {};
     if (e.hp <= 0) {
       // ガイコツ：一度だけ体力半分で起き上がる
       if (E.revive && !e.revived) { e.revived = true; e.hp = e.max * 0.5; e.poisonT = e.burnT = 0; ev(s, { k: 'revive', x: e.x, y: e.y }); return; }
-      var gold = E.gold + (has(s, 'scale') ? 1 : 0);
+      var gold = Math.round((E.gold + has(s, 'scale')) * (1 + 0.25 * has(s, 'magnet')));
       s.gold += gold; s.stats.goldEarned += gold; s.stats.killed++;
       ev(s, { k: 'kill', x: e.x, y: e.y, type: e.type, gold: gold, boss: !!E.boss, big: E.life >= 3 });
       // 疫病の灰：毒の敵が倒れると周りに毒がうつる
       if (has(s, 'plague') && e.poisonT > 0) {
         s.enemies.forEach(function (o) {
           if (o === e || o.hp <= 0 || Math.hypot(o.x - e.x, o.y - e.y) > 1.2) return;
-          o.poisonDps = Math.max(o.poisonDps, e.poisonDps); o.poisonT = Math.max(o.poisonT, e.poisonT + 1);
+          o.poisonDps = Math.max(o.poisonDps, e.poisonDps * has(s, 'plague')); o.poisonT = Math.max(o.poisonT, e.poisonT + 1);
         });
         ev(s, { k: 'plague', x: e.x, y: e.y });
       }
@@ -374,7 +389,7 @@ var G = window.G = window.G || {};
     var imm = E.immune || [];
     if (sh.poison) { e.poisonDps = Math.max(e.poisonDps, sh.poison.dps); e.poisonT = Math.max(e.poisonT, sh.poison.dur); }
     if (sh.burn && imm.indexOf('burn') < 0) {
-      var bd = sh.burn.dur * (sh.src === 'fire' && e.tarT > 0 && has(s, 'oil') ? 2 : 1);
+      var bd = sh.burn.dur * (sh.src === 'fire' && e.tarT > 0 ? Math.pow(2, has(s, 'oil')) : 1);
       e.burnDps = Math.max(e.burnDps, sh.burn.dps); e.burnT = Math.max(e.burnT, bd);
     }
     if (sh.slow && imm.indexOf('slow') < 0) {
@@ -480,7 +495,7 @@ var G = window.G = window.G || {};
     for (var i = 0; i < s.enemies.length; i++) {
       var e = s.enemies[i], E = G.ENEMIES[e.type];
       if (e.hp <= 0) continue;
-      var sp = E.speed * (has(s, 'frostbell') ? 0.9 : 1);
+      var sp = E.speed * Math.pow(0.9, has(s, 'frostbell'));
       if (e.tarT > 0) { e.tarT -= dt; if ((E.immune || []).indexOf('slow') < 0) sp *= (1 - e.tarSlow); }
       if (e.blockedBy) { sp = 0; }   // 兵士・バリケードに止められている
       // ボス：一定の時間ごとに手下を呼ぶ（飛ぶ手下は入口から、歩く手下はボスのすぐ後ろから）
@@ -525,7 +540,7 @@ var G = window.G = window.G || {};
       place(s, e);
       if (e.d >= pathOf(s, e.gate).len) {
         e.hp = 0; e.leaked = true; s.stats.leaked++;
-        if (has(s, 'wall') && !s.wallUsed && !E.boss) { s.wallUsed = true; ev(s, { k: 'relic', id: 'wall', x: e.x, y: e.y }); }
+        if (s.wallUsed < has(s, 'wall') && !E.boss) { s.wallUsed++; ev(s, { k: 'relic', id: 'wall', x: e.x, y: e.y }); }
         else { s.life = Math.max(0, s.life - E.life); ev(s, { k: 'leak', x: e.x, y: e.y, life: E.life, type: e.type }); }
       }
     }
@@ -609,6 +624,8 @@ var G = window.G = window.G || {};
 
     s.enemies = s.enemies.filter(function (e) { return e.hp > 0; });
 
+    // 不死鳥の羽：ライフが0になったら1枚使ってライフ10で立ち直る
+    if (s.life <= 0 && s.phoenix > 0) { s.phoenix--; s.life = 10; s.phoenixUsed = (s.phoenixUsed || 0) + 1; ev(s, { k: 'relic', id: 'phoenix', x: 5.5, y: 12 }); }
     if (s.life <= 0) { s.phase = 'lose'; s.shots = []; ev(s, { k: 'lose' }); return; }
     if (!s.spawnQueue.length && !s.enemies.length && !s.pendingSpawn.length) {
       s.shots = [];

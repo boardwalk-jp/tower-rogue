@@ -270,7 +270,7 @@ G.CARDS = {
               text: 'タワー1つの攻撃力をこのターンだけ1.5倍。' },
 
   watch:    { kind: 'tower', tower: 'watch', rarity: 'common' },
-  archer:   { kind: 'tower', tower: 'archer', rarity: 'common' },
+  archer:   { kind: 'tower', tower: 'archer', rarity: 'uncommon' },
   poison:   { kind: 'tower', tower: 'poison', rarity: 'common' },
   mage:     { kind: 'tower', tower: 'mage', rarity: 'uncommon' },
   cannon:   { kind: 'tower', tower: 'cannon', rarity: 'uncommon' },
@@ -280,12 +280,12 @@ G.CARDS = {
   thunder:  { kind: 'tower', tower: 'thunder', rarity: 'uncommon' },
   mine:     { kind: 'tower', tower: 'mine', rarity: 'common' },
   spikes:   { kind: 'tower', tower: 'spikes', rarity: 'common' },
-  tar:      { kind: 'tower', tower: 'tar', rarity: 'common' },
+  tar:      { kind: 'tower', tower: 'tar', rarity: 'uncommon' },
   barrel:   { kind: 'tower', tower: 'barrel', rarity: 'common', exhaust: true },
   barricade: { kind: 'tower', tower: 'barricade', rarity: 'uncommon' },
-  barracks: { kind: 'tower', tower: 'barracks', rarity: 'uncommon' },
+  barracks: { kind: 'tower', tower: 'barracks', rarity: 'rare' },
 
-  supply:   { kind: 'skill', name: '補給', cost: 0, target: 'none', rarity: 'common', icon: 'bag', n: 2,
+  supply:   { kind: 'skill', name: '補給', cost: 0, target: 'none', rarity: 'uncommon', icon: 'bag', n: 2,
               text: 'カードを2枚引く。' },
   whet:     { kind: 'skill', name: '研ぎ石', cost: 0, target: 'tower', rarity: 'common', icon: 'stone', amount: 3,
               text: 'タワー1つの攻撃力を+3（この戦闘中ずっと）。' },
@@ -295,6 +295,13 @@ G.CARDS = {
               text: 'タワー1つをお金を使わずにLv+1（この戦闘中ずっと）。' },
   warcry:   { kind: 'skill', name: '号令', cost: 1, target: 'none', rarity: 'uncommon', icon: 'horn', mult: 1.5,
               text: 'すべてのタワーの攻撃速度をこのターンだけ1.5倍。' },
+  // ---- ここから下は、経験値をためると解放されるカード（unlock: true） ----
+  overclock: { kind: 'skill', name: '過負荷', cost: 1, target: 'none', rarity: 'rare', icon: 'gear', mult: 2, unlock: true,
+              text: 'すべてのタワーの攻撃速度をこのターンだけ2倍。' },
+  architect: { kind: 'skill', name: '設計の天才', cost: 1, target: 'none', rarity: 'uncommon', icon: 'scroll', n: 2, unlock: true,
+              text: 'このターン、次に使うタワーのカード2枚のエネルギーが0になる。' },
+  meteor:   { kind: 'skill', name: '隕石', cost: 2, target: 'none', rarity: 'rare', icon: 'meteor', dmg: 90, unlock: true,
+              text: '今マップにいるすべての敵に90ダメージ（魔法）。攻撃中に使う。' },
   workshop: { kind: 'skill', name: '急造工房', cost: 2, target: 'none', rarity: 'rare', icon: 'saw', exhaust: true,
               text: '「弓兵の塔（エネルギー0・使い切り）」を2枚手札に加える。使い切り。',
               give: { card: 'archer', n: 2, cost: 0 } }
@@ -315,7 +322,10 @@ G.PLUS_SKILL = {
   tax:      { gold: 32, text: 'お金+32。使い切り（この戦闘中は戻らない）。', plusNote: ['もらえるお金', '+20', '+32'] },
   forge:    { cost: 0, text: 'タワー1つをお金を使わずにLv+1（この戦闘中ずっと）。', plusNote: ['エネルギー', '1', '0'] },
   warcry:   { mult: 1.8, text: 'すべてのタワーの攻撃速度をこのターンだけ1.8倍。', plusNote: ['攻撃速度の倍率', '1.5倍', '1.8倍'] },
-  workshop: { cost: 1, text: '「弓兵の塔（エネルギー0・使い切り）」を2枚手札に加える。使い切り。', plusNote: ['エネルギー', '2', '1'] }
+  workshop: { cost: 1, text: '「弓兵の塔（エネルギー0・使い切り）」を2枚手札に加える。使い切り。', plusNote: ['エネルギー', '2', '1'] },
+  overclock: { cost: 0, text: 'すべてのタワーの攻撃速度をこのターンだけ2倍。', plusNote: ['エネルギー', '1', '0'] },
+  architect: { n: 3, text: 'このターン、次に使うタワーのカード3枚のエネルギーが0になる。', plusNote: ['0になる枚数', '2枚', '3枚'] },
+  meteor:   { dmg: 140, text: '今マップにいるすべての敵に140ダメージ（魔法）。攻撃中に使う。', plusNote: ['ダメージ', '90', '140'] }
 };
 Object.keys(G.CARDS).forEach(function (id) {
   var c = G.CARDS[id], p = Object.assign({}, c, { id: id + '+', base: id, plus: true, name: c.name + '＋' });
@@ -524,9 +534,29 @@ G.RELICS = {
   conductor: { name: '導電の氷',   kind: 'combo', rarity: 'uncommon', text: '遅くなっている敵（氷・沼）が受ける雷のダメージが2倍。' },
   oil:       { name: '油の壺',     kind: 'combo', rarity: 'uncommon', text: '沼で遅くなっている敵に炎が当たると、ダメージ1.5倍・やけどの時間2倍。' },
   brittle:   { name: '砕ける霜',   kind: 'combo', rarity: 'common',   text: '遅くなっている敵（氷・沼）への物理ダメージ+25%。' },
-  plague:    { name: '疫病の灰',   kind: 'combo', rarity: 'rare',     text: '毒の敵が倒れると、周り1.2マスの敵に同じ毒がうつる。' }
+  plague:    { name: '疫病の灰',   kind: 'combo', rarity: 'rare',     text: '毒の敵が倒れると、周り1.2マスの敵に同じ毒がうつる。' },
+  // ---- 経験値をためると解放されるレリック（unlock: true） ----
+  magnet:    { name: '金の磁石',   kind: 'number', rarity: 'uncommon', unlock: true, text: '敵を倒した時のお金+25%。' },
+  anvil:     { name: '見習いの金床', kind: 'change', rarity: 'uncommon', unlock: true, text: '戦闘で最初に建てたタワーは、強化1回分のレベルで置かれる。' },
+  crown:     { name: '小さな王冠', kind: 'number', rarity: 'rare',     unlock: true, text: '毎ターン引くカード+1枚。' },
+  phoenix:   { name: '不死鳥の羽', kind: 'change', rarity: 'rare',     unlock: true, text: 'ライフが0になった時、1回だけライフ10で立ち直る（使うと消える）。' }
 };
 Object.keys(G.RELICS).forEach(function (k) { G.RELICS[k].id = k; });
+
+// ============================================================
+// 経験値と解放（ランが終わるたびに経験値がたまり、決まった量を超えるごとに次のランから新しいカード・レリックが出る）
+// ============================================================
+G.UNLOCKS = [
+  { xp: 150,  kind: 'card',  id: 'overclock' },
+  { xp: 400,  kind: 'relic', id: 'magnet' },
+  { xp: 700,  kind: 'card',  id: 'architect' },
+  { xp: 1100, kind: 'relic', id: 'anvil' },
+  { xp: 1600, kind: 'card',  id: 'meteor' },
+  { xp: 2200, kind: 'relic', id: 'crown' },
+  { xp: 3000, kind: 'relic', id: 'phoenix' }
+];
+// 経験値の計算（数はラン全体で数える）
+G.XP_RULES = { battle: 8, elite: 20, boss: 60, floor: 2, clear: 150 };
 
 // ---- ダメージ数字の色 ----
 // normal：ふつう / resisted：よろい・耐性で減った / poison：毒 / burn：やけど（今後）
