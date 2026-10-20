@@ -246,7 +246,14 @@ var G = window.G = window.G || {};
     $('wm-se').textContent = '効果音：' + (G.Sound.get('se') ? 'オン' : 'オフ');
     $('wm-bgm').textContent = 'BGM：' + (G.Sound.get('bgm') ? 'オン' : 'オフ');
     $('tm-se').textContent = $('wm-se').textContent; $('tm-bgm').textContent = $('wm-bgm').textContent;
+    ['wm', 'tm'].forEach(function (p) { $(p + '-sevol').value = G.Sound.getVol('se'); $(p + '-bgmvol').value = G.Sound.getVol('bgm'); });
   }
+  // 音量バー（メニューとタイトルのどちらでも。動かすとすぐ変わり、このブラウザに覚える）
+  ['wm', 'tm'].forEach(function (p) {
+    $(p + '-sevol').addEventListener('input', function () { G.Sound.setVol('se', this.value); soundLabels(); });
+    $(p + '-sevol').addEventListener('change', function () { if (G.Sound.get('se')) G.Sound.play('tap'); });   // 離した時に、今の大きさで1回鳴らす
+    $(p + '-bgmvol').addEventListener('input', function () { G.Sound.setVol('bgm', this.value); soundLabels(); });
+  });
   $('wm-se').addEventListener('click', function () { G.Sound.set('se', !G.Sound.get('se')); soundLabels(); });
   $('wm-bgm').addEventListener('click', function () { G.Sound.set('bgm', !G.Sound.get('bgm')); soundLabels(); });
   $('tm-se').addEventListener('click', function () { G.Sound.set('se', !G.Sound.get('se')); soundLabels(); });
@@ -824,7 +831,18 @@ var G = window.G = window.G || {};
     $('pk-ok').disabled = true;
     $('pk-cancel').hidden = !!mustPick;
     $('pk-ok').onclick = function () { if (picked < 0) return; $('picker').hidden = true; onOk(picked); };
-    $('pk-cancel').onclick = function () { $('picker').hidden = true; if (onCancel) onCancel(); };
+    // 「やめる」：カードを選んで詳細が出ている時は、選ぶ前の状態（カード選び）に戻る。何も選んでいない時だけ、前の画面に戻る
+    $('pk-cancel').onclick = function () {
+      if (picked >= 0) {
+        picked = -1;
+        grid.querySelectorAll('.card').forEach(function (x) { x.classList.remove('sel'); });
+        $('pk-ok').disabled = true;
+        var t2 = document.createElement('p'); t2.id = 'pk-text'; t2.className = 'pk-text'; t2.textContent = 'カードをタップして選ぶ';
+        $('pk-text').replaceWith(t2);
+        return;
+      }
+      $('picker').hidden = true; if (onCancel) onCancel();
+    };
     // 上の帯（マップ・デッキ・？・レリック）は隠さない：カードを選んでいる間も確かめられる
     var scr = document.querySelector('.screen:not([hidden])'), top = 0;
     if (scr) { var bar = scr.querySelector('.runbar'), rs = scr.querySelector('.relic-strip:not(:empty)'); top = Math.max(bar ? bar.getBoundingClientRect().bottom : 0, rs ? rs.getBoundingClientRect().bottom : 0); }

@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap">
-<link rel="stylesheet" href="css/style.css?v=20261020095500">
+<link rel="stylesheet" href="css/style.css?v=20261020161300">
 </head>
 <body>
 
@@ -34,7 +34,7 @@
       <p>上にスワイプしてスタート</p>
       <button type="button" id="pc-start" class="pc-only">クリックでスタート</button>
     </div>
-    <p class="ver" id="ver">版 10/20 09:55</p>
+    <p class="ver" id="ver">版 10/20 16:13</p>
   </div>
 </section>
 
@@ -137,6 +137,8 @@
     <h2>メニュー</h2>
     <p>マスを1つ進めるたびに自動で保存しています。タイトルの「つづきから」で再開できます。</p>
     <div class="sound-row"><button type="button" id="wm-se">効果音：オン</button><button type="button" id="wm-bgm">BGM：オン</button></div>
+    <label class="vol-row"><span>効果音の音量</span><input type="range" min="0" max="100" step="5" id="wm-sevol" aria-label="効果音の音量"></label>
+    <label class="vol-row"><span>BGMの音量</span><input type="range" min="0" max="100" step="5" id="wm-bgmvol" aria-label="BGMの音量"></label>
     <button type="button" id="wm-help">遊び方</button>
     <button type="button" id="wm-data">データの引き継ぎ</button>
     <button type="button" id="wm-test">音のテスト</button>
@@ -151,6 +153,8 @@
   <div class="modal-box">
     <h2>メニュー</h2>
     <div class="sound-row"><button type="button" id="tm-se">効果音：オン</button><button type="button" id="tm-bgm">BGM：オン</button></div>
+    <label class="vol-row"><span>効果音の音量</span><input type="range" min="0" max="100" step="5" id="tm-sevol" aria-label="効果音の音量"></label>
+    <label class="vol-row"><span>BGMの音量</span><input type="range" min="0" max="100" step="5" id="tm-bgmvol" aria-label="BGMの音量"></label>
     <button type="button" id="tm-help">遊び方</button>
     <button type="button" id="tm-data">データの引き継ぎ</button>
     <button type="button" id="tm-close">閉じる</button>
@@ -200,17 +204,17 @@
 <div id="tap-sound" hidden>♪ 画面をタップすると音が出ます</div>
 <div id="rotate"><p>画面を縦にしてください</p></div>
 
-<script src="js/data.js?v=20261020095500"></script>
-<script src="js/battle.js?v=20261020095500"></script>
-<script src="js/run.js?v=20261020095500"></script>
-<script src="js/sprites.js?v=20261020095500"></script>
-<script src="js/render.js?v=20261020095500"></script>
-<script src="js/sound.js?v=20261020095500"></script>
-<script src="js/bossbgm.js?v=20261020095500"></script>
-<script src="js/ui.js?v=20261020095500"></script>
-<script src="js/screens.js?v=20261020095500"></script>
-<script src="js/logo.js?v=20261020095500"></script>
-<script src="js/worldbg.js?v=20261020095500"></script>
-<script src="js/eventart.js?v=20261020095500"></script>
+<script src="js/data.js?v=20261020161300"></script>
+<script src="js/battle.js?v=20261020161300"></script>
+<script src="js/run.js?v=20261020161300"></script>
+<script src="js/sprites.js?v=20261020161300"></script>
+<script src="js/render.js?v=20261020161300"></script>
+<script src="js/sound.js?v=20261020161300"></script>
+<script src="js/bossbgm.js?v=20261020161300"></script>
+<script src="js/ui.js?v=20261020161300"></script>
+<script src="js/screens.js?v=20261020161300"></script>
+<script src="js/logo.js?v=20261020161300"></script>
+<script src="js/worldbg.js?v=20261020161300"></script>
+<script src="js/eventart.js?v=20261020161300"></script>
 </body>
 </html>

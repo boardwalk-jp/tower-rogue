@@ -6,8 +6,14 @@ var G = window.G = window.G || {};
 (function () {
   var ac = null, master = null, sfxBus = null, bgmBus = null, noiseBuf = null;
   var KEY = 'towerRogue.sound';
-  var cfg = { se: true, bgm: true };
-  try { var saved = JSON.parse(localStorage.getItem(KEY) || 'null'); if (saved) { cfg.se = saved.se !== false; cfg.bgm = saved.bgm !== false; } } catch (e) {}
+  // 音量：seVol・bgmVol は 0〜100（50が標準＝基礎音量。100で2倍）。オン／オフとは別に覚える
+  var cfg = { se: true, bgm: true, seVol: 50, bgmVol: 50 };
+  function clampVol(v) { v = +v; return isFinite(v) ? Math.max(0, Math.min(100, Math.round(v))) : 50; }
+  try { var saved = JSON.parse(localStorage.getItem(KEY) || 'null'); if (saved) { cfg.se = saved.se !== false; cfg.bgm = saved.bgm !== false; if (saved.seVol != null) cfg.seVol = clampVol(saved.seVol); if (saved.bgmVol != null) cfg.bgmVol = clampVol(saved.bgmVol); } } catch (e) {}
+  // 基礎音量（標準の位置での大きさ）。2026-10-20に 効果音0.32→0.45・BGM0.12→0.18・ボス曲0.55→0.8 に上げた
+  function seGain() { return cfg.se ? 0.45 * cfg.seVol / 50 : 0; }
+  function bgmGain() { return cfg.bgm ? 0.18 * cfg.bgmVol / 50 : 0; }
+  function bossGain() { return cfg.bgm ? 0.8 * cfg.bgmVol / 50 : 0; }
   function saveCfg() { try { localStorage.setItem(KEY, JSON.stringify(cfg)); } catch (e) {} }
 
   // ---- 最初のタップで音の準備（iPhone の Safari はタップの中でないと音を始められない） ----
@@ -16,8 +22,8 @@ var G = window.G = window.G || {};
   function build(C) {
     ac = new C();
     master = ac.createGain(); master.gain.value = 0.9; master.connect(ac.destination);
-    sfxBus = ac.createGain(); sfxBus.gain.value = cfg.se ? 0.32 : 0; sfxBus.connect(master);
-    bgmBus = ac.createGain(); bgmBus.gain.value = cfg.bgm ? 0.12 : 0; bgmBus.connect(master);
+    sfxBus = ac.createGain(); sfxBus.gain.value = seGain(); sfxBus.connect(master);
+    bgmBus = ac.createGain(); bgmBus.gain.value = bgmGain(); bgmBus.connect(master);
     noiseBuf = ac.createBuffer(1, ac.sampleRate * 0.6, ac.sampleRate);
     var d = noiseBuf.getChannelData(0); for (var i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
     boss = null; bossOut = null;      // ボスの曲は音の準備ごとに作り直す
@@ -238,7 +244,7 @@ var G = window.G = window.G || {};
       if (!ac || !G.makeBossTheme) { bossErr = !ac ? '音の準備前' : '曲のファイルなし'; return; }
       try {
         if (!boss) { bossOut = ac.createGain(); bossOut.connect(master); boss = G.makeBossTheme(ac, bossOut); }
-        bossOut.gain.value = cfg.bgm ? 0.55 : 0;
+        bossOut.gain.value = bossGain();
         boss.start(); bossErr = '';
       } catch (e) {
         // 鳴らせなかった時は、ふつうのBGMに戻す（理由は「音のテスト」に出す）
@@ -261,9 +267,13 @@ var G = window.G = window.G || {};
 
   function set(kind, v) {
     cfg[kind] = v; saveCfg();
-    if (ac) { (kind === 'se' ? sfxBus : bgmBus).gain.value = v ? (kind === 'se' ? 0.32 : 0.12) : 0; }
-    if (kind === 'bgm' && bossOut) bossOut.gain.value = v ? 0.55 : 0;
+    applyGain(kind);
   }
+  function applyGain(kind) {
+    if (ac) { (kind === 'se' ? sfxBus : bgmBus).gain.value = kind === 'se' ? seGain() : bgmGain(); }
+    if (kind === 'bgm' && bossOut) bossOut.gain.value = bossGain();
+  }
+  function setVol(kind, v) { cfg[kind + 'Vol'] = clampVol(v); saveCfg(); applyGain(kind); }
   // 音の状態（メニューの「音のテスト」で表示）
  function state() { return (ac ? '［' + ac.state + '・作り直し' + rebuilds + '回］' : '') + (!ac ? 'まだ準備していない（画面をタップすると準備）' : ac.state === 'running' ? '鳴らせる状態' : '止まっている（' + ac.state + '）') + (bossErr ? '・ボス曲のエラー：' + bossErr : '') + '・ボス曲' + (G.makeBossTheme ? 'あり' : 'なし'); }
   function test() { unlock(); var was = cfg.se; cfg.se = true; play('upgrade'); cfg.se = was; }
@@ -272,5 +282,5 @@ var G = window.G = window.G || {};
     var el = document.getElementById('tap-sound'); if (!el) return;
     el.hidden = !(G.started && (cfg.bgm || cfg.se) && (wantTrack || bossOn) && (!ready() || needFresh));
   }, 500);
-  G.Sound = { play: play, music: music, set: set, bossTheme: bossTheme, track: function () { return playing; }, bossPlaying: function () { return bossOn && !!boss && boss.playing; }, get: function (k) { return cfg[k]; }, state: state, test: test };
+  G.Sound = { play: play, music: music, set: set, setVol: setVol, getVol: function (k) { return cfg[k + 'Vol']; }, bossTheme: bossTheme, track: function () { return playing; }, bossPlaying: function () { return bossOn && !!boss && boss.playing; }, get: function (k) { return cfg[k]; }, state: state, test: test };
 })();

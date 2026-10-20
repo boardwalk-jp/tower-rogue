@@ -459,3 +459,8 @@ dt{color:var(--muted);text-align:right} dd{margin:0;text-align:left}
 .data-msg.bad{color:#ff8a6a}
 /* 開いている間は、後ろの画面にスクロールが伝わらないようにする。入力欄は16px以上（iPhoneは小さいと入力時に画面を拡大する） */
 .modal{overscroll-behavior:contain}
+/* 音量バー */
+.vol-row{display:flex;align-items:center;gap:10px;width:100%;font-size:14px;color:var(--muted)}
+.vol-row span{flex:0 0 7.5em;text-align:left}
+.vol-row input[type=range]{flex:1 1 auto;min-width:0;height:32px;accent-color:var(--accent)}
+.sound-row button{white-space:nowrap;padding-left:8px;padding-right:8px}
