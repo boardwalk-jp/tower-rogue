@@ -166,6 +166,11 @@ var G = window.G = window.G || {};
         burst(e.x, e.y - 0.8, 16, ['#c79bff', '#6f4cc0', '#ffffff'], 40, -10, 0.6);
         rings.push({ x: sx(e.x), y: sy(e.y), r: 4, max: 26, col: '#c79bff', life: 0.5, ml: 0.5 });
         addShake(1.5);
+      } else if (e.k === 'tfreeze') {
+        rings.push({ x: sx(e.x), y: sy(e.y), r: 4, max: 30, col: '#9ae0ff', life: 0.5, ml: 0.5 });
+        burst(e.x, e.y - 0.8, 14, ['#d8f4ff', '#7ad0ff', '#ffffff'], 40, -10, 0.6);
+        (e.towers || []).forEach(function (t) { burst(t.x, t.y - 0.3, 12, ['#d8f4ff', '#7ad0ff', '#ffffff'], 30, 0, 0.5); rings.push({ x: sx(t.x), y: sy(t.y), r: 2, max: 14, col: '#9ae0ff', life: 0.4, ml: 0.4 }); });
+        addShake(1.5);
       } else if (e.k === 'healcast') {
         rings.push({ x: sx(e.x), y: sy(e.y), r: 3, max: e.r * TW, col: '#7fe06a', life: 0.45, ml: 0.45 });
       } else if (e.k === 'healed') {
@@ -361,6 +366,13 @@ var G = window.G = window.G || {};
         if (ui.selType) b.globalAlpha = 0.45;
         blitB(spr, sx(o.x), sy(o.y) + 5);
         b.globalAlpha = 1;
+        // 吹雪の魔女に止められている間：タワーを氷が包む（青い色と氷のかけら）
+        if (o.frozenT > 0) {
+          b.globalCompositeOperation = 'lighter'; b.globalAlpha = 0.45; blitB(spr, sx(o.x), sy(o.y) + 5); b.globalAlpha = 1; b.globalCompositeOperation = 'source-over';
+          var fx0 = sx(o.x), fy0 = sy(o.y) + 5;
+          b.fillStyle = '#d8f4ff'; b.fillRect(fx0 - 6, fy0 - 3, 2, 3); b.fillRect(fx0 + 4, fy0 - 5, 2, 4); b.fillRect(fx0 - 1, fy0 - spr.height, 2, 4);
+          b.fillStyle = '#7ad0ff'; b.fillRect(fx0 - 7, fy0 - 1, 3, 1); b.fillRect(fx0 + 4, fy0 - 2, 3, 1);
+        }
         if (o.maxHp && o.hp < o.maxHp) hpBar(sx(o.x), sy(o.y) + 5 - spr.height - 3, 12, Math.max(0, o.hp / o.maxHp), '#c8a060');
         for (var l = 0; l < o.lv; l++) { b.fillStyle = '#ffe14d'; b.fillRect(sx(o.x) - 3 + l * 4, sy(o.y) + 3, 2, 2); }
         // スキルで強くなっている間は、タワーの上に赤い↑（アップの色）

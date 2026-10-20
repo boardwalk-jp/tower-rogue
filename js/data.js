@@ -494,7 +494,15 @@ G.ENEMIES = {
   demon:     { name: '炎の悪魔',   hp: 320, speed: 0.7,  armor: 0.3, life: 3,  gold: 24,  gap: 4.0, immune: ['burn'], magicResist: 0.3 },
   frostgiant: { name: '霜の巨人',  hp: 1500, speed: 0.4, armor: 0.3, life: 10, gold: 100, gap: 1, boss: true, immune: ['slow'] },
   dragon:    { name: '火竜',       hp: 1800, speed: 0.35, armor: 0.3, life: 15, gold: 0, gap: 1, boss: true, final: true, immune: ['burn'], magicResist: 0.25 },
-  ogre:   { name: 'オーガ王',   hp: 1500, speed: 0.4,  armor: 0.3, life: 10, gold: 100, gap: 1, boss: true }
+  ogre:   { name: 'オーガ王',   hp: 1500, speed: 0.4,  armor: 0.3, life: 10, gold: 100, gap: 1, boss: true },
+  // ---- 追加のボス（2026-10-20） ----
+  slimeking:  { name: 'スライムキング', hp: 1500, speed: 0.45, armor: 0,   life: 10, gold: 100, gap: 1, boss: true, split: { type: 'kingslime', n: 2 } },
+  wolfking:   { name: '牙の王',     hp: 900,  speed: 0.8,  armor: 0,   life: 10, gold: 100, gap: 1, boss: true, summon: { type: 'wolf', n: 4, every: 6 } },
+  harpyqueen: { name: 'ハーピークイーン', hp: 1000, speed: 0.5, armor: 0, life: 10, gold: 100, gap: 1, boss: true, fly: true, summon: { type: 'harpy', n: 2, every: 10 } },
+  icecommander: { name: '氷の騎士団長', hp: 800, speed: 0.4, armor: 0.4, life: 10, gold: 100, gap: 1, boss: true, immune: ['slow'], summon: { type: 'iceknight', n: 1, every: 14 } },
+  // freeze：every秒ごとに、いちばん近いタワーn個を dur秒 止める
+  blizzardwitch: { name: '吹雪の魔女', hp: 1300, speed: 0.4, armor: 0, magicResist: 0.3, life: 10, gold: 100, gap: 1, boss: true, freeze: { n: 2, every: 10, dur: 3 } },
+  flamegeneral: { name: '炎の将軍', hp: 1000, speed: 0.38, armor: 0.2, life: 15, gold: 0, gap: 1, boss: true, final: true, immune: ['burn'], summon: { type: 'salamander', n: 2, every: 10 }, heal: { r: 1.6, amt: 30, every: 3 } }
 };
 
 // ============================================================
@@ -524,7 +532,16 @@ G.WAVE_SETS = {
     boss: [[[['slime', 5, 0]], [['goblin', 5, 0], ['wolf', 3, 3]], [['orc', 2, 0], ['slime', 5, 3]],
             [['knight', 1, 0], ['wolf', 5, 3]], [['ogre', 1, 0], ['goblin', 5, 5], ['wolf', 4, 10]]],
            [[['goblin', 6, 0]], [['wolf', 5, 0], ['bat', 2, 3]], [['shaman', 1, 0], ['goblin', 6, 1]],
-            [['orc', 2, 0], ['wolf', 5, 3]], [['goblinlord', 1, 0], ['shaman', 1, 3], ['wolf', 4, 10]]]]
+            [['orc', 2, 0], ['wolf', 5, 3]], [['goblinlord', 1, 0], ['shaman', 1, 3], ['wolf', 4, 10]]],
+           // スライムキング（倒すと大スライムに分かれる）
+           [[['slime', 6, 0]], [['slime', 4, 0], ['goblin', 4, 3]], [['kingslime', 2, 0], ['slime', 5, 3]],
+            [['orc', 2, 0], ['wolf', 4, 3]], [['slimeking', 1, 0], ['slime', 5, 5], ['kingslime', 1, 10]]],
+           // 牙の王（速い・ウルフを呼ぶ）
+           [[['wolf', 7, 0]], [['goblin', 5, 0], ['wolf', 4, 3]], [['wolf', 6, 0], ['orc', 1, 2]],
+            [['orc', 2, 0], ['wolf', 5, 3]], [['wolfking', 1, 0], ['wolf', 5, 5], ['goblin', 4, 10]]],
+           // ハーピークイーン（空を飛ぶ・ハーピーを呼ぶ）
+           [[['bat', 4, 0]], [['harpy', 2, 0], ['goblin', 5, 3]], [['bat', 3, 0], ['orc', 2, 3]],
+            [['harpy', 3, 0], ['wolf', 4, 3]], [['harpyqueen', 1, 0], ['bat', 3, 5], ['harpy', 1, 10]]]]
   },
   // ---- 第2層 雪山 ----
   a2: {
@@ -546,7 +563,13 @@ G.WAVE_SETS = {
     boss: [[[['wolf', 6, 0]], [['skeleton', 5, 0], ['icebat', 3, 3]], [['yeti', 2, 0], ['wolf', 5, 3]],
             [['iceknight', 1, 0], ['skeleton', 5, 3]], [['frostgiant', 1, 0], ['icebat', 3, 5], ['yeti', 1, 10]]],
            [[['skeleton', 6, 0]], [['icebat', 3, 0], ['wolf', 5, 3]], [['harpy', 2, 0], ['skeleton', 5, 3]],
-            [['iceknight', 1, 0], ['harpy', 2, 3]], [['lich', 1, 0], ['icebat', 3, 6], ['yeti', 1, 12]]]]
+            [['iceknight', 1, 0], ['harpy', 2, 3]], [['lich', 1, 0], ['icebat', 3, 6], ['yeti', 1, 12]]],
+           // 氷の騎士団長（遅くならない・氷の騎士を呼ぶ）
+           [[['wolf', 6, 0]], [['skeleton', 4, 0], ['icebat', 3, 3]], [['yeti', 2, 0], ['skeleton', 4, 3]],
+            [['iceknight', 1, 0], ['wolf', 5, 3]], [['icecommander', 1, 0], ['icebat', 3, 5], ['yeti', 1, 10]]],
+           // 吹雪の魔女（近いタワーを一時的に止める）
+           [[['icebat', 4, 0]], [['skeleton', 5, 0], ['wolf', 4, 3]], [['harpy', 2, 0], ['yeti', 1, 3]],
+            [['iceknight', 1, 0], ['icebat', 3, 3]], [['blizzardwitch', 1, 0], ['skeleton', 4, 5], ['yeti', 1, 10]]]]
   },
   // ---- 第3層 火山 ----
   a3: {
@@ -568,7 +591,10 @@ G.WAVE_SETS = {
     boss: [[[['salamander', 6, 0]], [['bat', 4, 0], ['skeleton', 4, 3]], [['magma', 2, 0], ['salamander', 5, 3]],
             [['demon', 1, 0], ['bat', 4, 3]], [['dragon', 1, 0], ['salamander', 6, 6], ['demon', 1, 12]]],
            [[['skeleton', 6, 0]], [['harpy', 3, 0], ['salamander', 4, 3]], [['magma', 2, 0], ['bat', 3, 3]],
-            [['wyvern', 1, 0], ['demon', 1, 4]], [['demonlord', 1, 0], ['salamander', 5, 6], ['harpy', 2, 12]]]]
+            [['wyvern', 1, 0], ['demon', 1, 4]], [['demonlord', 1, 0], ['salamander', 5, 6], ['harpy', 2, 12]]],
+           // 炎の将軍（火トカゲを呼ぶ・まわりを回復）
+           [[['salamander', 6, 0]], [['bat', 4, 0], ['skeleton', 4, 3]], [['magma', 2, 0], ['salamander', 4, 3]],
+            [['demon', 1, 0], ['salamander', 4, 3]], [['flamegeneral', 1, 0], ['salamander', 4, 6], ['demon', 1, 12]]]]
   }
 };
 

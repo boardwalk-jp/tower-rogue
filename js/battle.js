@@ -522,6 +522,18 @@ var G = window.G = window.G || {};
           ev(s, { k: 'summon', x: e.x, y: e.y });
         }
       }
+      // 吹雪の魔女：一定の時間ごとに、いちばん近いタワーを少しの間止める
+      if (E.freeze) {
+        e.frzT = (e.frzT || 0) + dt;
+        if (e.frzT >= E.freeze.every) {
+          e.frzT = 0;
+          var cand = s.towers.filter(function (tw) { return !(tw.frozenT > 0) && !G.TOWERS[tw.type].noAttack; });
+          cand.sort(function (a, c) { return Math.hypot(a.x - e.x, a.y - e.y) - Math.hypot(c.x - e.x, c.y - e.y); });
+          var hit = cand.slice(0, E.freeze.n);
+          hit.forEach(function (tw) { tw.frozenT = E.freeze.dur; });
+          ev(s, { k: 'tfreeze', x: e.x, y: e.y, towers: hit.map(function (tw) { return { x: tw.x, y: tw.y }; }) });
+        }
+      }
       // 呪術師：近くの仲間（自分以外）の体力を回復
       if (E.heal) {
         e.healT += dt;
@@ -576,6 +588,7 @@ var G = window.G = window.G || {};
     for (i = 0; i < s.towers.length; i++) {
       var tw = s.towers[i], T = G.TOWERS[tw.type];
       if (T.noAttack) continue;
+      if (tw.frozenT > 0) { tw.frozenT -= dt; continue; }   // 吹雪の魔女に止められている間は撃たない
       var st = towerStats(tw, s), noAir = !!T.noAir;
       // 吹雪の塔：弾を撃たず、射程の中の敵すべてにダメージと遅くする効果
       if (T.aura) {

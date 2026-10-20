@@ -125,6 +125,83 @@ var G = window.G = window.G || {};
     return both(g.outline(OUT));
   }
 
+
+  // ---- 追加のボス（2026-10-20） ----
+  function slimeking(f) {            // スライムキング：王冠をかぶった大きな緑のスライム
+    var g = new Grid(34, 30), sq = f === 1, B = 28, rx = sq ? 16 : 13.5, ry = sq ? 13 : 16;
+    g.ell(17, B + 1, rx, ry, '#3f9b3a'); g.ell(17, B + 1, rx - 1.6, ry - 2, '#5cc350'); g.rect(0, B + 1, 34, 2, null);
+    g.ell(10.5, B + 1 - ry + 5, 3, 1.8, '#c9f7b0');
+    var ey = Math.round(B - ry * 0.5);
+    g.rect(10, ey, 3, 3, '#1a0e24'); g.rect(21, ey, 3, 3, '#1a0e24'); g.px(11, ey, '#ffffff'); g.px(22, ey, '#ffffff');
+    g.rect(9, ey - 2, 5, 1, '#1a3a1a'); g.rect(20, ey - 2, 5, 1, '#1a3a1a');                  // 怒った眉
+    g.rect(11, ey + 6, 12, 1, '#1a0e24'); for (var i = 0; i < 6; i++) g.px(12 + i * 2, ey + 7, '#f4f4e8');  // ぎざぎざの口
+    var ty = B + 1 - ry; g.rect(10, ty - 3, 14, 4, '#ffd84a'); for (i = 0; i < 4; i++) g.rect(10 + i * 4, ty - 6, 2, 3, '#ffd84a'); g.px(11, ty - 1, '#d94a3a'); g.px(17, ty - 1, '#3a7bd9'); g.px(23, ty - 1, '#d94a3a');
+    return both(g.outline(OUT));
+  }
+  function wolfking(f) {             // 牙の王：王冠と傷のある大きな灰色のオオカミ
+    var g = new Grid(40, 28), fur = '#6a7280', dark = '#3e4450', light = '#aab2bf';
+    if (f === 0) { g.rect(9, 19, 3, 7, dark); g.rect(25, 19, 3, 7, dark); g.rect(13, 19, 3, 6, fur); g.rect(29, 19, 3, 6, fur); }
+    else { g.rect(7, 20, 3, 5, dark); g.rect(27, 20, 3, 5, dark); g.rect(14, 19, 3, 7, fur); g.rect(30, 19, 3, 7, fur); }
+    g.ell(20, 15, 14, 6, fur); g.rect(8, 18, 24, 1, dark); g.rect(10, 11, 18, 2, light);   // 胴・背のたてがみ
+    g.rect(2, 9, 6, 3, fur); g.rect(0, 7, 3, 3, fur); g.px(0, 6, light);                      // しっぽ
+    g.ell(32, 10, 5.5, 5, fur); g.rect(34, 11, 6, 4, light); g.px(39, 11, '#1a1a1a');          // 頭・鼻先
+    g.rect(33, 15, 1, 2, '#fff6e0'); g.rect(37, 15, 1, 2, '#fff6e0');                          // きば
+    g.px(29, 4, fur); g.px(30, 3, fur); g.px(31, 4, fur); g.px(32, 2, fur);                    // 耳
+    g.px(33, 9, '#ff3a2a'); g.px(34, 9, '#ff3a2a'); g.rect(35, 6, 1, 5, '#d8d8d0');             // 目・顔の傷
+    g.rect(28, 3, 9, 2, '#ffd84a'); g.px(28, 1, '#ffd84a'); g.px(31, 0, '#ffd84a'); g.px(34, 1, '#ffd84a'); g.px(36, 2, '#ffd84a'); g.px(31, 3, '#d94a3a');   // 王冠
+    return both(g.outline(OUT));
+  }
+  function harpyqueen(f) {           // ハーピークイーン：王冠と大きな紫の翼の女王（空を飛ぶ）
+    var g = new Grid(40, 30), w = '#7a4aa8', d = '#4e2c78', l = '#a87ad8';
+    if (f === 0) { for (var i = 0; i < 11; i++) { g.rect(1 + i, 5 + Math.floor(i / 3), 2, 7, i % 2 ? w : l); g.rect(37 - i, 5 + Math.floor(i / 3), 2, 7, i % 2 ? w : l); } g.rect(0, 4, 4, 2, d); g.rect(36, 4, 4, 2, d); }
+    else { for (var j = 0; j < 11; j++) { g.rect(1 + j, 13 - Math.floor(j / 3), 2, 8, j % 2 ? w : l); g.rect(37 - j, 13 - Math.floor(j / 3), 2, 8, j % 2 ? w : l); } g.rect(0, 20, 4, 2, d); g.rect(36, 20, 4, 2, d); }
+    g.ell(20, 17, 4.5, 6, '#c89a6a'); g.rect(17, 19, 6, 3, '#f0e8d8');                         // 体・胸の羽
+    g.ell(20, 8, 4, 4, '#f0c49a'); g.rect(15, 4, 10, 3, '#5a2a78'); g.rect(15, 7, 1, 6, '#5a2a78'); g.rect(24, 7, 1, 6, '#5a2a78');   // 顔・髪
+    g.px(18, 8, '#2a1a10'); g.px(22, 8, '#2a1a10'); g.px(20, 10, '#d94a3a');
+    g.rect(16, 1, 8, 2, '#ffd84a'); g.px(16, 0, '#ffd84a'); g.px(20, 0, '#ffd84a'); g.px(23, 0, '#ffd84a'); g.px(20, 2, '#d94a3a');   // 王冠
+    g.rect(18, 24, 2, 4, '#e0b040'); g.rect(22, 24, 2, 4, '#e0b040'); g.rect(17, 27, 3, 1, '#e0b040'); g.rect(22, 27, 3, 1, '#e0b040');
+    return both(g.outline(OUT));
+  }
+  function icecommander(f) {         // 氷の騎士団長：青白いよろい・羽飾り・大きな盾と剣
+    var g = new Grid(36, 40), a = '#a8c8e0', hi = '#e0f0ff', sh = '#6a8aa8';
+    if (f === 0) { g.rect(11, 31, 5, 8, sh); g.rect(20, 31, 5, 7, sh); g.rect(20, 38, 6, 1, sh); } else { g.rect(11, 31, 5, 7, sh); g.rect(10, 38, 6, 1, sh); g.rect(20, 31, 5, 8, sh); }
+    g.rect(9, 14, 18, 18, a); g.rect(9, 14, 18, 2, hi); g.rect(9, 14, 2, 18, hi); g.rect(25, 14, 2, 18, sh); g.rect(9, 28, 18, 3, '#7aa0c0');   // 胴
+    g.rect(16, 16, 4, 14, hi); g.rect(9, 24, 18, 2, '#ffffff');
+    g.rect(3, 15, 6, 12, a); g.rect(3, 15, 6, 2, hi);                                                                                       // 左うで・肩
+    g.ell(5, 24, 5, 7, '#d8ecff'); g.ell(5, 24, 3, 5, '#7aa0c0'); g.rect(4, 19, 2, 10, hi);                                                // 盾
+    g.rect(27, 15, 5, 8, a); g.rect(31, 2, 2, 22, '#e8f4ff'); g.rect(29, 21, 6, 2, '#d9b24a'); g.px(32, 1, '#ffffff');                       // 右うで・剣
+    g.ell(18, 9, 6, 6, a); g.rect(12, 9, 12, 2, '#16202c'); g.rect(13, 9, 2, 1, '#5fd0ff'); g.rect(21, 9, 2, 1, '#5fd0ff');                   // かぶと・目
+    g.rect(16, 0, 4, 4, '#e0f8ff'); g.px(15, 1, '#e0f8ff'); g.px(20, 1, '#e0f8ff'); g.px(18, 4, hi);                                         // 羽飾り
+    return both(g.outline(OUT));
+  }
+  function blizzardwitch(f) {        // 吹雪の魔女：とんがり帽子と長い白髪、氷のつえ
+    var g = new Grid(30, 38), robe = '#8ab4e0', dk = '#4a6a9a', hat = '#3a5a9a';
+    g.rect(7, 22, 14, 14, robe); g.rect(5, 30, 18, 6, robe); g.rect(5, 35, 18, 1, dk); g.rect(7, 22, 2, 14, '#b0d0f0'); g.rect(19, 22, 2, 14, dk);   // ローブ
+    if (f === 1) { g.px(5, 36, robe); g.px(22, 36, robe); g.px(4, 35, robe); }
+    g.rect(9, 24, 10, 2, '#e8f4ff'); g.rect(13, 26, 2, 8, '#e8f4ff');                                                                      // 帯
+    g.rect(4, 24, 4, 8, robe); g.rect(20, 22, 4, 8, robe);                                                                                  // うで
+    g.rect(25, 8, 2, 28, '#7a5a3a'); g.ell(26, 6, 3, 4, f ? '#e8ffff' : '#8ae0ff'); g.px(26, 1, '#ffffff'); g.px(24, 6, '#ffffff'); g.px(28, 6, '#ffffff');   // つえの氷
+    g.ell(14, 15, 5, 5, '#f4d8c8'); g.rect(8, 13, 3, 14, '#f4f8ff'); g.rect(18, 13, 3, 14, '#f4f8ff');                                      // 顔・白髪
+    g.px(12, 15, '#2a4a8a'); g.px(16, 15, '#2a4a8a'); g.px(14, 18, '#d94a6a');
+    g.rect(5, 10, 20, 3, hat); g.rect(9, 5, 12, 5, hat); g.rect(12, 2, 7, 3, hat); g.px(18, 1, hat); g.px(20, 0, hat); g.rect(5, 12, 20, 1, '#9ab8e8');   // 帽子
+    g.px(13, 8, '#ffffff'); g.px(17, 6, '#ffffff');
+    return both(g.outline(OUT));
+  }
+  function flamegeneral(f) {         // 炎の将軍：赤黒いよろい・角のかぶと・燃える剣（ラスボス級）
+    var g = new Grid(40, 42), a = '#6a1e1e', hi = '#a8382a', dk = '#2e0a0a', gold = '#ffb347';
+    g.rect(4, 14, 7, 24, '#8a1a14'); g.rect(4, 36, 7, 2, dk);                                                                                 // マント
+    if (f === 0) { g.rect(13, 33, 6, 8, dk); g.rect(22, 33, 6, 7, dk); g.rect(22, 40, 7, 1, dk); } else { g.rect(13, 33, 6, 7, dk); g.rect(12, 40, 7, 1, dk); g.rect(22, 33, 6, 8, dk); }
+    g.rect(11, 15, 20, 19, a); g.rect(11, 15, 20, 2, hi); g.rect(11, 15, 2, 19, hi); g.rect(29, 15, 2, 19, dk); g.rect(11, 29, 20, 3, dk);     // 胴
+    g.rect(18, 18, 6, 4, gold); g.rect(19, 19, 4, 2, '#ff6a2a'); g.rect(11, 26, 20, 2, gold);                                                  // 胸の紋・帯
+    g.rect(7, 15, 6, 4, hi); g.rect(29, 15, 6, 4, hi); g.rect(8, 19, 4, 9, a); g.rect(30, 19, 4, 9, a);                                      // 肩・うで
+    g.rect(34, 8, 2, 20, '#ffd8a0'); g.rect(32, 26, 6, 2, gold);                                                                              // 剣
+    var fl = f === 0 ? 0 : 2; g.rect(33, 2 - fl, 4, 7 + fl, '#ff6a2a'); g.rect(34, 0 - fl, 2, 6 + fl, '#ffd84a'); g.px(32, 4, '#ff8a2a'); g.px(37, 5, '#ff8a2a');   // 剣の炎
+    g.ell(21, 9, 7, 6.5, a); g.rect(15, 9, 12, 3, dk); g.rect(16, 9, 3, 2, '#ffe14d'); g.rect(23, 9, 3, 2, '#ffe14d');                       // かぶと・目
+    g.rect(12, 2, 3, 8, '#f0e8d0'); g.px(11, 1, '#f0e8d0'); g.px(10, 0, '#f0e8d0'); g.rect(27, 2, 3, 8, '#f0e8d0'); g.px(30, 1, '#f0e8d0'); g.px(31, 0, '#f0e8d0');   // 角
+    g.rect(17, 2, 8, 2, gold);
+    return both(g.outline(OUT));
+  }
+
   // ---- タワー（lv：0〜2。強化すると旗の色と飾りが変わる） ----
   var FLAG = ['#d94a3a', '#3a7bd9', '#e6b84a'];
   function stoneBase(g, x, y, w, h) {
@@ -630,6 +707,8 @@ var G = window.G = window.G || {};
       goblinlord: [ogre(0, { skin: '#7aa83a', dark: '#4e7a22', belly: '#a8c870' }), ogre(1, { skin: '#7aa83a', dark: '#4e7a22', belly: '#a8c870' })],
       lich: [ogre(0, { skin: '#8a8aa8', dark: '#4e4e6a', belly: '#c8c8e0' }), ogre(1, { skin: '#8a8aa8', dark: '#4e4e6a', belly: '#c8c8e0' })],
       demonlord: [ogre(0, { skin: '#7a1e1e', dark: '#3a0a0a', belly: '#b04030' }), ogre(1, { skin: '#7a1e1e', dark: '#3a0a0a', belly: '#b04030' })],
+      slimeking: [slimeking(0), slimeking(1)], wolfking: [wolfking(0), wolfking(1)], harpyqueen: [harpyqueen(0), harpyqueen(1)],
+      icecommander: [icecommander(0), icecommander(1)], blizzardwitch: [blizzardwitch(0), blizzardwitch(1)], flamegeneral: [flamegeneral(0), flamegeneral(1)],
       icon: {}, node: {}, relic: {},
       tree: [tree(0), tree(1)], rock: rock(), gate: gate(), castle: castle(), heart: heart()
     };
