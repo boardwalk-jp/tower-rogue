@@ -155,9 +155,18 @@ var G = window.G = window.G || {};
   $('t-new').addEventListener('click', function () { setChoice('new'); });
   refreshTitle();
 
+  // ブラウザに「このサイトのデータは消さないで」とお願いする（Safari 17〜。許可するかはブラウザが決める。結果は記録だけして画面には出さない）
+  function askPersist() {
+    try {
+      if (!(navigator.storage && navigator.storage.persist)) return;
+      if (localStorage.getItem('towerRogue.persist') === '1') return;
+      navigator.storage.persist().then(function (ok) { try { localStorage.setItem('towerRogue.persist', ok ? '1' : '0'); } catch (e) {} }, function () {});
+    } catch (e) {}
+  }
   function start() {
     if (G.started || $('start').hidden) return;
     G.started = true;
+    askPersist();
     $('start').hidden = true;
     var d = titleChoice === 'cont' ? loadSave() : null;
     if (d) continueRun(d); else chooseCommander();
