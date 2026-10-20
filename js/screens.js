@@ -223,7 +223,9 @@ var G = window.G = window.G || {};
   }
   function lastAsc() { try { return +localStorage.getItem('towerRogue.lastAsc') || 0; } catch (e) { return 0; } }
   // ユーザーが自分でスクロールした時だけアドレスバーが縮むので、スクロールを合図に始める
-  window.addEventListener('scroll', function () { if (window.scrollY > 60) start(); }, { passive: true });
+  // （メニューやデータの引き継ぎを開いている間は、入力でキーボードが出て画面がずれても、始めない）
+  function modalOpen() { return !!document.querySelector('.modal:not([hidden])'); }
+  window.addEventListener('scroll', function () { if (window.scrollY > 60 && !modalOpen()) start(); }, { passive: true });
   $('pc-start').addEventListener('click', start);
 
   function backToTitle() {
@@ -718,8 +720,11 @@ var G = window.G = window.G || {};
   // 読み込める文字か調べる。だめなら null。よければ { meta, asc }
   function parseData(txt) {
     try {
-      txt = String(txt || '').replace(/\s+/g, '');
-      if (txt.indexOf('TR1:') !== 0) return null;
+      // 貼り付けで全角になった・小文字になった・空白や引用符が入った、などを直してから調べる
+      txt = String(txt || '');
+      if (txt.normalize) txt = txt.normalize('NFKC');
+      txt = txt.replace(/[\s"'“”‘’「」]+/g, '');
+      if (txt.slice(0, 4).toUpperCase() !== 'TR1:') return null;
       var o = JSON.parse(decodeURIComponent(escape(atob(txt.slice(4)))));
       if (!o || o.v !== 1 || !o.meta || typeof o.meta !== 'object') return null;
       var m = {};

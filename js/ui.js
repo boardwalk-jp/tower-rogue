@@ -15,8 +15,10 @@ var G = window.G = window.G || {};
   var cv = $('map'), ctx = cv.getContext('2d');
 
   // ---- Safari の長押しメニュー・文字選択・拡大を止める ----
-  document.addEventListener('contextmenu', function (e) { e.preventDefault(); });
-  document.addEventListener('selectstart', function (e) { e.preventDefault(); });
+  // （ただし入力欄では止めない：データの引き継ぎで、長押しコピー・貼り付けを使うため）
+  function inField(e) { return e.target && e.target.closest && e.target.closest('textarea, input'); }
+  document.addEventListener('contextmenu', function (e) { if (!inField(e)) e.preventDefault(); });
+  document.addEventListener('selectstart', function (e) { if (!inField(e)) e.preventDefault(); });
   // ---- 画面の拡大を止める（iPhone の Safari は「拡大しない」設定を無視するので、自分で止める） ----
   function zoomed() { return window.visualViewport && window.visualViewport.scale > 1.01; }
   // もし拡大されてしまったら、ピンチで戻せるようにする（拡大中だけ2本指の操作を通す）

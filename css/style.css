@@ -453,7 +453,9 @@ dt{color:var(--muted);text-align:right} dd{margin:0;text-align:left}
 .data-box{max-height:calc(100dvh - 32px)}
 .data-body{flex:1 1 auto;display:flex;flex-direction:column;gap:8px;text-align:left;overflow-y:auto;-webkit-overflow-scrolling:touch;touch-action:pan-y}
 .data-body h3{margin:8px 0 0;font-weight:400;font-size:16px;color:var(--accent)}
-.data-body textarea{width:100%;background:#0f0c14;color:#e8e2f0;border:1px solid #5a4d70;border-radius:8px;padding:8px;font-size:12px;font-family:monospace;word-break:break-all;resize:none}
+.data-body textarea{width:100%;background:#0f0c14;color:#e8e2f0;border:1px solid #5a4d70;border-radius:8px;padding:8px;font-size:16px;font-family:monospace;word-break:break-all;resize:none}
 .data-body button{width:100%}
 .data-msg{min-height:1.4em;font-size:13px}
 .data-msg.bad{color:#ff8a6a}
+/* 開いている間は、後ろの画面にスクロールが伝わらないようにする。入力欄は16px以上（iPhoneは小さいと入力時に画面を拡大する） */
+.modal{overscroll-behavior:contain}
