@@ -443,3 +443,17 @@ dt{color:var(--muted);text-align:right} dd{margin:0;text-align:left}
 
 /* 画面に入った直後はタップを受け付けない間、ボタンを少し暗くして知らせる */
 #panel.tap-lock .choice,#panel.tap-lock .panel-foot button{opacity:.55}
+
+/* タイトルの右上メニュー・記録の案内・データの引き継ぎ */
+.title-menu-btn{position:fixed;top:max(10px,env(safe-area-inset-top));right:12px;z-index:3;min-height:40px;padding:0 14px;font-size:14px;background:rgba(18,12,16,.78);border-color:rgba(246,217,138,.6);color:#f6d98a}
+#start[hidden] .title-menu-btn{display:none}
+.title-save{min-height:34px;padding:0 14px;font-size:13px}
+.title-save b{font-weight:700}
+.help-link{width:100%;text-align:left;color:#f6d98a;border-color:rgba(246,217,138,.6)}
+.data-box{max-height:calc(100dvh - 32px)}
+.data-body{flex:1 1 auto;display:flex;flex-direction:column;gap:8px;text-align:left;overflow-y:auto;-webkit-overflow-scrolling:touch;touch-action:pan-y}
+.data-body h3{margin:8px 0 0;font-weight:400;font-size:16px;color:var(--accent)}
+.data-body textarea{width:100%;background:#0f0c14;color:#e8e2f0;border:1px solid #5a4d70;border-radius:8px;padding:8px;font-size:12px;font-family:monospace;word-break:break-all;resize:none}
+.data-body button{width:100%}
+.data-msg{min-height:1.4em;font-size:13px}
+.data-msg.bad{color:#ff8a6a}

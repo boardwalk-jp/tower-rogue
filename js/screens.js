@@ -243,9 +243,12 @@ var G = window.G = window.G || {};
     if (!G.Sound) return;
     $('wm-se').textContent = '効果音：' + (G.Sound.get('se') ? 'オン' : 'オフ');
     $('wm-bgm').textContent = 'BGM：' + (G.Sound.get('bgm') ? 'オン' : 'オフ');
+    $('tm-se').textContent = $('wm-se').textContent; $('tm-bgm').textContent = $('wm-bgm').textContent;
   }
   $('wm-se').addEventListener('click', function () { G.Sound.set('se', !G.Sound.get('se')); soundLabels(); });
   $('wm-bgm').addEventListener('click', function () { G.Sound.set('bgm', !G.Sound.get('bgm')); soundLabels(); });
+  $('tm-se').addEventListener('click', function () { G.Sound.set('se', !G.Sound.get('se')); soundLabels(); });
+  $('tm-bgm').addEventListener('click', function () { G.Sound.set('bgm', !G.Sound.get('bgm')); soundLabels(); });
   soundLabels();
   $('wm-test').addEventListener('click', function () {
     if (!G.Sound) { $('wm-sound-state').textContent = '音の仕組みが読み込まれていません。エラー：' + (window.__errs || []).join(' / '); return; }
@@ -661,7 +664,17 @@ var G = window.G = window.G || {};
     '<li>{tower:barracks}<span><b>兵舎</b>：兵士が道で敵を止める</span></li>',
     '<li>{icon:eye}<span><b>スキル</b>：タワーを強くする・カードを引く など</span></li>',
     '</ul>',
-    '<p class="help-how">カードを長押しで説明。枠の色は <span class="rr" style="color:var(--r-common)">ノーマル</span> <span class="rr" style="color:var(--r-uncommon)">アンコモン</span> <span class="rr" style="color:var(--r-rare)">レア</span></p>'
+    '<p class="help-how">カードを長押しで説明。枠の色は <span class="rr" style="color:var(--r-common)">ノーマル</span> <span class="rr" style="color:var(--r-uncommon)">アンコモン</span> <span class="rr" style="color:var(--r-rare)">レア</span></p>',
+    '<h3 id="help-save">記録を消さないために</h3>',
+    '<p>ブラウザは、しばらく遊ばないと、このゲームの記録（経験値・解放・クリア）を消すことがあります。ホーム画面に追加すると、消えにくくなります。</p>',
+    '<p><b>iPhone（Safari）</b></p>',
+    '<ol><li>画面下の共有ボタン（四角から上向きの矢印）をタップ</li><li>「ホーム画面に追加」を選ぶ</li><li>できたアイコンから遊ぶ</li></ol>',
+    '<p><b>Android（Chrome）</b></p>',
+    '<ol><li>右上のメニュー（点が3つ）をタップ</li><li>「ホーム画面に追加」または「アプリをインストール」を選ぶ</li><li>できたアイコンから遊ぶ</li></ol>',
+    '<p class="help-how">ホーム画面のアイコンから遊ぶと、それまでブラウザで遊んだ記録が引き継がれないことがあります。先に下の「データの引き継ぎ」で書き出しておくと安心です。</p>',
+    '<h3>別の端末・ブラウザで遊ぶとき</h3>',
+    '<p>記録はブラウザごとに別々です。「データの引き継ぎ」で書き出した文字を、新しい方で読み込むと、続きから遊べます（経験値・解放・クリアの記録。途中のランは入りません）。</p>',
+    '<p><button type="button" class="help-link" id="help-data">▶ データの引き継ぎを開く</button></p>'
   ].join('');
   function helpIcon(key) {
     var k = key.split(':'), img = null, sc = 2;
@@ -677,17 +690,83 @@ var G = window.G = window.G || {};
     var c = document.createElement('canvas'); c.width = img.width; c.height = img.height; c.getContext('2d').drawImage(img, 0, 0);
     return '<img class="ico" alt="" width="' + w + '" height="' + h + '" src="' + c.toDataURL() + '">';
   }
-  function showHelp() {
+  function showHelp(anchorId) {
     var body = $('help-body');
     if (!body.dataset.done) { body.innerHTML = HELP.replace(/\{(\w+:\w+)\}/g, function (m, k) { return helpIcon(k); }); body.dataset.done = '1'; }
     body.scrollTop = 0;
     $('help').hidden = false;
+    var an = typeof anchorId === 'string' && $(anchorId);
+    if (an) body.scrollTop = an.offsetTop - body.offsetTop;
     try { localStorage.setItem('towerRogue.helpSeen', '1'); } catch (e) {}
   }
   $('help-close').addEventListener('click', function () { $('help').hidden = true; });
-  $('t-help').addEventListener('click', showHelp);
+  $('t-help').addEventListener('click', function () { showHelp(); });
+  $('t-save').addEventListener('click', function () { showHelp('help-save'); });
   $('wm-help').addEventListener('click', function () { $('world-menu').hidden = true; showHelp(); });
+  $('help-body').addEventListener('click', function (e) { if (e.target.id === 'help-data') { $('help').hidden = true; openData(); } });
   G.showHelp = showHelp;
+
+
+  // ============================================================
+  // データの引き継ぎ（経験値・解放・クリアの記録を、文字にして書き出す／読み込む）
+  // 形：「TR1:」＋ JSON を base64 にした文字。途中のラン（つづきから）は含めない
+  // ============================================================
+  function exportData() {
+    var o = { v: 1, meta: R.metaLoad(), asc: lastAsc() };
+    return 'TR1:' + btoa(unescape(encodeURIComponent(JSON.stringify(o))));
+  }
+  // 読み込める文字か調べる。だめなら null。よければ { meta, asc }
+  function parseData(txt) {
+    try {
+      txt = String(txt || '').replace(/\s+/g, '');
+      if (txt.indexOf('TR1:') !== 0) return null;
+      var o = JSON.parse(decodeURIComponent(escape(atob(txt.slice(4)))));
+      if (!o || o.v !== 1 || !o.meta || typeof o.meta !== 'object') return null;
+      var m = {};
+      Object.keys(o.meta).forEach(function (k) { var v = o.meta[k]; if (typeof v === 'number' && isFinite(v) && v >= 0) m[k] = v; });
+      if (typeof m.xp !== 'number') return null;
+      if (m.ascMax > G.ASC_MAX) m.ascMax = G.ASC_MAX;
+      var asc = Math.max(0, Math.min(G.ASC_MAX, +o.asc || 0));
+      return { meta: m, asc: asc };
+    } catch (e) { return null; }
+  }
+  var dataArmed = false;
+  function openData() {
+    $('dt-out').value = exportData(); $('dt-in').value = ''; $('dt-msg').textContent = ''; $('dt-msg').className = 'data-msg';
+    dataArmed = false; $('dt-load').textContent = '読み込む';
+    $('data-modal').hidden = false;
+  }
+  function dataMsg(t, bad) { $('dt-msg').textContent = t; $('dt-msg').className = 'data-msg' + (bad ? ' bad' : ''); }
+  $('dt-copy').addEventListener('click', function () {
+    var ta = $('dt-out'), txt = ta.value, done = function () { dataMsg('コピーしました。メモなどに貼り付けて保存してください。'); };
+    ta.focus(); ta.select(); try { ta.setSelectionRange(0, txt.length); } catch (e) {}
+    var ok = false; try { ok = document.execCommand('copy'); } catch (e) {}
+    if (ok) return done();
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(done, function () { dataMsg('コピーできませんでした。文字を長押ししてコピーしてください。', true); });
+    else dataMsg('コピーできませんでした。文字を長押ししてコピーしてください。', true);
+  });
+  $('dt-in').addEventListener('input', function () { dataArmed = false; $('dt-load').textContent = '読み込む'; dataMsg(''); });
+  $('dt-load').addEventListener('click', function () {
+    var d = parseData($('dt-in').value);
+    if (!d) { dataArmed = false; $('dt-load').textContent = '読み込む'; return dataMsg('この文字は読み込めません。「TR1:」から始まる文字を、最後まで貼り付けてください。', true); }
+    if (!dataArmed) {
+      var now = R.metaLoad();
+      dataArmed = true; $('dt-load').textContent = '上書きして読み込む';
+      return dataMsg('今の経験値 ' + now.xp + ' を、経験値 ' + d.meta.xp + ' の記録に置きかえます。よければもう一度押してください。', true);
+    }
+    R.metaSave(d.meta);
+    try { localStorage.setItem('towerRogue.lastAsc', String(d.asc)); } catch (e) {}
+    dataArmed = false; $('dt-load').textContent = '読み込む'; $('dt-in').value = '';
+    refreshTitle();
+    dataMsg('読み込みました（経験値 ' + d.meta.xp + '）。');
+  });
+  $('dt-close').addEventListener('click', function () { $('data-modal').hidden = true; });
+  $('wm-data').addEventListener('click', function () { $('world-menu').hidden = true; openData(); });
+  // ---- タイトルのメニュー ----
+  $('t-menu').addEventListener('click', function () { $('title-menu').hidden = false; });
+  $('tm-close').addEventListener('click', function () { $('title-menu').hidden = true; });
+  $('tm-help').addEventListener('click', function () { $('title-menu').hidden = true; showHelp(); });
+  $('tm-data').addEventListener('click', function () { $('title-menu').hidden = true; openData(); });
 
   // ---- 経験値の結果：内訳・合計・次の解放までのバー・新しく解放されたもの ----
   function unlockName(u) { return u.kind === 'card' ? 'カード「' + G.CARDS[u.id].name + '」' : 'レリック「' + G.RELICS[u.id].name + '」'; }
@@ -749,5 +828,5 @@ var G = window.G = window.G || {};
   }
 
   // 開発用
-  G.Screens = { chooseCommander: chooseCommander, showRest: showRest, showEvent: showEvent, newRun: newRun, showWorld: showWorld, enterNode: enterNode, showEnd: showEnd, get run() { return run; } };
+  G.Screens = { exportData: exportData, parseData: parseData, chooseCommander: chooseCommander, showRest: showRest, showEvent: showEvent, newRun: newRun, showWorld: showWorld, enterNode: enterNode, showEnd: showEnd, get run() { return run; } };
 })();

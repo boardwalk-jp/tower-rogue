@@ -362,6 +362,6 @@ var G = window.G = window.G || {};
   G.Run = {
     create: create, reachable: reachable, enter: enter, node: node, battleOpts: battleOpts, finishBattle: finishBattle,
     rollCards: rollCards, addCard: addCard, removeCard: removeCard, shopStock: shopStock,
-    rollEvent: rollEvent, eventChoice: eventChoice, gainXp: gainXp, nextUnlock: nextUnlock, unlocked: unlocked, metaLoad: metaLoad, count: count, easyTemplates: easyTemplates, tplScore: tplScore, upgradeCard: upgradeCard, canUpgradeCard: canUpgradeCard, bossName: bossName, nextAct: nextAct, allRoutes: allRoutes, rest: rest, rollRelic: rollRelic, addRelic: addRelic, price: price, toSave: toSave, fromSave: fromSave
+    rollEvent: rollEvent, eventChoice: eventChoice, gainXp: gainXp, nextUnlock: nextUnlock, unlocked: unlocked, metaLoad: metaLoad, metaSave: metaSave, count: count, easyTemplates: easyTemplates, tplScore: tplScore, upgradeCard: upgradeCard, canUpgradeCard: canUpgradeCard, bossName: bossName, nextAct: nextAct, allRoutes: allRoutes, rest: rest, rollRelic: rollRelic, addRelic: addRelic, price: price, toSave: toSave, fromSave: fromSave
   };
 })();
