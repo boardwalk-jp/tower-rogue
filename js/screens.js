@@ -325,10 +325,21 @@ var G = window.G = window.G || {};
       var n = nodes[k], p = nodePos(n, width), b = el('button', 'node t-' + n.type);
       b.type = 'button';
       b.style.left = (p.x - NODE / 2) + 'px'; b.style.top = (p.y - NODE / 2) + 'px';
-      if (n.type === 'boss') { b.style.width = b.style.height = '60px'; b.style.left = (p.x - 30) + 'px'; b.style.top = (p.y - 30) + 'px'; }
-      var ic = document.createElement('canvas'); ic.width = 14; ic.height = 14; ic.getContext('2d').drawImage(SPR.node[n.type], 0, 0);
+      var ic = document.createElement('canvas'), bossId = n.type === 'boss' ? R.bossType(run) : '';
+      if (bossId && SPR[bossId]) {
+        // ボスマス：枠をなくして、そのボスの絵を大きく出す（どのボスが出るか、マップで見分けられる）
+        var bi = SPR[bossId][0].r, bw = Math.round(bi.width * 1.7), bh = Math.round(bi.height * 1.7);
+        ic.width = bi.width; ic.height = bi.height; ic.getContext('2d').drawImage(bi, 0, 0);
+        ic.style.width = bw + 'px'; ic.style.height = bh + 'px';
+        b.classList.add('boss-art');
+        b.style.width = (bw + 14) + 'px'; b.style.height = (bh + 14) + 'px';
+        b.style.left = (p.x - (bw + 14) / 2) + 'px'; b.style.top = (p.y - (bh + 14) / 2) + 'px';
+      } else {
+        if (n.type === 'boss') { b.style.width = b.style.height = '60px'; b.style.left = (p.x - 30) + 'px'; b.style.top = (p.y - 30) + 'px'; }
+        ic.width = 14; ic.height = 14; ic.getContext('2d').drawImage(SPR.node[n.type], 0, 0);
+      }
       b.appendChild(ic);
-      b.setAttribute('aria-label', (n.floor + 1) + '階 ' + KIND[n.type]);
+      b.setAttribute('aria-label', (n.floor + 1) + '階 ' + KIND[n.type] + (bossId ? '：' + G.ENEMIES[bossId].name : ''));
       if (run.visited.indexOf(k) >= 0) b.classList.add('visited');
       if (k === run.at) b.classList.add('here');
       if (reach.indexOf(k) >= 0) b.classList.add('reach');

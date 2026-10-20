@@ -185,11 +185,13 @@ var G = window.G = window.G || {};
   // 層のボスをくじで決める（層に入った時に1回）
   function pickBoss(run) { return Math.floor(run.rand() * G.WAVE_SETS['a' + run.act].boss.length); }
   // ボスの名前（そのひな形の中のボスの敵）
-  function bossName(run, act, idx) {
-    var W = G.WAVE_SETS['a' + (act || run.act)], tpl = W.boss[idx !== undefined ? idx : (run.boss || 0)], nm = '';
-    tpl.forEach(function (w) { w.forEach(function (g) { if (G.ENEMIES[g[0]].boss) nm = G.ENEMIES[g[0]].name; }); });
-    return nm;
+  // ボスの敵の種類（マップのボスの絵に使う）
+  function bossType(run, act, idx) {
+    var W = G.WAVE_SETS['a' + (act || run.act)], tpl = W.boss[idx !== undefined ? idx : (run.boss || 0)], id = '';
+    tpl.forEach(function (w) { w.forEach(function (g) { if (G.ENEMIES[g[0]].boss) id = g[0]; }); });
+    return id;
   }
+  function bossName(run, act, idx) { var id = bossType(run, act, idx); return id ? G.ENEMIES[id].name : ''; }
 
   // 今進めるマス
   function reachable(run) {
@@ -362,6 +364,6 @@ var G = window.G = window.G || {};
   G.Run = {
     create: create, reachable: reachable, enter: enter, node: node, battleOpts: battleOpts, finishBattle: finishBattle,
     rollCards: rollCards, addCard: addCard, removeCard: removeCard, shopStock: shopStock,
-    rollEvent: rollEvent, eventChoice: eventChoice, gainXp: gainXp, nextUnlock: nextUnlock, unlocked: unlocked, metaLoad: metaLoad, metaSave: metaSave, count: count, easyTemplates: easyTemplates, tplScore: tplScore, upgradeCard: upgradeCard, canUpgradeCard: canUpgradeCard, bossName: bossName, nextAct: nextAct, allRoutes: allRoutes, rest: rest, rollRelic: rollRelic, addRelic: addRelic, price: price, toSave: toSave, fromSave: fromSave
+    rollEvent: rollEvent, eventChoice: eventChoice, gainXp: gainXp, nextUnlock: nextUnlock, unlocked: unlocked, metaLoad: metaLoad, metaSave: metaSave, count: count, easyTemplates: easyTemplates, tplScore: tplScore, upgradeCard: upgradeCard, canUpgradeCard: canUpgradeCard, bossName: bossName, bossType: bossType, nextAct: nextAct, allRoutes: allRoutes, rest: rest, rollRelic: rollRelic, addRelic: addRelic, price: price, toSave: toSave, fromSave: fromSave
   };
 })();
