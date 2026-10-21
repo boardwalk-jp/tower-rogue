@@ -678,6 +678,7 @@ var G = window.G = window.G || {};
     });
     ['eye', 'bag', 'stone', 'coin', 'hammer', 'horn', 'saw', 'gear', 'scroll', 'meteor', 'sword', 'hourglass', 'star', 'bandage', 'target', 'poster', 'energy'].forEach(function (k) { S.icon[k] = icon(k); });
     ['battle', 'elite', 'event', 'shop', 'rest', 'boss'].forEach(function (k) { S.node[k] = nodeIcon(k); });
+    if (G.TowerArt) G.TowerArt.apply(S);   // 24×18で描き直したタワーで上書きする（段階②）
     G.SPR = S;
     return S;
   };
@@ -685,5 +686,11 @@ var G = window.G = window.G || {};
   G.towerImg = function (type, lv, fire) {
     var spr = G.SPR[type][lv || 0][fire ? 1 : 0];
     return spr.r ? spr.r : spr;
+  };
+  // 小さな枠（カード・指揮官の絵など）にタワーを描く。はみ出す時だけ縮める（ぼかさない）。下のまん中にそろえる
+  G.drawTowerFit = function (c, img, w, h) {
+    var k = Math.min(1, w / img.width, h / img.height), dw = Math.round(img.width * k), dh = Math.round(img.height * k);
+    c.imageSmoothingEnabled = false;
+    c.drawImage(img, Math.round((w - dw) / 2), h - dh, dw, dh);
   };
 })();

@@ -70,7 +70,7 @@ var G = window.G = window.G || {};
     if (def.kind === 'tower') {
       var img = G.towerImg(def.tower, 0, false);
       c.width = 26; c.height = 34;
-      c.getContext('2d').drawImage(img, Math.round((26 - img.width) / 2), 34 - img.height);
+      G.drawTowerFit(c.getContext('2d'), img, 26, 34);
     } else {
       c.width = 26; c.height = 26;
       c.getContext('2d').drawImage(SPR.icon[def.icon], 5, 5);
@@ -563,7 +563,7 @@ var G = window.G = window.G || {};
   function showDetail(id) {
     var def = G.CARDS[id], c = $('detail-art').getContext('2d');
     c.clearRect(0, 0, 34, 36);
-    if (def.kind === 'tower') { var img = G.towerImg(def.tower, 0, false); c.drawImage(img, Math.round((34 - img.width) / 2), 36 - img.height); }
+    if (def.kind === 'tower') { var img = G.towerImg(def.tower, 0, false); G.drawTowerFit(c, img, 34, 36); }
     else c.drawImage(SPR.icon[def.icon], 9, 10);
     $('d-name').textContent = def.name;
     $('d-text').textContent = def.text;

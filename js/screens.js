@@ -187,7 +187,7 @@ var G = window.G = window.G || {};
           b.classList.add('sel'); picked = id; ok.disabled = false;
         });
         var cv = document.createElement('canvas'), img = G.towerImg(C.icon, 2); cv.width = 26; cv.height = 34;
-        cv.getContext('2d').drawImage(img, Math.round((26 - img.width) / 2), 34 - img.height);
+        G.drawTowerFit(cv.getContext('2d'), img, 26, 34);
         b.appendChild(cv);
         var tx = el('span', 'cmd-txt');
         tx.appendChild(el('b', '', C.name + '　♥' + C.life));

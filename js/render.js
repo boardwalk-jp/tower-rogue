@@ -24,6 +24,16 @@ var G = window.G = window.G || {};
   function blitB(img, x, y) { // 下の真ん中を (x, y) に合わせて描く
     b.drawImage(img, Math.round(x - img.width / 2), Math.round(y - img.height));
   }
+  // タワーの足もと（絵の下のふち）を置く高さ。新しい24×18の絵（nu）はマスの中心より6ドット手前、古い絵は5ドット
+  function footY(spr, y) { return sy(y) + (spr.nu ? 6 : 5); }
+  // 段階の点（強化した回数）。新しい絵では土台の手前のすぐ下に、3×2ドットの点を5ドットおきに並べる
+  function lvDots(spr, x, y, lv) {
+    b.fillStyle = '#ffe14d';
+    for (var l = 0; l < lv; l++) {
+      if (spr.nu) { b.fillStyle = '#16120f'; b.fillRect(sx(x) - 6 + l * 5 - 1 + (2 - lv) * 2.5, footY(spr, y), 5, 3); b.fillStyle = '#ffe14d'; b.fillRect(sx(x) - 6 + l * 5 + (2 - lv) * 2.5, footY(spr, y), 3, 2); }
+      else b.fillRect(sx(x) - 3 + l * 4, sy(y) + 3, 2, 2);
+    }
+  }
 
   // ---- 3×5ドットの数字（お金・ダメージ表示用） ----
   var DIG = {
@@ -562,24 +572,27 @@ var G = window.G = window.G || {};
       if (it.k === 'tower') {
         var fire = o.fire > 0.12 ? 1 : 0, spr = S[o.type][Math.min(2, o.lv)][fire];
         if (spr.r) spr = o.aim < 0 ? spr.l : spr.r;
-        var flat = G.TOWERS[o.type].trap;
-        if (!flat) { b.fillStyle = 'rgba(0,0,0,.35)'; b.fillRect(sx(o.x) - 7, sy(o.y) + 3, 14, 2); }
+        var flat = G.TOWERS[o.type].trap, fy = footY(spr, o.y);
+        if (!flat) {
+          if (spr.nu) DA.ell(b, Math.round(sx(o.x)) + 4, Math.round(sy(o.y)) + 3, 11, 8, 'rgba(0,0,0,.3)');   // 影（テストページと同じ大きさ）
+          else { b.fillStyle = 'rgba(0,0,0,.35)'; b.fillRect(sx(o.x) - 7, sy(o.y) + 3, 14, 2); }
+        }
         // タワーを置くカードを選んでいる間は、後ろのマスが見えるようにタワーを半透明にする
         if (ui.selType) b.globalAlpha = 0.45;
-        blitB(spr, sx(o.x), sy(o.y) + 5);
+        blitB(spr, sx(o.x), fy);
         b.globalAlpha = 1;
         // 吹雪の魔女に止められている間：タワーを氷が包む（青い色と氷のかけら）
         if (o.frozenT > 0) {
-          b.globalCompositeOperation = 'lighter'; b.globalAlpha = 0.45; blitB(spr, sx(o.x), sy(o.y) + 5); b.globalAlpha = 1; b.globalCompositeOperation = 'source-over';
-          var fx0 = sx(o.x), fy0 = sy(o.y) + 5;
+          b.globalCompositeOperation = 'lighter'; b.globalAlpha = 0.45; blitB(spr, sx(o.x), fy); b.globalAlpha = 1; b.globalCompositeOperation = 'source-over';
+          var fx0 = sx(o.x), fy0 = fy;
           b.fillStyle = '#d8f4ff'; b.fillRect(fx0 - 6, fy0 - 3, 2, 3); b.fillRect(fx0 + 4, fy0 - 5, 2, 4); b.fillRect(fx0 - 1, fy0 - spr.height, 2, 4);
           b.fillStyle = '#7ad0ff'; b.fillRect(fx0 - 7, fy0 - 1, 3, 1); b.fillRect(fx0 + 4, fy0 - 2, 3, 1);
         }
-        if (o.maxHp && o.hp < o.maxHp) hpBar(sx(o.x), sy(o.y) + 5 - spr.height - 3, 12, Math.max(0, o.hp / o.maxHp), '#c8a060');
-        for (var l = 0; l < o.lv; l++) { b.fillStyle = '#ffe14d'; b.fillRect(sx(o.x) - 3 + l * 4, sy(o.y) + 3, 2, 2); }
+        if (o.maxHp && o.hp < o.maxHp) hpBar(sx(o.x), fy - spr.height - 3, 12, Math.max(0, o.hp / o.maxHp), '#c8a060');
+        lvDots(spr, o.x, o.y, o.lv);
         // スキルで強くなっている間は、タワーの上に赤い↑（アップの色）
         if (o.bonusDmg > 0 || o.turnDmgMult > 1 || s.buff.speedMult > 1) {
-          var ax = sx(o.x) + 6, ay = sy(o.y) + 5 - spr.height - 2 + Math.round(Math.sin(t * 4 + o.id) * 1);
+          var ax = sx(o.x) + (spr.nu ? 9 : 6), ay = fy - spr.height - 2 + Math.round(Math.sin(t * 4 + o.id) * 1);
           b.fillStyle = '#16120f'; b.fillRect(ax - 3, ay - 1, 7, 6);
           b.fillStyle = G.UP_COLOR; b.fillRect(ax, ay, 1, 4); b.fillRect(ax - 1, ay + 1, 3, 1); b.fillRect(ax - 2, ay + 2, 1, 1); b.fillRect(ax + 2, ay + 2, 1, 1);
         }
@@ -587,7 +600,7 @@ var G = window.G = window.G || {};
         if (ui.pendingTower === o.id) {
           var on = Math.floor(t * 4) % 2 === 0;
           b.fillStyle = on ? '#ffffff' : G.UP_COLOR;
-          var bx0 = sx(o.x) - 9, by0 = sy(o.y) + 5 - spr.height - 3, bw = 18, bh = spr.height + 5;
+          var bw = spr.nu ? 24 : 18, bx0 = sx(o.x) - (bw >> 1), by0 = fy - spr.height - 3, bh = spr.height + 5;
           b.fillRect(bx0, by0, 3, 1); b.fillRect(bx0, by0, 1, 3); b.fillRect(bx0 + bw - 3, by0, 3, 1); b.fillRect(bx0 + bw - 1, by0, 1, 3);
           b.fillRect(bx0, by0 + bh - 1, 3, 1); b.fillRect(bx0, by0 + bh - 3, 1, 3); b.fillRect(bx0 + bw - 3, by0 + bh - 1, 3, 1); b.fillRect(bx0 + bw - 1, by0 + bh - 3, 1, 3);
         }
@@ -627,14 +640,14 @@ var G = window.G = window.G || {};
       s.towers.forEach(function (tw) {
         if (focus.indexOf(tw.id) < 0) return;
         var sp = S[tw.type][Math.min(2, tw.lv)][0]; if (sp.r) sp = tw.aim < 0 ? sp.l : sp.r;
-        blitB(sp, sx(tw.x), sy(tw.y) + 5);
-        for (var l = 0; l < tw.lv; l++) { b.fillStyle = '#ffe14d'; b.fillRect(sx(tw.x) - 3 + l * 4, sy(tw.y) + 3, 2, 2); }
+        blitB(sp, sx(tw.x), footY(sp, tw.y));
+        lvDots(sp, tw.x, tw.y, tw.lv);
       });
     }
     // 強化した時の光：タワーを包む光の柱と、白く光るタワー
     glows.forEach(function (g) {
       var p = 1 - g.life / g.ml, a = p < 0.15 ? p / 0.15 : 1 - (p - 0.15) / 0.85;
-      var gx = Math.round(sx(g.x)), gy = Math.round(sy(g.y)) + 4, w = Math.round(14 - p * 6), h = 34;
+      var gx = Math.round(sx(g.x)), gy = Math.round(sy(g.y)) + 6, w = Math.round(21 - p * 9), h = 51;   // 光の柱（新しい絵に合わせて1.5倍）
       b.globalCompositeOperation = 'lighter';
       for (var k = 0; k < h; k++) {
         b.globalAlpha = a * 0.55 * (1 - k / h);
@@ -642,7 +655,7 @@ var G = window.G = window.G || {};
         b.fillRect(gx - (w >> 1), gy - k, w, 1);
       }
       var tw = G.Battle.findTower(s, g.id);
-      if (tw) { var sp = S[tw.type][Math.min(2, tw.lv)][0]; if (sp.r) sp = tw.aim < 0 ? sp.l : sp.r; b.globalAlpha = a * 0.8; blitB(sp, sx(tw.x), sy(tw.y) + 5); }
+      if (tw) { var sp = S[tw.type][Math.min(2, tw.lv)][0]; if (sp.r) sp = tw.aim < 0 ? sp.l : sp.r; b.globalAlpha = a * 0.8; blitB(sp, sx(tw.x), footY(sp, tw.y)); }
       b.globalAlpha = 1; b.globalCompositeOperation = 'source-over';
       if (Math.random() < 0.5) parts.push({ x: gx + (Math.random() - 0.5) * 14, y: gy - Math.random() * 20, vx: 0, vy: -24, g: 0, life: 0.5, ml: 0.5, col: Math.random() < 0.5 ? '#ffffff' : '#ffe14d' });
     });
@@ -706,7 +719,7 @@ var G = window.G = window.G || {};
       fillEllipse(pv.tx + 0.5, pv.ty + 0.5, T.range, ok ? '#ffffff' : '#ff5a5a', 0.2);
       rangeEllipse(pv.tx + 0.5, pv.ty + 0.5, T.range, ok ? '#ffffff' : '#ff5a5a', t);
       var ps = G.towerImg(ui.selType, 0, false);
-      b.globalAlpha = ui.pending ? 0.75 : 0.6; blitB(ps, sx(pv.tx + 0.5), sy(pv.ty + 0.5) + 5); b.globalAlpha = 1;
+      b.globalAlpha = ui.pending ? 0.75 : 0.6; blitB(ps, sx(pv.tx + 0.5), footY(ps, pv.ty + 0.5)); b.globalAlpha = 1;
       if (ui.pending && ok) { // 仮置き中：マスのかどを点滅させて「もう一度タップ」を示す
         var on = Math.floor(t * 4) % 2 === 0, x0 = pv.tx * TW, y0 = sy(pv.ty), CL = 4;   // かどの印（長さ4ドット）
         b.fillStyle = on ? '#ffffff' : '#ffe14d';
@@ -779,8 +792,11 @@ var G = window.G = window.G || {};
   function towerAt(s, px, py, cssW, cssH) { // タワーの絵の上を触っても選べるように少し上まで判定
     var x = px / cssW * W, y = py / cssH * H, best = null, bd = 1e9;
     s.towers.forEach(function (tw) {
+      var sp = G.SPR[tw.type][Math.min(2, tw.lv)][0]; if (sp.r) sp = sp.r;
       var dx = x - sx(tw.x), dy = y - (sy(tw.y) - 6);
-      if (Math.abs(dx) <= 9 && dy >= -20 && dy <= 10) { var d = Math.abs(dx) + Math.abs(dy); if (d < bd) { bd = d; best = tw; } }
+      // 新しい絵：横±11、縦は絵のてっぺん（少し上まで）から足もとの少し下まで。古い絵：横±9、縦−20〜+10
+      var ok = sp.nu ? (Math.abs(dx) <= 11 && y >= footY(sp, tw.y) - sp.height - 2 && y <= footY(sp, tw.y) + 3) : (Math.abs(dx) <= 9 && dy >= -20 && dy <= 10);
+      if (ok) { var d = Math.abs(dx) + Math.abs(dy); if (d < bd) { bd = d; best = tw; } }
     });
     return best;
   }
