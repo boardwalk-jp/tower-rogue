@@ -224,11 +224,204 @@ var G = window.G = window.G || {};
     return trim(s);
   }
 
+
+  // ================= ここから：見習い弓兵・投石小屋・見張り小屋・吹き矢小屋・狙撃塔 =================
+  // 手前の面だけの壁（屋根の下に使う。上の面は描かない）：左はハイライト・右は影・下は暗い線
+  function wall(c, cx, by, w, hh, Pl) {
+    var x0 = cx - (w >> 1), sw = Math.max(2, w >> 2);
+    R(c, x0, by - hh, w, hh, Pl.f); R(c, x0 + w - sw, by - hh, sw, hh, Pl.s);
+    R(c, x0, by - hh, 1, hh, Pl.hi); R(c, x0, by - 1, w, 1, Pl.d);
+  }
+  // 人（台の上に立つ）：cy＝足もと。tun＝服の色（手前・影）、hat＝ぼうしの色
+  function person(c, cx, cy, tun, tunS, hat, hatHi) {
+    R(c, cx - 2, cy - 5, 5, 5, tun); R(c, cx + 1, cy - 5, 2, 5, tunS); R(c, cx - 2, cy - 1, 5, 1, '#2a2218');
+    R(c, cx - 1, cy - 8, 3, 3, '#f0c8a0'); R(c, cx + 1, cy - 8, 1, 3, '#c89870');
+    R(c, cx - 2, cy - 10, 5, 2, hat); R(c, cx - 2, cy - 10, 1, 1, hatHi);
+  }
+
+  // ================= 見習い弓兵（bowman）：木のやぐら。茶色の服の見習いが小さな弓を持つ =================
+  function bowman(lv, fire) {
+    var s = sheet(), c = s.c, cx = 12, bh = [5, 6, 6][lv], lg = [8, 9, 10][lv], i;
+    var Pr = { l: '#8d5a34', s: '#5e3a20', hi: '#b07a48', d: '#3a2210' };
+    // 木の足もと（板の台）
+    var cy = base(c, cx, 16, ds(8), hs(bh), P.wood);
+    planks(c, cx, BY, 16, hs(bh), P.wood, 3);
+    if (lv >= 1) { band(c, cx, BY - 2, 16, P.iron.f, P.iron.hi); }
+    if (lv === 2) { band(c, cx, BY - hs(bh), 16, GOLD, GOLD_HI); rivets(c, cx, BY - 3, 16, 4); }
+    // 足（2本の柱とななめの補強）。奥の柱は暗く
+    R(c, cx - 5, cy - 3 - lg, 2, lg, P.wood.d); R(c, cx + 4, cy - 3 - lg, 2, lg, P.wood.d);
+    R(c, cx - 6, cy + 3 - lg, 2, lg, P.wood.f); R(c, cx - 6, cy + 3 - lg, 1, lg, P.wood.hi); R(c, cx + 5, cy + 3 - lg, 2, lg, P.wood.s);
+    for (i = 0; i < lg - 1; i++) R(c, cx - 4 + Math.round(i * 8 / lg), cy + 2 - i, 1, 1, P.wood.s);
+    // 見張りの床
+    var y = slab(c, cx, cy - lg, 16, ds(8), hs(2), P.wood2), fy = y + 4;
+    if (lv === 2) band(c, cx, fy + 1, 16, GOLD);
+    var ry = y;
+    if (lv >= 1) {                                                              // 段階1・2：細い柱と屋根
+      var pH = 9; ry = y - pH;
+      R(c, cx - 7, ry, 1, pH + 4, P.wood.f); R(c, cx + 6, ry, 1, pH + 4, P.wood.s);
+    }
+    person(c, cx, y + 1, '#8a6a3a', '#5e4624', '#5a3a1e', '#7a5230');          // 茶色の服と革のぼうし
+    R(c, cx - 1, y - 5, 3, 1, '#d94a3a');                                       // 見習いのしるし（赤い帯）
+    // 小さな弓（右手）：ふだんは弦がまっすぐ、攻撃中は弦を引く
+    R(c, cx + 4, y - 9, 1, 1, '#8a5a2a'); R(c, cx + 5, y - 8, 1, 5, '#8a5a2a'); R(c, cx + 4, y - 3, 1, 1, '#8a5a2a');
+    if (fire) { R(c, cx + 3, y - 8, 1, 2, '#e8e0c0'); R(c, cx + 2, y - 6, 1, 1, '#e8e0c0'); R(c, cx + 3, y - 5, 1, 2, '#e8e0c0'); R(c, cx + 2, y - 6, 6, 1, '#d8d0b0'); R(c, cx + 8, y - 6, 1, 1, '#ffffff'); }
+    else R(c, cx + 4, y - 8, 1, 5, '#e8e0c0');
+    if (lv === 0) {
+      for (i = -8; i <= 7; i += 5) R(c, cx + i, fy - 3, 1, 3, P.wood.f);
+      R(c, cx - 8, fy - 3, 16, 1, P.wood.t);
+      flag(c, cx - 7, y - 1, 11, 0, false);
+    } else {
+      R(c, cx - 7, fy - 3, 14, 1, P.wood.t);
+      var tip = roof(c, cx, ry + 1, 9, lv === 2 ? 7 : 5, Pr);
+      if (lv === 2) { band(c, cx, ry, 15, GOLD); R(c, cx, tip - 2, 1, 2, GOLD); R(c, cx - 1, tip - 3, 3, 1, GOLD_HI); flag(c, cx + 1, tip - 2, 5, 2); }
+      else flag(c, cx, tip, 5, 1);
+    }
+    return trim(s);
+  }
+
+  // ================= 投石小屋（sling）：わらぶき屋根の小屋と石の山。ひもに石をつるす =================
+  function sling(lv, fire) {
+    var s = sheet(), c = s.c, hx = 10, wh = [14, 15, 16][lv], rh = [9, 10, 11][lv], i;
+    var Pr = { l: '#d9b24a', s: '#a07a28', hi: '#f0d070', d: '#6a4a14' };
+    // 木の小屋（横板）。段階1は鉄の帯、段階2は金の帯
+    wall(c, hx, BY, 14, wh, P.wood); planks(c, hx, BY, 14, wh, P.wood, 3);
+    R(c, hx - 2, BY - 7, 4, 6, '#3b2a1a'); R(c, hx - 2, BY - 7, 1, 6, '#24180e');       // 戸口
+    if (lv >= 1) { band(c, hx, BY - 3, 14, P.iron.f, P.iron.hi); band(c, hx, BY - wh + 1, 14, P.iron.f, P.iron.hi); R(c, hx - 7, BY - wh, 1, wh - 1, P.iron.f); }
+    if (lv === 2) { band(c, hx, BY - wh + 1, 14, GOLD, GOLD_HI); rivets(c, hx, BY - 3, 14, 3); }
+    // わらぶき屋根（のきが出る）
+    var eave = BY - wh + 1, tip = roof(c, hx, eave, 9, rh, Pr);
+    for (i = 2; i < rh - 1; i += 2) R(c, hx - Math.round(9 * (i + 1) / rh) + 2, eave - rh + i, Math.round(9 * (i + 1) / rh) * 2 - 3, 1, Pr.hi);   // わらの筋
+    // 右はしの石の山（段階が上がると増える）
+    ell(c, 19, BY - 3, 3, 2, P.rock.f); ell(c, 18, BY - 4, 2, 2, P.rock.t); R(c, 17, BY - 5, 1, 1, P.rock.hi); R(c, 21, BY - 2, 2, 1, P.rock.s);
+    if (lv >= 1) { ell(c, 15, BY - 2, 2, 1, P.rock.f); R(c, 14, BY - 3, 1, 1, P.rock.hi); }
+    if (lv === 2) { ell(c, 19, BY - 7, 2, 1, P.rock.t); R(c, 18, BY - 8, 1, 1, P.rock.hi); }
+    // 投石ひも（軒の左すみ）：ふだんは下にたれ、攻撃中は外へふれる
+    var rx = hx - 6;
+    R(c, rx, eave, 1, 1, '#6b4422');
+    if (fire) { R(c, rx - 1, eave + 1, 1, 1, '#d8c8a0'); R(c, rx - 2, eave + 2, 1, 1, '#d8c8a0'); ell(c, rx - 2, eave + 4, 1, 1, '#b4b8bc'); }
+    else { R(c, rx, eave + 1, 1, 3, '#d8c8a0'); ell(c, rx, eave + 5, 1, 1, '#b4b8bc'); }
+    // 旗（屋根のてっぺん）
+    if (lv === 2) { R(c, hx, tip - 2, 1, 2, GOLD); R(c, hx - 1, tip - 3, 3, 1, GOLD_HI); flag(c, hx + 1, tip - 2, 6, 2); }
+    else flag(c, hx, tip, lv ? 7 : 6, lv);
+    return trim(s);
+  }
+
+  // ================= 見張り小屋（watch）：細い柱と小さな台。青い服の見張りが角笛を吹く =================
+  function watch(lv, fire) {
+    var s = sheet(), c = s.c, cx = 12, pH = [14, 16, 18][lv], i;
+    var Pr = { l: '#5a7aa0', s: '#3a5478', hi: '#86a6cc', d: '#22344e' };
+    // 石の小さな足もと
+    var cy = base(c, cx, 12, ds(7), hs(3), lv === 0 ? P.stone : P.rock);
+    masonry(c, cx, BY, 12, hs(3), lv === 0 ? P.stone : P.rock, 2);
+    if (lv === 2) band(c, cx, BY - 3, 12, GOLD, GOLD_HI);
+    // 細い柱（左は明るく、右は影）
+    var top = BY - 3 - pH;
+    R(c, cx - 2, top, 4, pH, P.wood.f); R(c, cx + 1, top, 2, pH, P.wood.s); R(c, cx - 2, top, 1, pH, P.wood.hi);
+    if (lv >= 1) {                                                              // ななめの支え
+      for (i = 0; i < 6; i++) { R(c, cx - 3 - (i >> 1), BY - 4 - i, 1, 1, P.wood.s); R(c, cx + 3 + (i >> 1), BY - 4 - i, 1, 1, P.wood.d); }
+      band(c, cx, BY - 6, 4, P.iron.f, P.iron.hi); band(c, cx, top + 2, 4, P.iron.f, P.iron.hi);
+    }
+    if (lv === 2) { band(c, cx, BY - 8, 4, GOLD, GOLD_HI); band(c, cx, top + 4, 4, GOLD); }
+    // 小さな台
+    var y = slab(c, cx, top - 1, 14, ds(7), hs(2), P.wood2), fy = y + 3;
+    var ph = 8;
+    if (lv >= 1) { R(c, cx - 6, y - ph, 1, ph + 3, P.wood.f); R(c, cx + 6, y - ph, 1, ph + 3, P.wood.s); }
+    // 見張り番（青い服）。右手で角笛：ふだんは下げ、攻撃中は高く上げて音が出る
+    person(c, cx, y + 1, '#4a6a8a', '#34506a', '#2e4560', '#4a6a8a');
+    R(c, cx - 1, y - 5, 3, 1, '#e8e0c0');                                       // 胸の白い帯
+    if (fire) {
+      R(c, cx + 3, y - 8, 1, 3, '#c8a040'); R(c, cx + 4, y - 9, 2, 1, '#e8c860'); R(c, cx + 5, y - 11, 2, 2, '#f6dc7a');
+      R(c, cx + 8, y - 12, 1, 1, '#ffffff'); R(c, cx + 8, y - 9, 1, 1, '#ffffff');
+    } else {
+      R(c, cx + 3, y - 5, 1, 3, '#c8a040'); R(c, cx + 4, y - 3, 2, 1, '#e8c860'); R(c, cx + 5, y - 3, 1, 2, '#f6dc7a');
+    }
+    R(c, cx - 7, fy - 3, 14, 1, P.wood.t);                                      // 手すり
+    if (lv === 0) {
+      for (i = -6; i <= 6; i += 6) R(c, cx + i, fy - 3, 1, 3, P.wood.f);
+      flag(c, cx - 6, y - 1, 10, 0, false);
+    } else {
+      var tip = roof(c, cx, y - ph + 1, 8, lv === 2 ? 6 : 5, Pr);
+      if (lv === 2) { R(c, cx, tip - 2, 1, 2, GOLD); R(c, cx - 1, tip - 3, 3, 1, GOLD_HI); band(c, cx, y - ph, 14, GOLD); flag(c, cx + 1, tip - 2, 5, 2); }
+      else flag(c, cx, tip, 5, 1);
+    }
+    return trim(s);
+  }
+
+  // ================= 吹き矢小屋（dart）：竹の小屋と、窓から出る吹き矢の筒 =================
+  function dart(lv, fire) {
+    var s = sheet(), c = s.c, cx = 11, wh = [14, 15, 16][lv], rh = [9, 10, 11][lv], i;
+    var Pb = { f: '#8a9a4a', s: '#5f6e2e', hi: '#b0c070', d: '#3e4a1c' };
+    var Pr = { l: '#c8a860', s: '#9a7e3c', hi: '#e0c888', d: '#6a5426' };
+    // 木の低い台（足もと）
+    base(c, cx, 16, ds(7), hs(3), P.wood); planks(c, cx, BY, 16, hs(3), P.wood, 2);
+    if (lv === 2) band(c, cx, BY - 3, 16, GOLD, GOLD_HI);
+    // 竹の壁（たて筋）
+    var wb = BY - 3;
+    wall(c, cx, wb, 14, wh, Pb);
+    for (i = 2; i < 12; i += 3) R(c, cx - 7 + i, wb - wh + 1, 1, wh - 2, Pb.s);
+    for (i = 4; i < wh; i += 5) R(c, cx - 6, wb - i, 12, 1, Pb.hi);                // 竹の節
+    if (lv >= 1) { band(c, cx, wb - 2, 14, P.iron.f, P.iron.hi); band(c, cx, wb - wh + 1, 14, P.iron.f, P.iron.hi); }
+    if (lv === 2) { band(c, cx, wb - wh + 1, 14, GOLD, GOLD_HI); rivets(c, cx, wb - 2, 14, 3); }
+    // 窓と吹き矢の筒（右へ突き出す）。攻撃中は矢が飛び出し、白い息が出る
+    var wy = wb - 9;
+    R(c, cx - 3, wy - 1, 5, 4, '#1e2a10');
+    R(c, cx - 1, wy, 10, 2, '#e8d9b0'); R(c, cx - 1, wy, 10, 1, '#fff6d8'); R(c, cx + 8, wy, 1, 2, '#8a7a50');
+    if (fire) { R(c, cx + 9, wy, 1, 1, '#ffffff'); R(c, cx + 10, wy, 2, 1, '#d94a3a'); R(c, cx + 12, wy, 1, 1, '#ffffff'); }
+    // 屋根（竹ひご）。段階1からは小さな2段目
+    var eave = wb - wh + 1, tip = roof(c, cx, eave, 10, rh, Pr);
+    if (lv >= 1) { tip = roof(c, cx, tip + 1, 5, 5, Pr); R(c, cx - 2, tip + 4, 5, 1, lv === 2 ? GOLD : P.iron.f); }
+    if (lv === 2) { R(c, cx, tip - 2, 1, 2, GOLD); R(c, cx - 1, tip - 3, 3, 1, GOLD_HI); flag(c, cx + 1, tip - 2, 5, 2); }
+    else flag(c, cx, tip, lv ? 5 : 6, lv);
+    return trim(s);
+  }
+
+  // ================= 狙撃塔（sniper）：細く高い石の塔と長い弩（右向きを描き、左は反転） =================
+  function sniperR(lv, fire) {
+    var s = sheet(), c = s.c, cx = 12, H = [18, 24, 26][lv], Pb = lv === 0 ? P.stone : P.bluest, i;
+    // 広い足もと → 細い塔
+    var cy = base(c, cx, 16, ds(8), hs(3), Pb);
+    masonry(c, cx, BY, 16, hs(3), Pb, 2);
+    if (lv === 2) band(c, cx, BY - 3, 16, GOLD, GOLD_HI);
+    var wb = cy + 3, y = slab(c, cx, cy, 12, ds(7), hs(H), Pb);
+    masonry(c, cx, wb, 12, hs(H), Pb);
+    R(c, cx - 1, wb - hs(H) + 4, 2, 4, '#1e2228'); R(c, cx - 1, wb - hs(H) + 4, 1, 1, '#4a5260');   // 細い窓
+    if (lv >= 1) { band(c, cx, wb - 3, 12, P.iron.f, P.iron.hi); band(c, cx, wb - hs(H) + 1, 12, P.iron.f, P.iron.hi); band(c, cx, wb - (hs(H) >> 1), 12, P.iron.f, P.iron.hi); }
+    if (lv === 2) { band(c, cx, wb - 3, 12, GOLD, GOLD_HI); band(c, cx, wb - hs(H) + 1, 12, GOLD, GOLD_HI); rivets(c, cx, wb - (hs(H) >> 1), 12, 3); }
+    // 見張り台
+    y = slab(c, cx, y, 17, ds(8), hs(2), P.wood2);
+    var ly = y;
+    for (i = -7; i <= 7; i += 7) R(c, cx + i, y + 2, 2, 2, P.wood.d);
+    // 長い弩：台座（木の柄）・右はしの弓（上下に反る）・弦・矢
+    var x0 = cx - 7;
+    R(c, x0, ly - 2, 15, 2, P.wood.f); R(c, x0, ly - 2, 15, 1, P.wood.t); R(c, x0 - 1, ly - 3, 2, 3, P.wood.s);
+    R(c, cx + 5, ly - 3, 1, 3, P.iron.t);                                      // 弓の付け根
+    var Lc = lv === 2 ? GOLD : P.iron.f;
+    R(c, cx + 6, ly - 8, 1, 5, Lc); R(c, cx + 5, ly - 10, 1, 3, Lc); R(c, cx + 4, ly - 11, 1, 1, Lc);   // 上の弓
+    R(c, cx + 6, ly, 1, 3, Lc); R(c, cx + 5, ly + 2, 1, 1, Lc);                                           // 下の弓（見えるぶんだけ）
+    if (lv === 2) { R(c, cx + 6, ly - 8, 1, 1, GOLD_HI); R(c, cx + 4, ly - 11, 1, 1, GOLD_HI); }
+    R(c, cx - 3, ly - 6, 3, 2, '#4a7ad0'); R(c, cx - 3, ly - 7, 1, 1, '#bfe0ff');   // 照準
+    if (fire) {                                                                 // 弦がはね戻り、矢が飛んで先が光る
+      R(c, cx + 4, ly - 10, 1, 9, '#e8e0c0'); R(c, cx + 9, ly - 2, 1, 1, '#ffffff'); R(c, cx + 10, ly - 3, 2, 3, '#ffffff'); R(c, cx + 8, ly - 4, 1, 1, '#fff6c0');
+    } else {                                                                    // 弦を引き、矢をつがえる
+      R(c, cx + 1, ly - 3, 1, 1, '#e8e0c0'); R(c, cx + 2, ly - 6, 1, 3, '#e8e0c0'); R(c, cx + 3, ly - 9, 1, 3, '#e8e0c0'); R(c, cx + 2, ly - 1, 1, 3, '#e8e0c0');
+      R(c, cx + 1, ly - 3, 8, 1, '#d8d8d8'); R(c, cx + 9, ly - 3, 1, 1, '#ffffff');
+    }
+    // 旗（台の左はし。左向きに作った後に反転で右へ）
+    if (lv === 2) { R(c, cx - 7, ly - 15, 1, 1, GOLD_HI); flag(c, cx - 7, ly - 2, 13, 2, true); }
+    else flag(c, cx - 7, ly - 2, lv ? 11 : 9, lv, true);
+    return trim(s);
+  }
+
   // ---------- 種類ごとの作り方（ここに描き足していく） ----------
   var MAKERS = {
     archer: archer,
     cannon: function (lv, fire) { var r = cannonR(lv, fire); return { r: r, l: flip(r) }; },
-    frost: frost
+    frost: frost,
+    bowman: bowman,
+    sling: sling,
+    watch: watch,
+    dart: dart,
+    sniper: function (lv, fire) { var r = sniperR(lv, fire); return { r: r, l: flip(r) }; }
   };
 
   G.TowerArt = {
