@@ -757,6 +757,126 @@ var G = window.G = window.G || {};
     return trim(s);
   }
 
+  // ================= 金鉱（mine）：石の山に木の入口、金のかたまり。道以外に置く建物 =================
+  function nugget(c, x, y, big) {   // 金のかたまり（左上が明るい）
+    if (big) { R(c, x, y, 3, 2, GOLD); R(c, x + 1, y - 1, 2, 1, GOLD); R(c, x, y, 1, 1, GOLD_HI); R(c, x + 2, y + 1, 1, 1, GOLD_D); }
+    else { R(c, x, y, 2, 2, GOLD); R(c, x, y, 1, 1, GOLD_HI); R(c, x + 1, y + 1, 1, 1, GOLD_D); }
+  }
+  function mine(lv, fire) {
+    var s = sheet(), c = s.c, cx = 12;
+    var bh = [3, 4, 4][lv], bw = 22;
+    // 石の山（土台）
+    var cy = base(c, cx, bw, ds(9), hs(bh), P.rock);
+    masonry(c, cx, BY, bw, hs(bh), P.rock);
+    if (lv === 2) band(c, cx, BY - hs(bh), bw, GOLD, GOLD_HI);
+    // 木の入口（柱2本と梁、まん中は暗い坑道）
+    var hh = [8, 9, 9][lv], ww = 14, wby = cy + 3, x0 = cx - (ww >> 1);
+    var y = slab(c, cx, cy, ww, ds(7), hs(hh), P.wood);
+    planks(c, cx, wby, ww, hs(hh), P.wood);
+    R(c, x0 + 3, wby - hh + 3, ww - 6, hh - 3, '#1c120a');                       // 坑道の穴
+    R(c, x0 + 3, wby - hh + 3, ww - 6, 1, '#0e0905');
+    R(c, x0 + 3, wby - 1, ww - 6, 1, '#3a2a1a');                                  // 穴の足もと（地面）
+    R(c, x0 + 3, wby - hh + 3, 1, hh - 3, P.wood.d);                              // 左の柱の内側の影
+    R(c, x0 + 1, wby - hh + 1, ww - 2, 2, P.wood.hi); R(c, x0 + 1, wby - hh + 2, ww - 2, 1, P.wood.f);   // 梁
+    // 穴の奥の金の光
+    R(c, cx - 1, wby - 4, 2, 1, GOLD); R(c, cx + 1, wby - 3, 1, 1, GOLD_D); R(c, cx - 1, wby - 4, 1, 1, GOLD_HI);
+    if (fire) { R(c, cx - 2, wby - 6, 1, 1, GOLD_HI); R(c, cx + 2, wby - 7, 1, 1, '#ffffff'); R(c, cx, wby - 8, 1, 1, GOLD_HI); }   // 金がきらっと光る
+    if (lv >= 1) {                                                                 // 鉄の補強と屋根
+      band(c, cx, wby - hh + 3, ww, P.iron.f, P.iron.hi); band(c, cx, wby - 2, 3, P.iron.f); band(c, cx + 4, wby - 2, 3, P.iron.f);
+      R(c, x0, wby - hh + 4, 1, hh - 5, P.iron.f); R(c, x0 + ww - 1, wby - hh + 4, 1, hh - 5, P.iron.s);
+      roof(c, cx, y - 1, 8, 5, { l: '#8c6a4a', s: '#654830', hi: '#b08a62', d: '#3e2a18' });
+    }
+    if (lv === 2) { rivets(c, cx, wby - hh + 3, ww, 3); R(c, cx - 1, wby - hh + 1, 2, 1, GOLD_HI); }
+    // 山の両わきの金のかたまり
+    nugget(c, cx - 10, cy + 1, lv >= 1); nugget(c, cx + 7, cy + 2, lv >= 1);
+    if (lv === 2) { nugget(c, cx + 8, cy + 4, true); R(c, cx - 11, cy - 1, 1, 1, '#ffffff'); }
+    if (lv === 0) flag(c, cx + 5, y + 1, 7, 0); else flag(c, cx, y - 1 - 5, 4 + (lv > 1 ? 0 : lv), lv);   // 段階0は屋根なし、1・2は屋根のてっぺんに旗
+    return trim(s);
+  }
+
+  // ================= トゲの罠（spikes）：地面の板から金属のトゲ。低くて平たい =================
+  function spikePole(c, x, yb, h, Pl, tip) {   // トゲ1本（2ドット幅、先は1ドット）。yb＝根もとの行
+    R(c, x, yb - h + 1, 1, h, Pl.hi); R(c, x + 1, yb - h + 2, 1, h - 1, Pl.s);
+    R(c, x, yb - h, 1, 1, tip);
+  }
+  function spikes(lv, fire) {
+    var s = sheet(), c = s.c, cx = 12, Pb = lv === 0 ? P.wood : P.iron;
+    var w = 21, dp = 6, hh = 2, i;
+    box(c, cx, BY, w, dp, hh, Pb);                                                  // 地面の板
+    if (lv === 0) { R(c, cx - 8, BY - hh - 3, 1, 1, P.wood.d); R(c, cx + 5, BY - hh - 2, 1, 1, P.wood.d); }
+    else { for (i = 0; i < 4; i++) R(c, cx - 8 + i * 5, BY - hh - dp + 2, 1, 1, lv === 2 ? GOLD : P.iron.hi); }   // 板のびょう
+    if (lv === 2) { R(c, cx - (w >> 1), BY - 1 - hh + 1, w, 1, GOLD_D); }
+    var tip = lv === 2 ? GOLD_HI : '#ffffff', rise = fire ? 2 : 0, Pt = { hi: '#c4ccd6', s: '#7c8694' };
+    var rearY = BY - hh - dp + 4, frontY = BY - hh - 1;                              // 奥の列と手前の列の根もと
+    var n = lv === 0 ? 4 : 5, k;
+    for (k = 0; k < n - 1; k++) spikePole(c, cx - (n - 1) * 2 + k * 4 + 1, rearY, 5 + rise, Pt, tip);          // 奥の列
+    for (k = 0; k < n; k++) spikePole(c, cx - (n - 1) * 2 + k * 4 - 1, frontY, 7 + rise, Pt, tip);          // 手前の列
+    return trim(s);
+  }
+
+  // ================= 粘着の沼（tar）：黒いどろどろの水たまり。奥行きのある平たい楕円 =================
+  function tar(lv, fire) {
+    var s = sheet(), c = s.c, cx = 12, cyE = BY - 5;
+    ell(c, cx, cyE + 1, 10, 4, '#2a2018');                                         // ふちの土（下側を少し厚く）
+    ell(c, cx, cyE, 10, 4, '#5a4636'); ell(c, cx, cyE, 9, 3, '#463626');            // 土のふち（明るい茶色）
+    ell(c, cx, cyE, 8, 3, '#1e1a22'); ell(c, cx - 1, cyE, 7, 2, '#2e2a36');         // 黒いどろ
+    R(c, cx - 8, cyE - 3, 5, 1, '#7a6450'); R(c, cx - 3, cyE - 4, 4, 1, '#6a5644');   // 左上のふちの照り返し
+    R(c, cx - 4, cyE - 1, 3, 1, '#5a5470'); R(c, cx - 5, cyE, 1, 1, '#6a6478');   // どろのつや
+    R(c, cx + 3, cyE, 2, 1, '#4a4458');
+    var bub = function (x, y, r) { R(c, x, y, r, r, '#4a4458'); R(c, x, y, 1, 1, '#9a94b0'); };
+    bub(cx + 4, cyE - 1, 2); bub(cx - 1, cyE + 1, 2);
+    if (lv >= 1) { bub(cx + 1, cyE - 2, 2); R(c, cx - 6, cyE + 1, 1, 1, '#6a6478'); }
+    if (lv >= 2) { R(c, cx - 3, cyE, 1, 1, '#b07ad0'); R(c, cx + 5, cyE + 1, 1, 1, '#b07ad0'); R(c, cx + 2, cyE - 1, 1, 1, '#d8a8f0'); R(c, cx - 5, cyE + 2, 2, 1, '#6a4a88'); }
+    if (fire) { R(c, cx - 6, cyE - 2, 3, 3, '#4a4458'); R(c, cx - 6, cyE - 2, 1, 1, '#c8c2e0'); R(c, cx + 6, cyE - 1, 1, 1, '#c8c2e0'); R(c, cx - 5, cyE - 3, 1, 1, '#8a84a0'); }   // 泡が盛り上がる
+    return trim(s);
+  }
+
+  // ================= 爆弾樽（barrel）：導火線つきの樽。低い =================
+  function bombBarrel(c, cx, bc, rx, hh, Pl, hoop, fire, band2) {
+    var ry = cyl(c, cx, bc, rx, hh, Pl);
+    R(c, cx - rx, bc - 1, rx * 2 + 1, 1, hoop); R(c, cx - rx + 1, bc + 1, rx * 2 - 1, 1, hoop);   // 下の輪っか
+    R(c, cx - rx, bc - hh + 1, 1, 1, hoop); R(c, cx + rx, bc - hh + 1, 1, 1, hoop);
+    R(c, cx - 1, bc - hh - 1, 3, 1, hoop === GOLD ? GOLD : '#4a4f5c');                               // ふたの輪
+    R(c, cx, bc - hh - ry - 1, 1, 1, '#e0d8c0');                                                     // 導火線
+    if (fire) { R(c, cx - 1, bc - hh - ry - 2, 3, 1, '#ff8a2a'); R(c, cx, bc - hh - ry - 3, 1, 1, '#ffd84a'); }
+    else R(c, cx, bc - hh - ry - 2, 1, 1, '#ffd84a');
+    return ry;
+  }
+  function barrel_(lv, fire) {   // 立てた樽（遠くからも分かる大きさ）。段階2は樽が2つ
+    var s = sheet(), c = s.c, cx = 12, hoop = lv === 2 ? GOLD : '#4a4f5c';
+    function one(x, rx, hh, Pl, f) {
+      var bc = BY - 1 - Math.round(rx * 0.75);
+      bombBarrel(c, x, bc, rx, hh, Pl, hoop, f);
+      R(c, x - rx, bc - (hh >> 1) - 1, rx * 2 + 1, 1, hoop);                                   // まん中の輪っか
+      R(c, x - 2, bc - hh + 2, 3, 3, '#d94a3a'); R(c, x - 1, bc - hh + 3, 1, 1, '#ffd84a');   // 赤い火薬のしるし
+    }
+    if (lv < 2) one(cx, 5, 6, P.wood, fire);
+    else { one(cx - 5, 4, 5, P.wood2, false); one(cx + 4, 5, 6, P.wood, fire); }
+    return trim(s);
+  }
+
+  // ================= バリケード（barricade）：とがった杭を組んだ柵。低くて平たい =================
+  function barricade(lv, fire) {
+    var s = sheet(), c = s.c, cx = 12, W = lv === 0 ? P.wood : lv === 1 ? P.wood2 : P.wood2, i;
+    var tip = lv === 2 ? GOLD_HI : lv === 1 ? '#cdd6e0' : W.hi;
+    // 手前の横木（下の丸太）
+    box(c, cx, BY, 21, 3, 3, W); R(c, cx - 10, BY - 2, 21, 1, W.m);
+    // 斜めの支え棒（奥に交差させる）
+    for (i = 0; i < 8; i++) { R(c, cx - 8 + i, BY - 5 - i, 1, 1, W.d); R(c, cx + 7 - i, BY - 5 - i, 1, 1, W.d); }
+    // とがった杭を5本（高さを交互に変える）
+    for (i = 0; i < 5; i++) {
+      var x = cx - 10 + i * 5, h = i % 2 ? 8 : 7, j;
+      for (j = 0; j < h; j++) { R(c, x, BY - 4 - j, 2, 1, W.f); R(c, x, BY - 4 - j, 1, 1, W.hi); R(c, x + 1, BY - 4 - j, 1, 1, W.s); }
+      R(c, x, BY - 4 - h, 1, 1, tip);                                  // とがった先（左側だけ）
+    }
+    // 横の縄・鉄の帯
+    R(c, cx - 9, BY - 7, 18, 1, lv >= 1 ? P.iron.f : '#6a5a3a'); R(c, cx - 9, BY - 7, 1, 1, lv >= 1 ? P.iron.hi : '#8a7a58');
+    if (lv >= 1) R(c, cx - 9, BY - 5, 18, 1, P.iron.d);
+    if (lv === 2) { for (i = -8; i <= 8; i += 4) R(c, cx + i, BY - 7, 1, 1, GOLD); R(c, cx - 10, BY - 3, 21, 1, GOLD_D); }
+    if (fire) R(c, cx - 5, BY - 13 + 2, 1, 1, '#ffffff');                       // 先がきらっと光る
+    return trim(s);
+  }
+
   // ---------- 種類ごとの作り方（ここに描き足していく） ----------
   var MAKERS = {
     archer: archer,
@@ -776,7 +896,12 @@ var G = window.G = window.G || {};
     ballista: function (lv, fire) { var r = ballistaR(lv, fire); return { r: r, l: flip(r) }; },
     blizzard: blizzard,
     barracks: barracks,
-    golem: golem
+    golem: golem,
+    mine: mine,
+    spikes: spikes,
+    tar: tar,
+    barrel: barrel_,
+    barricade: barricade
   };
 
   G.TowerArt = {

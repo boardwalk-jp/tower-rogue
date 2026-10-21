@@ -202,154 +202,9 @@ var G = window.G = window.G || {};
     return both(g.outline(OUT));
   }
 
-  // ---- タワー（lv：0〜2。強化すると旗の色と飾りが変わる） ----
-  var FLAG = ['#d94a3a', '#3a7bd9', '#e6b84a'];
-  function stoneBase(g, x, y, w, h) {
-    g.rect(x, y, w, h, '#8b8f94');
-    for (var j = 0; j < h; j += 3) for (var i = (j / 3) % 2 ? 0 : 2; i < w; i += 4) g.px(x + i, y + j, '#6d7177');
-    g.rect(x, y + h - 1, w, 1, '#5b5f64');
-    g.rect(x, y, 1, h, '#a6aaaf');
-  }
-  function archerTower(lv, fire) {
-    var g = new Grid(18, 30);
-    stoneBase(g, 3, 14, 12, 15);
-    g.rect(1, 11, 16, 4, '#8a5a2b'); g.rect(1, 11, 16, 1, '#b07a42');      // 見張り台
-    for (var i = 1; i < 17; i += 3) g.rect(i, 9, 2, 2, '#8a5a2b');
-    // 弓兵
-    g.rect(7, 4, 4, 5, '#2f6e3a'); g.ell(9, 3, 2, 2, '#f1c79b'); g.rect(7, 1, 4, 1, '#2f6e3a');
-    if (fire) { g.rect(11, 3, 1, 5, '#c08a4a'); g.rect(12, 5, 3, 1, '#e6e6e6'); }
-    else { g.rect(11, 3, 1, 5, '#c08a4a'); g.px(12, 5, '#e6e6e6'); }
-    g.rect(14, 16 - lv, 1, 6 + lv, '#5b4632'); g.rect(15, 16 - lv, 2, 2, FLAG[lv]);  // 旗
-    if (lv >= 2) { g.px(5, 20, '#e6b84a'); g.px(12, 20, '#e6b84a'); }
-    return g.outline(OUT).bake();
-  }
-  function mageTower(lv, fire) {
-    var g = new Grid(18, 34);
-    stoneBase(g, 4, 17, 10, 16);
-    g.rect(5, 22, 2, 3, '#2a1f45'); g.rect(11, 22, 2, 3, '#2a1f45');      // 窓
-    g.px(5, 23, '#c79bff'); g.px(11, 23, '#c79bff');
-    // とんがり屋根
-    for (var r = 0; r < 10; r++) g.rect(9 - Math.ceil(r * 0.7) - 1, 7 + r, Math.ceil(r * 0.7) * 2 + 2, 1, r % 3 === 0 ? '#5a3a9a' : '#6f4cc0');
-    g.rect(2, 17, 14, 1, '#4a2f80');
-    // 水晶（撃つ瞬間に光る）
-    var cr = fire ? '#ffffff' : (lv >= 2 ? '#ffd76a' : '#9be7ff');
-    g.rect(8, 2, 2, 4, cr); g.px(9, 1, cr); g.px(8, 6, '#4aa8d8'); g.px(9, 6, '#4aa8d8');
-    g.rect(14, 20 - lv, 1, 5 + lv, '#5b4632'); g.rect(15, 20 - lv, 2, 2, FLAG[lv]);
-    return g.outline(OUT).bake();
-  }
-  function cannonTower(lv, fire) {
-    var g = new Grid(22, 20);
-    stoneBase(g, 2, 9, 16, 10);
-    g.rect(1, 8, 18, 2, '#9fa3a8');
-    for (var i = 1; i < 19; i += 4) g.rect(i, 6, 2, 2, '#9fa3a8');
-    // 砲身（撃つと後ろに下がる）
-    var bx = fire ? 5 : 7;
-    g.rect(4, 6, 9, 2, '#7a5230'); g.rect(4, 6, 9, 1, '#9a6e40');          // 木の台
-    g.rect(bx, 2, 11, 4, '#3a3d42'); g.rect(bx, 2, 11, 1, '#6a6e74');      // 砲身
-    g.rect(bx - 1, 3, 1, 2, '#2a2c30'); g.rect(bx + 10, 1, 2, 6, '#2a2c30');
-    g.rect(3, 12, 1, 4, '#5b4632'); g.rect(4, 12, 2, 2, FLAG[lv]);
-    if (lv >= 2) g.rect(bx + 2, 4, 1, 2, '#e6b84a');
-    return both(g.outline(OUT));
-  }
+  // ---- タワーの絵は js/towerart.js に移した（24×18の疑似3D・段階②） ----
 
-  function woodBase(g, x, y, w, h) {
-    g.rect(x, y, w, h, '#8a5a2b');
-    for (var i = x + 2; i < x + w; i += 3) g.rect(i, y, 1, h, '#6b4422');
-    g.rect(x, y, w, 1, '#b07a42'); g.rect(x, y + h - 1, w, 1, '#5a3a1e');
-  }
-  function bowmanTower(lv, fire) {   // 見習い弓兵：木のやぐら
-    var g = new Grid(18, 28);
-    g.rect(4, 14, 2, 13, '#6b4422'); g.rect(12, 14, 2, 13, '#6b4422'); g.rect(4, 20, 10, 1, '#6b4422');
-    woodBase(g, 2, 11, 14, 4);
-    g.rect(7, 4, 4, 6, '#7a5a2a'); g.ell(9, 3, 2, 2, '#f1c79b'); g.rect(7, 1, 4, 1, '#5a3a1e');
-    g.rect(11, 3, 1, 5, '#c08a4a'); if (fire) g.rect(12, 5, 3, 1, '#e6e6e6'); else g.px(12, 5, '#e6e6e6');
-    g.rect(15, 14 - lv, 1, 5 + lv, '#5b4632'); g.rect(16, 14 - lv, 2, 2, FLAG[lv]);
-    return g.outline(OUT).bake();
-  }
-  function slingTower(lv, fire) {   // 投石小屋：わらぶき屋根の小屋と石の山
-    var g = new Grid(20, 20);
-    woodBase(g, 3, 9, 14, 10);
-    g.rect(8, 13, 4, 6, '#3b2a1a');
-    for (var r = 0; r < 6; r++) g.rect(10 - r * 1.5 - 2, 3 + r, r * 3 + 4, 1, r % 2 ? '#d9b24a' : '#c49a35');
-    g.rect(1, 9, 18, 1, '#a07a28');
-    g.ell(17, 17, 2.5, 2, '#8b8f94'); g.px(16, 16, '#b4b8bc');
-    var ax = fire ? 3 : 5; g.rect(ax, 5, 1, 4, '#6b4422'); g.ell(ax, 4, 1.5, 1.5, '#9a9a9a');   // 投石ひも
-    g.rect(1, 12 - lv, 1, 4 + lv, '#5b4632'); g.rect(2, 12 - lv, 2, 2, FLAG[lv]);
-    return g.outline(OUT).bake();
-  }
-  function watchTower(lv, fire) {   // 見張り小屋：細い柱と小さな台
-    var g = new Grid(14, 22);
-    g.rect(6, 9, 2, 12, '#6b4422'); g.rect(4, 20, 6, 1, '#5a3a1e');
-    woodBase(g, 2, 8, 10, 2);
-    g.rect(5, 3, 4, 5, '#4a6a8a'); g.ell(7, 2, 1.8, 1.8, '#f1c79b');
-    g.rect(9, 3, 1, 4, '#c08a4a'); if (fire) g.rect(10, 4, 3, 1, '#e6e6e6');
-    g.rect(11, 9 - lv, 1, 4 + lv, '#5b4632'); g.rect(12, 9 - lv, 2, 2, FLAG[lv]);
-    return g.outline(OUT).bake();
-  }
-  function poisonTower(lv, fire) {  // 毒の塔：石台の上の大釜
-    var g = new Grid(20, 24);
-    stoneBase(g, 3, 14, 14, 9);
-    g.ell(10, 11, 7, 4.5, '#3a3d42'); g.rect(3, 8, 14, 2, '#55595e');
-    g.ell(10, 8.5, 6, 1.6, fire ? '#d4ff7a' : '#8fd64a');
-    g.ell(7, 5, 1.6, 1.6, '#a6e85a'); g.ell(12, 3, 1.2, 1.2, '#a6e85a'); g.px(10, 1, '#c8f59a');
-    g.rect(1, 15, 2, 6, '#6b4422'); g.rect(17, 15, 2, 6, '#6b4422');
-    g.rect(17, 13 - lv, 1, 4 + lv, '#5b4632'); g.rect(18, 13 - lv, 2, 2, FLAG[lv]);
-    return g.outline(OUT).bake();
-  }
-  function frostTower(lv, fire) {   // 氷の塔：青い石の塔と氷の結晶
-    var g = new Grid(18, 34);
-    g.rect(4, 16, 10, 17, '#7ea6c4');
-    for (var j = 16; j < 33; j += 3) for (var i = ((j - 16) / 3) % 2 ? 4 : 6; i < 14; i += 4) g.px(i, j, '#5f86a6');
-    g.rect(4, 16, 1, 17, '#a9cbe3'); g.rect(4, 32, 10, 1, '#4f7090');
-    g.rect(2, 14, 14, 2, '#a9cbe3');
-    var c = fire ? '#ffffff' : '#bff0ff';
-    g.rect(8, 2, 2, 11, c); g.rect(5, 7, 8, 2, c); g.rect(6, 4, 1, 1, c); g.rect(11, 4, 1, 1, c); g.rect(6, 11, 1, 1, c); g.rect(11, 11, 1, 1, c);
-    g.px(8, 7, '#5fc8ff'); g.px(9, 8, '#5fc8ff');
-    g.rect(14, 19 - lv, 1, 5 + lv, '#5b4632'); g.rect(15, 19 - lv, 2, 2, FLAG[lv]);
-    return g.outline(OUT).bake();
-  }
-  function ballistaTower(lv, fire) { // 大型弩砲：石台の上の大きな弓
-    var g = new Grid(26, 22);
-    stoneBase(g, 3, 11, 18, 10);
-    g.rect(2, 9, 20, 2, '#9fa3a8');
-    g.rect(6, 6, 14, 2, '#6b4422'); g.rect(6, 6, 14, 1, '#9a6e40');          // 台
-    g.rect(16, 0, 2, 13, '#7a5230');                                           // 弓
-    g.px(15, 0, '#7a5230'); g.px(15, 12, '#7a5230');
-    var bx = fire ? 9 : 6;
-    g.rect(bx, 5, 13, 1, '#d8d8d8'); g.px(bx + 13, 5, '#ffffff'); g.px(bx + 12, 4, '#ffffff'); g.px(bx + 12, 6, '#ffffff');  // 太い矢
-    g.rect(fire ? 15 : 8, 1, 1, 10, '#e0d8c0');                               // 弦
-    g.rect(2, 13, 1, 5, '#5b4632'); g.rect(3, 13, 2, 2, FLAG[lv]);
-    if (lv >= 2) g.rect(10, 7, 4, 1, '#e6b84a');
-    return both(g.outline(OUT));
-  }
 
-  function fireTower(lv, fire) {    // 炎の塔：赤レンガの塔と火の玉
-    var g = new Grid(18, 32);
-    g.rect(4, 15, 10, 16, '#8a3b2a');
-    for (var j = 15; j < 31; j += 3) for (var i = ((j - 15) / 3) % 2 ? 4 : 6; i < 14; i += 4) g.px(i, j, '#6b2a1e');
-    g.rect(4, 15, 1, 16, '#b0573f'); g.rect(4, 30, 10, 1, '#4a1a12');
-    g.rect(2, 13, 14, 2, '#5a2418'); g.rect(3, 11, 2, 2, '#5a2418'); g.rect(13, 11, 2, 2, '#5a2418');
-    g.ell(9, 7, fire ? 4.5 : 3.8, fire ? 5 : 4.5, '#ff6a2a'); g.ell(9, 8, 2.5, 3, '#ffd84a'); g.px(9, 9, '#ffffff');
-    g.rect(14, 18 - lv, 1, 5 + lv, '#5b4632'); g.rect(15, 18 - lv, 2, 2, FLAG[lv]);
-    return g.outline(OUT).bake();
-  }
-  function thunderTower(lv, fire) { // 雷の塔：細い石の塔と金属の玉
-    var g = new Grid(18, 34);
-    stoneBase(g, 5, 14, 8, 19);
-    g.rect(4, 12, 10, 2, '#9fa3a8'); g.rect(8, 5, 2, 7, '#6b6e74');
-    g.ell(9, 4, 3.5, 3.5, fire ? '#ffffff' : '#ffe14d'); g.ell(8, 3, 1.4, 1.4, '#fff8c0');
-    if (fire) { g.px(3, 2, '#ffe14d'); g.px(14, 5, '#ffe14d'); g.px(2, 6, '#ffe14d'); g.px(15, 1, '#ffe14d'); }
-    g.rect(13, 17 - lv, 1, 5 + lv, '#5b4632'); g.rect(14, 17 - lv, 2, 2, FLAG[lv]);
-    return g.outline(OUT).bake();
-  }
-  function mineTower(lv) {          // 金鉱：木の入口と金のかたまり
-    var g = new Grid(20, 18);
-    g.ell(10, 12, 9, 6, '#6b5a48'); g.ell(10, 11, 8, 5, '#857260');
-    g.rect(6, 7, 8, 10, '#3b2a1a'); g.rect(5, 6, 10, 2, '#8a5a2b'); g.rect(5, 6, 2, 11, '#8a5a2b'); g.rect(13, 6, 2, 11, '#8a5a2b');
-    g.ell(16, 15, 2.5, 2, '#ffd84a'); g.px(15, 14, '#fff3b0'); g.ell(3.5, 15, 1.8, 1.4, '#e6b84a');
-    g.rect(17, 5 - lv, 1, 4 + lv, '#5b4632'); g.rect(18, 5 - lv, 2, 2, FLAG[lv]);
-    return g.outline(OUT).bake();
-  }
   function bat(f, pal) {
     pal = pal || {};
     var g = new Grid(18, 12), c = pal.c || '#5b4a78', d = pal.d || '#3a2e52';
@@ -515,48 +370,6 @@ var G = window.G = window.G || {};
   // ---- 地形の飾り（地域ごと） ----
 
   // ---- 道に置く物と兵舎 ----
-  function spikesTower(lv) {        // トゲの罠：地面の板から金属のトゲ
-    var g = new Grid(14, 8);
-    g.rect(1, 5, 12, 3, '#5a4632'); g.rect(1, 5, 12, 1, '#7a6046');
-    var tip = lv >= 2 ? '#ffe9a0' : '#e8ecf0';
-    for (var i = 2; i < 13; i += 3) { g.rect(i, 2, 1, 3, '#9aa2ac'); g.px(i, 1, tip); }
-    if (lv >= 1) for (var k = 3; k < 12; k += 3) { g.rect(k, 3, 1, 2, '#9aa2ac'); g.px(k, 2, tip); }
-    return g.outline(OUT).bake();
-  }
-  function tarTower(lv) {           // 粘着の沼：黒いどろどろの水たまり
-    var g = new Grid(16, 7);
-    g.ell(8, 3.5, 7.5, 3, '#1e1a22'); g.ell(8, 3.2, 6, 2.2, '#2e2a36');
-    g.px(5, 2, '#6a6478'); g.px(11, 3, '#6a6478'); g.px(8, 4, '#4a4458');
-    if (lv >= 1) g.px(12, 1, '#6a6478');
-    if (lv >= 2) { g.px(3, 3, '#b07ad0'); g.px(9, 2, '#b07ad0'); }
-    return g.bake();
-  }
-  function barrelTower() {          // 爆弾樽：導火線つきの樽
-    var g = new Grid(10, 13);
-    g.rect(1, 3, 8, 10, '#8a5a2b'); g.rect(2, 3, 1, 10, '#b07a40');
-    g.rect(1, 5, 8, 1, '#4a4f5c'); g.rect(1, 10, 8, 1, '#4a4f5c');
-    g.rect(3, 7, 4, 2, '#d94a3a');
-    g.rect(5, 1, 1, 2, '#e0d8c0'); g.px(6, 0, '#ffd84a');
-    return g.outline(OUT).bake();
-  }
-  function barricadeTower(lv) {     // バリケード：とがった杭を組んだ柵
-    var g = new Grid(16, 14);
-    var wood = lv >= 2 ? '#7a6a5a' : '#8a5a2b', hi = lv >= 2 ? '#a8a8b0' : '#b07a40';
-    for (var i = 1; i < 15; i += 3) { g.rect(i, 3, 2, 11, wood); g.px(i, 3, hi); g.px(i + 1, 2, hi); }
-    g.rect(0, 6, 16, 2, '#5a3a1e'); g.rect(0, 10, 16, 2, '#5a3a1e');
-    if (lv >= 1) { g.rect(0, 8, 16, 1, '#4a4f5c'); }
-    return g.outline(OUT).bake();
-  }
-  function barracksTower(lv) {      // 兵舎：木の小屋と旗
-    var g = new Grid(22, 22);
-    stoneBase(g, 3, 13, 16, 8);
-    g.rect(4, 8, 14, 6, '#8a5a2b'); g.rect(4, 8, 14, 1, '#b07a40');
-    for (var r = 0; r < 5; r++) g.rect(3 + r, 7 - r, 16 - r * 2, 1, r % 2 ? '#a8402a' : '#c8503a');
-    g.rect(9, 10, 4, 4, '#3b2a1a');
-    g.rect(16, 0, 1, 8, '#5b4632'); g.rect(17, 0, 4, 3, FLAG[lv]);
-    g.rect(5, 11, 2, 2, '#ffe9a0');
-    return g.outline(OUT).bake();
-  }
   function soldier(f) {             // 兵士：青い服に兜と剣。コマ1は剣をふり下ろす
     var g = new Grid(10, 12);
     g.rect(3, 1, 4, 2, '#9aa2ac'); g.px(3, 0, '#c0c8d0'); g.px(4, 0, '#c0c8d0');
@@ -567,62 +380,6 @@ var G = window.G = window.G || {};
     if (f) g.rect(8, 6, 2, 1, '#e8ecf0'); else g.rect(8, 2, 1, 5, '#e8ecf0');
     g.px(8, 7, '#8a6a2a');
     return both(g.outline(OUT));
-  }
-  function sniperTower(lv, fire) {   // 狙撃塔：細く高い石の塔と長い弩
-    var g = new Grid(18, 36);
-    stoneBase(g, 6, 12, 6, 23);
-    g.rect(4, 10, 10, 2, '#9fa3a8'); g.rect(5, 8, 8, 2, '#6b4422'); g.rect(5, 8, 8, 1, '#9a6e40');
-    g.rect(2, 6, 14, 1, fire ? '#ffffff' : '#d8d8d8'); g.px(16, 6, '#ffffff'); g.px(15, 5, '#ffffff'); g.px(15, 7, '#ffffff');
-    g.rect(11, 3, 1, 7, '#7a5230'); g.px(10, 3, '#7a5230'); g.px(10, 9, '#7a5230');
-    g.rect(7, 4, 3, 2, '#4a7ad0'); g.px(8, 3, '#bfe0ff');                        // 照準
-    g.rect(13, 15 - lv, 1, 5 + lv, '#5b4632'); g.rect(14, 15 - lv, 2, 2, FLAG[lv]);
-    return both(g.outline(OUT));
-  }
-  function stormTower(lv, fire) {    // 嵐の塔：黒い塔の上に浮かぶ雷雲
-    var g = new Grid(20, 36);
-    stoneBase(g, 5, 16, 10, 19);
-    g.rect(4, 14, 12, 2, '#5a5e64'); g.rect(9, 9, 2, 5, '#6b6e74');
-    g.ell(10, 6, 8, 4, fire ? '#8a8aa8' : '#5a5a78'); g.ell(7, 5, 3, 2, '#7a7a98'); g.ell(13, 5, 3, 2, '#7a7a98');
-    g.rect(9, 9, 2, 2, '#ffe14d'); g.px(8, 11, '#ffe14d');
-    if (fire) { g.rect(3, 9, 1, 4, '#ffffff'); g.rect(16, 9, 1, 3, '#ffe14d'); g.rect(12, 11, 1, 3, '#ffffff'); }
-    g.rect(15, 19 - lv, 1, 5 + lv, '#5b4632'); g.rect(16, 19 - lv, 2, 2, FLAG[lv]);
-    return g.outline(OUT).bake();
-  }
-  function dartTower(lv, fire) {     // 吹き矢小屋：竹の小屋と吹き矢の筒
-    var g = new Grid(16, 22);
-    g.rect(3, 10, 10, 11, '#8a9a4a'); for (var i = 3; i < 13; i += 2) g.rect(i, 10, 1, 11, '#6a7a3a');
-    g.rect(1, 7, 14, 3, '#c8a860'); g.rect(2, 5, 12, 2, '#a88840'); g.rect(4, 4, 8, 1, '#a88840');
-    g.rect(fire ? 9 : 8, 12, 6, 1, '#e8d9b0'); g.px(fire ? 15 : 14, 12, '#ffffff');
-    g.rect(12, 14 - lv, 1, 5 + lv, '#5b4632'); g.rect(13, 14 - lv, 2, 2, FLAG[lv]);
-    return g.outline(OUT).bake();
-  }
-  function mortarTower(lv, fire) {   // 臼砲：低い石の台と上を向いた太い砲
-    var g = new Grid(24, 20);
-    stoneBase(g, 3, 11, 18, 8);
-    g.rect(2, 9, 20, 2, '#9fa3a8');
-    g.ell(12, 6, 5, 4, '#3a3e44'); g.ell(12, 4, 4, 2, '#1e2024'); g.rect(9, 7, 6, 2, '#5a5e64');
-    if (fire) { g.ell(12, 2, 3, 2, '#ffb347'); g.px(12, 0, '#ffe08a'); }
-    g.rect(20, 12 - lv, 1, 5 + lv, '#5b4632'); g.rect(21, 12 - lv, 2, 2, FLAG[lv]);
-    return g.outline(OUT).bake();
-  }
-  function blizzardTower(lv, fire) { // 吹雪の塔：氷の柱と回る雪
-    var g = new Grid(20, 34);
-    g.rect(6, 12, 8, 21, '#a8d8f0'); g.rect(6, 12, 2, 21, '#e0f4ff'); g.rect(12, 12, 2, 21, '#7ab8e0');
-    g.rect(4, 30, 12, 3, '#7ab8e0');
-    g.rect(8, 3, 4, 9, '#e0f4ff'); g.rect(9, 1, 2, 2, '#ffffff'); g.rect(6, 6, 8, 2, '#bfe8ff');
-    var c = fire ? '#ffffff' : '#bfe8ff';
-    g.px(2, 8, c); g.px(17, 5, c); g.px(3, 16, c); g.px(16, 14, c); g.px(1, 22, c); g.px(18, 20, c);
-    g.rect(14, 18 - lv, 1, 5 + lv, '#5b4632'); g.rect(15, 18 - lv, 2, 2, FLAG[lv]);
-    return g.outline(OUT).bake();
-  }
-  function golemTower(lv) {          // 石像の工房：石の門と台座
-    var g = new Grid(22, 22);
-    stoneBase(g, 2, 8, 18, 13);
-    g.rect(7, 12, 8, 9, '#2a2620'); g.ell(11, 12, 4, 3, '#2a2620');
-    g.rect(1, 6, 20, 2, '#9fa3a8'); g.rect(4, 3, 3, 3, '#8b8f94'); g.rect(15, 3, 3, 3, '#8b8f94');
-    g.rect(10, 15, 2, 2, '#ffd84a');
-    g.rect(19, 9 - lv, 1, 5 + lv, '#5b4632'); g.rect(20, 9 - lv, 2, 2, FLAG[lv]);
-    return g.outline(OUT).bake();
   }
   function golemUnit(f) {            // 石の巨人（道に出る）
     var g = new Grid(16, 18);
@@ -668,17 +425,9 @@ var G = window.G = window.G || {};
       icon: {}, node: {}, relic: {},
       heart: heart()
     };
-    var makers = { archer: archerTower, mage: mageTower, cannon: cannonTower, bowman: bowmanTower, sling: slingTower,
-                   watch: watchTower, poison: poisonTower, frost: frostTower, ballista: ballistaTower,
-                   fire: fireTower, thunder: thunderTower, mine: mineTower,
-                   sniper: sniperTower, storm: stormTower, dart: dartTower, mortar: mortarTower, blizzard: blizzardTower, golem: golemTower, spikes: spikesTower, tar: tarTower, barrel: barrelTower, barricade: barricadeTower, barracks: barracksTower };
-    Object.keys(makers).forEach(function (k) {
-      S[k] = [];
-      for (var lv = 0; lv < 3; lv++) S[k].push([makers[k](lv, false), makers[k](lv, true)]);
-    });
     ['eye', 'bag', 'stone', 'coin', 'hammer', 'horn', 'saw', 'gear', 'scroll', 'meteor', 'sword', 'hourglass', 'star', 'bandage', 'target', 'poster', 'energy'].forEach(function (k) { S.icon[k] = icon(k); });
     ['battle', 'elite', 'event', 'shop', 'rest', 'boss'].forEach(function (k) { S.node[k] = nodeIcon(k); });
-    if (G.TowerArt) G.TowerArt.apply(S);   // 24×18で描き直したタワーで上書きする（段階②）
+    G.TowerArt.apply(S);   // タワーの絵は js/towerart.js（24×18の疑似3D）で作る
     G.SPR = S;
     return S;
   };
