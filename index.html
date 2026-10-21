@@ -9,14 +9,14 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap">
-<link rel="stylesheet" href="css/style.css?v=20261021204328">
+<link rel="stylesheet" href="css/style.css?v=20261022012810">
 </head>
 <body>
 
 <!-- スタート画面：上にスワイプ（＝ページを下へ読み進める）で Safari のアドレスバーを細くしてから始める -->
 <section id="start">
   <button type="button" id="t-menu" class="title-menu-btn">メニュー</button>
-  <canvas id="title-bg" width="144" height="256" aria-hidden="true"></canvas>
+  <canvas id="title-bg" width="240" height="426" aria-hidden="true"></canvas>
   <div class="start-inner">
     <div class="logo">
       <h1 class="logo-title"><canvas id="logo-cv" role="img" aria-label="Slay the Syoppaiya"></canvas><span class="vh">Slay the Syoppaiya</span></h1>
@@ -34,7 +34,7 @@
       <p>上にスワイプしてスタート</p>
       <button type="button" id="pc-start" class="pc-only">クリックでスタート</button>
     </div>
-    <p class="ver" id="ver">版 10/21 20:43</p>
+    <p class="ver" id="ver">版 10/22 01:28</p>
   </div>
 </section>
 
@@ -64,7 +64,7 @@
   <header class="hud">
     <span class="hud-stats"><span class="hud-life" title="ライフ">♥ <b id="h-life">20</b></span><span class="hud-gold" title="お金">● <b id="h-gold">20</b></span></span>
     <span class="hud-turn"><span id="h-floor" class="hud-floor"></span><span class="hud-turn-row"><b id="h-phase">準備</b> <span id="h-turn">1/5</span><span id="h-left" class="hud-left"></span></span></span>
-    <span class="nav-btns"><button type="button" class="nav-btn" data-nav="map">マップ</button><button type="button" class="nav-btn" data-nav="deck">デッキ</button><button type="button" class="nav-btn help-btn" data-nav="help" aria-label="遊び方">？</button></span>
+    <span class="nav-btns"><button type="button" class="nav-btn" data-nav="map">マップ</button><button type="button" class="nav-btn" data-nav="deck">デッキ</button><button type="button" class="nav-btn menu-nav" data-nav="menu" aria-label="メニュー">≡</button></span>
   </header>
 
   <div class="relic-strip battle-relics scroll-y" id="b-relics"></div>
@@ -135,7 +135,7 @@
 <div class="modal" id="world-menu" hidden>
   <div class="modal-box">
     <h2>メニュー</h2>
-    <p>マスを1つ進めるたびに自動で保存しています。タイトルの「つづきから」で再開できます。</p>
+    <p id="wm-note">マスを1つ進めるたびに自動で保存しています。タイトルの「つづきから」で再開できます。</p>
     <div class="sound-row"><button type="button" id="wm-se">効果音：オン</button><button type="button" id="wm-bgm">BGM：オン</button></div>
     <label class="vol-row"><span>効果音の音量</span><input type="range" min="0" max="100" step="5" id="wm-sevol" aria-label="効果音の音量"></label>
     <label class="vol-row"><span>BGMの音量</span><input type="range" min="0" max="100" step="5" id="wm-bgmvol" aria-label="BGMの音量"></label>
@@ -204,19 +204,20 @@
 <div id="tap-sound" hidden>♪ 画面をタップすると音が出ます</div>
 <div id="rotate"><p>画面を縦にしてください</p></div>
 
-<script src="js/data.js?v=20261021204328"></script>
-<script src="js/battle.js?v=20261021204328"></script>
-<script src="js/run.js?v=20261021204328"></script>
-<script src="js/sprites.js?v=20261021204328"></script>
-<script src="js/dotart.js?v=20261021204328"></script>
-<script src="js/towerart.js?v=20261021204328"></script>
-<script src="js/render.js?v=20261021204328"></script>
-<script src="js/sound.js?v=20261021204328"></script>
-<script src="js/bossbgm.js?v=20261021204328"></script>
-<script src="js/ui.js?v=20261021204328"></script>
-<script src="js/screens.js?v=20261021204328"></script>
-<script src="js/logo.js?v=20261021204328"></script>
-<script src="js/worldbg.js?v=20261021204328"></script>
-<script src="js/eventart.js?v=20261021204328"></script>
+<script src="js/data.js?v=20261022012810"></script>
+<script src="js/battle.js?v=20261022012810"></script>
+<script src="js/run.js?v=20261022012810"></script>
+<script src="js/sprites.js?v=20261022012810"></script>
+<script src="js/dotart.js?v=20261022012810"></script>
+<script src="js/towerart.js?v=20261022012810"></script>
+<script src="js/enemyart.js?v=20261022012810"></script>
+<script src="js/render.js?v=20261022012810"></script>
+<script src="js/sound.js?v=20261022012810"></script>
+<script src="js/bossbgm.js?v=20261022012810"></script>
+<script src="js/ui.js?v=20261022012810"></script>
+<script src="js/screens.js?v=20261022012810"></script>
+<script src="js/logo.js?v=20261022012810"></script>
+<script src="js/worldbg.js?v=20261022012810"></script>
+<script src="js/eventart.js?v=20261022012810"></script>
 </body>
 </html>

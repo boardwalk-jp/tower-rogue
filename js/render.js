@@ -374,6 +374,11 @@ var G = window.G = window.G || {};
         burst(e.x, e.y - 0.8, 14, ['#d8f4ff', '#7ad0ff', '#ffffff'], 40, -10, 0.6);
         (e.towers || []).forEach(function (t) { burst(t.x, t.y - 0.3, 12, ['#d8f4ff', '#7ad0ff', '#ffffff'], 30, 0, 0.5); rings.push({ x: sx(t.x), y: sy(t.y), r: 2, max: 14, col: '#9ae0ff', life: 0.4, ml: 0.4 }); });
         addShake(1.5);
+      } else if (e.k === 'warp') {   // ワープ：消えた所と出た所に、紫の輪と粒
+        rings.push({ x: sx(e.x0), y: sy(e.y0), r: 10, max: 2, col: '#b07aff', life: 0.35, ml: 0.35 });
+        burst(e.x0, e.y0 - 0.5, 10, ['#b07aff', '#5a2a9a', '#e8d0ff'], 24, -10, 0.45);
+        rings.push({ x: sx(e.x), y: sy(e.y), r: 2, max: 18, col: '#c79bff', life: 0.45, ml: 0.45 });
+        burst(e.x, e.y - 0.5, 12, ['#c79bff', '#7a3ad0', '#ffffff'], 30, -16, 0.5);
       } else if (e.k === 'healcast') {
         rings.push({ x: sx(e.x), y: sy(e.y), r: 3, max: e.r * TW, col: '#7fe06a', life: 0.45, ml: 0.45 });
       } else if (e.k === 'healed') {
@@ -507,14 +512,40 @@ var G = window.G = window.G || {};
       b.globalAlpha = 1;
     }
 
-    // 次の攻撃に空を飛ぶ敵がいれば、飛んでくる線（入口→城のまっすぐ）を点線で出す
+    // 次の攻撃に空を飛ぶ敵がいれば、飛んでくる線（入口→城のまっすぐ）を出す
+    // 見えやすくするため：太さ2ドットの点線＋暗いふち、城の方へ流れる矢じり、地面にうすい影の線（2026-10-22）
     if (s.phase === 'prep') {
       var flyG = {};
       G.Battle.nextWave(s).forEach(function (w) { if (G.ENEMIES[w.type].fly) flyG[w.gate] = true; });
       Object.keys(flyG).forEach(function (k) {
-        var P = s.map.paths[k], a = P[0], c = P[P.length - 1], L = Math.hypot(c[0] - a[0], c[1] - a[1]), n = Math.round(L * 5);
-        b.fillStyle = '#c79bff';
-        for (var q = 0; q < n; q++) { if ((q + Math.floor(t * 6)) % 3 === 0) continue; var f2 = q / n; b.fillRect(Math.round(sx(a[0] + (c[0] - a[0]) * f2)), Math.round(sy(a[1] + (c[1] - a[1]) * f2)) - 6, 1, 1); }
+        var P = s.map.paths[k], a = P[0], c = P[P.length - 1], L = Math.hypot(c[0] - a[0], c[1] - a[1]), n = Math.round(L * 6);
+        var dx = sx(c[0]) - sx(a[0]), dy = sy(c[1]) - sy(a[1]), dl = Math.hypot(dx, dy) || 1, ux = dx / dl, uy = dy / dl, H = 16;   // H：飛ぶ高さ（敵の絵と同じ）
+        var pulse = 0.75 + 0.25 * Math.sin(t * 4), q, f2, px2, py2;
+        for (q = 0; q < n; q++) {                                   // 地面のうすい影の線
+          f2 = q / n; px2 = Math.round(sx(a[0]) + dx * f2); py2 = Math.round(sy(a[1]) + dy * f2);
+          if (q % 2 === 0) { b.fillStyle = 'rgba(20,8,30,.35)'; b.fillRect(px2, py2, 2, 1); }
+        }
+        for (q = 0; q < n; q++) {                                   // 空の点線（流れて見える）
+          if ((q + Math.floor(t * 8)) % 4 === 0) continue;
+          f2 = q / n; px2 = Math.round(sx(a[0]) + dx * f2); py2 = Math.round(sy(a[1]) + dy * f2) - H;
+          b.fillStyle = 'rgba(16,10,24,.7)'; b.fillRect(px2 - 1, py2 - 1, 4, 4);
+          b.globalAlpha = pulse; b.fillStyle = '#e8d0ff'; b.fillRect(px2, py2, 2, 2); b.globalAlpha = 1;
+        }
+        // 矢じり：1マスおきに、城の方を向いた「＞」を流す
+        var step = Math.max(1, Math.round(n / Math.max(1, Math.round(L)))), off = (t * 1.5) % 1;
+        for (q = 0; q < Math.round(L); q++) {
+          f2 = (q + off) / Math.max(1, L); if (f2 > 0.97) continue;
+          px2 = sx(a[0]) + dx * f2; py2 = sy(a[1]) + dy * f2 - H;
+          // 「＞」：先から後ろへ、左右に広がる2本の線。0.5ドットずつたどって、すき間なく塗る（暗いふち→明るい線の順）
+          [[3, 'rgba(16,10,24,.75)', -1], [1, '#ffd84a', 0]].forEach(function (pass) {
+            b.fillStyle = pass[1];
+            for (var r2 = 0; r2 <= 4; r2 += 0.5) {
+              var cx2 = px2 - ux * r2, cy2 = py2 - uy * r2;
+              b.fillRect(Math.round(cx2 - uy * r2) + pass[2], Math.round(cy2 + ux * r2) + pass[2], pass[0], pass[0]);
+              b.fillRect(Math.round(cx2 + uy * r2) + pass[2], Math.round(cy2 - ux * r2) + pass[2], pass[0], pass[0]);
+            }
+          });
+        }
       });
     }
     // 次の攻撃で使われる入口に「！」（タップすると次の敵が見える）
@@ -563,10 +594,12 @@ var G = window.G = window.G || {};
       if (it.k === 'soldier') {
         var ownT = G.Battle.findTower(s, o.tower), unitK = ownT && G.TOWERS[ownT.type].soldiers.unit || 'soldier';
         var simg = S[unitK][o.swing > 0 ? 1 : 0], sximg = o.face < 0 ? simg.l : simg.r;
-        b.fillStyle = 'rgba(0,0,0,.35)'; b.fillRect(sx(o.x) - 3, sy(o.y) + 2, 7, 1);
-        blitB(sximg, sx(o.x), sy(o.y) + 3);
-        if (o.flash > 0) { b.globalCompositeOperation = 'lighter'; b.globalAlpha = 0.4; blitB(sximg, sx(o.x), sy(o.y) + 3); b.globalAlpha = 1; b.globalCompositeOperation = 'source-over'; }
-        if (o.hp < o.max) hpBar(sx(o.x), sy(o.y) + 3 - sximg.height - 3, 8, Math.max(0, o.hp / o.max), '#5fc8ff');
+        var uy = sy(o.y) + (sximg.nu ? 1 : 3);
+        if (sximg.nu) DA.ell(b, Math.round(sx(o.x)), Math.round(uy), sximg.sr, Math.max(1, Math.round(sximg.sr * TH / TW * 0.8)), 'rgba(0,0,0,.3)');
+        else { b.fillStyle = 'rgba(0,0,0,.35)'; b.fillRect(sx(o.x) - 3, sy(o.y) + 2, 7, 1); }
+        blitB(sximg, sx(o.x), uy);
+        if (o.flash > 0) { b.globalCompositeOperation = 'lighter'; b.globalAlpha = 0.4; blitB(sximg, sx(o.x), uy); b.globalAlpha = 1; b.globalCompositeOperation = 'source-over'; }
+        if (o.hp < o.max) hpBar(sx(o.x), uy - sximg.height - 3, sximg.nu ? 12 : 8, Math.max(0, o.hp / o.max), '#5fc8ff');
         continue;
       }
       if (it.k === 'tower') {
@@ -600,7 +633,7 @@ var G = window.G = window.G || {};
         if (ui.pendingTower === o.id) {
           var on = Math.floor(t * 4) % 2 === 0;
           b.fillStyle = on ? '#ffffff' : G.UP_COLOR;
-          var bw = spr.nu ? 24 : 18, bx0 = sx(o.x) - (bw >> 1), by0 = fy - spr.height - 3, bh = spr.height + 5;
+          var bw = spr.nu ? Math.max(24, spr.width + 2) : 18, bx0 = sx(o.x) - (bw >> 1), by0 = fy - spr.height - 3, bh = spr.height + 5;
           b.fillRect(bx0, by0, 3, 1); b.fillRect(bx0, by0, 1, 3); b.fillRect(bx0 + bw - 3, by0, 3, 1); b.fillRect(bx0 + bw - 1, by0, 1, 3);
           b.fillRect(bx0, by0 + bh - 1, 3, 1); b.fillRect(bx0, by0 + bh - 3, 1, 3); b.fillRect(bx0 + bw - 3, by0 + bh - 1, 3, 1); b.fillRect(bx0 + bw - 1, by0 + bh - 3, 1, 3);
         }
@@ -608,11 +641,16 @@ var G = window.G = window.G || {};
       }
       // 敵
       var E = G.ENEMIES[o.type], fr = Math.floor(o.walk) % 2, es = S[o.type][fr];
-      var img = o.face < 0 ? es.l : es.r, ex = sx(o.x), ey = sy(o.y) + 3;
+      var img = o.face < 0 ? es.l : es.r, ex = sx(o.x), ey = sy(o.y) + (img.nu ? 1 : 3);
       var born = o.d < 0.8 ? Math.max(0, o.d) / 0.8 : 1;   // 入口から歩いて現れる：最初の0.8マスで少しずつ濃くなる
       if (born < 1) b.globalAlpha = born;
-      b.fillStyle = 'rgba(0,0,0,.35)'; b.fillRect(ex - 5, ey - 1, 10, 2);
-      if (o.fly) ey -= 7 + Math.round(Math.sin(t * 5 + o.id) * 1.5);   // 空を飛ぶ敵は影から浮かせて描く
+      if (img.nu) {   // 新しい24×18の絵：影は楕円（テストページと同じ。飛ぶ敵はうすい影）、飛ぶ敵は16ドット浮かせる
+        DA.ell(b, Math.round(ex), Math.round(ey), img.sr, Math.max(1, Math.round(img.sr * TH / TW * 0.8)), o.fly ? 'rgba(0,0,0,.18)' : 'rgba(0,0,0,.3)');
+        if (o.fly) ey -= 16 + Math.round(Math.sin(t * 6 + o.id * 5) * 1.5);
+      } else {
+        b.fillStyle = 'rgba(0,0,0,.35)'; b.fillRect(ex - 5, ey - 1, 10, 2);
+        if (o.fly) ey -= 7 + Math.round(Math.sin(t * 5 + o.id) * 1.5);   // 空を飛ぶ敵は影から浮かせて描く
+      }
       // 城の前のボス：攻撃の時に、のけぞってから城へ体当たりする動き
       if (o.atkAnim > 0) { var ap = 1 - o.atkAnim / 0.45; ey += Math.round(ap < 0.35 ? -ap / 0.35 * 4 : Math.sin((ap - 0.35) / 0.65 * Math.PI) * 7); }
       blitB(img, ex, ey);
@@ -624,7 +662,8 @@ var G = window.G = window.G || {};
       if (o.slowT > 0 && Math.random() < 0.3) parts.push({ x: ex + (Math.random() - 0.5) * 10, y: ey - Math.random() * img.height, vx: 0, vy: 6, g: 0, life: 0.35, ml: 0.35, col: '#bff0ff' });
       if (o.burnT > 0 && Math.random() < 0.4) parts.push({ x: ex + (Math.random() - 0.5) * 8, y: ey - img.height * 0.5, vx: 0, vy: -16, g: 0, life: 0.4, ml: 0.4, col: Math.random() < 0.5 ? '#ff6a2a' : '#ffd84a' });
       if (o.poisonT > 0 && Math.random() < 0.3) parts.push({ x: ex + (Math.random() - 0.5) * 8, y: ey - img.height * 0.6, vx: 0, vy: -10, g: 0, life: 0.5, ml: 0.5, col: '#a6e85a' });
-      var barW = E.boss ? 28 : (o.type === 'orc' || o.type === 'knight' || o.type === 'yeti' || o.type === 'kingslime' || o.type === 'wyvern' || o.type === 'shaman' || o.type === 'iceknight' || o.type === 'demon') ? 14 : 10;
+      var big = (o.type === 'orc' || o.type === 'knight' || o.type === 'yeti' || o.type === 'kingslime' || o.type === 'wyvern' || o.type === 'shaman' || o.type === 'iceknight' || o.type === 'demon');
+      var barW = img.nu ? (E.boss ? 42 : big ? 21 : 12) : (E.boss ? 28 : big ? 14 : 10);   // 新しい絵：ふつう12（テストページ）、大きい敵・ボスは旧い幅の1.5倍
       if (o.hp < o.max || E.boss) hpBar(ex, ey - img.height - 3, barW, Math.max(0, o.hp / o.max), o.hp / o.max > 0.5 ? '#7fd36a' : '#ffb347');
       b.globalAlpha = 1;
     }
@@ -714,18 +753,18 @@ var G = window.G = window.G || {};
     // 置く前の見本（ドラッグ中・選択中に指している場所）
     if (ui.selType && ui.preview) {
       var pv = ui.preview, ok = G.Battle.canPlaceAt(s, pv.tx, pv.ty, ui.selType);
-      var T = G.TOWERS[ui.selType];
+      var T = G.TOWERS[ui.selType], SZ = G.Battle.sizeOf(ui.selType), pcx = pv.tx + SZ / 2;   // 2マスのタワーは2マスのまん中
       // 射程の内側をうすく塗る
-      fillEllipse(pv.tx + 0.5, pv.ty + 0.5, T.range, ok ? '#ffffff' : '#ff5a5a', 0.2);
-      rangeEllipse(pv.tx + 0.5, pv.ty + 0.5, T.range, ok ? '#ffffff' : '#ff5a5a', t);
+      fillEllipse(pcx, pv.ty + 0.5, T.range, ok ? '#ffffff' : '#ff5a5a', 0.2);
+      rangeEllipse(pcx, pv.ty + 0.5, T.range, ok ? '#ffffff' : '#ff5a5a', t);
       var ps = G.towerImg(ui.selType, 0, false);
-      b.globalAlpha = ui.pending ? 0.75 : 0.6; blitB(ps, sx(pv.tx + 0.5), footY(ps, pv.ty + 0.5)); b.globalAlpha = 1;
+      b.globalAlpha = ui.pending ? 0.75 : 0.6; blitB(ps, sx(pcx), footY(ps, pv.ty + 0.5)); b.globalAlpha = 1;
       if (ui.pending && ok) { // 仮置き中：マスのかどを点滅させて「もう一度タップ」を示す
-        var on = Math.floor(t * 4) % 2 === 0, x0 = pv.tx * TW, y0 = sy(pv.ty), CL = 4;   // かどの印（長さ4ドット）
+        var on = Math.floor(t * 4) % 2 === 0, x0 = pv.tx * TW, y0 = sy(pv.ty), CL = 4, WW = TW * SZ;   // かどの印（長さ4ドット）
         b.fillStyle = on ? '#ffffff' : '#ffe14d';
         [[0, 0], [1, 0], [0, 1], [1, 1]].forEach(function (c) {
-          b.fillRect(x0 + (c[0] ? TW - CL : 0), y0 + (c[1] ? TH - 1 : 0), CL, 1);
-          b.fillRect(x0 + (c[0] ? TW - 1 : 0), y0 + (c[1] ? TH - CL : 0), 1, CL);
+          b.fillRect(x0 + (c[0] ? WW - CL : 0), y0 + (c[1] ? TH - 1 : 0), CL, 1);
+          b.fillRect(x0 + (c[0] ? WW - 1 : 0), y0 + (c[1] ? TH - CL : 0), 1, CL);
         });
       }
     }
@@ -795,7 +834,7 @@ var G = window.G = window.G || {};
       var sp = G.SPR[tw.type][Math.min(2, tw.lv)][0]; if (sp.r) sp = sp.r;
       var dx = x - sx(tw.x), dy = y - (sy(tw.y) - 6);
       // 新しい絵：横±11、縦は絵のてっぺん（少し上まで）から足もとの少し下まで。古い絵：横±9、縦−20〜+10
-      var ok = sp.nu ? (Math.abs(dx) <= 11 && y >= footY(sp, tw.y) - sp.height - 2 && y <= footY(sp, tw.y) + 3) : (Math.abs(dx) <= 9 && dy >= -20 && dy <= 10);
+      var ok = sp.nu ? (Math.abs(dx) <= Math.max(11, sp.width / 2) && y >= footY(sp, tw.y) - sp.height - 2 && y <= footY(sp, tw.y) + 3) : (Math.abs(dx) <= 9 && dy >= -20 && dy <= 10);
       if (ok) { var d = Math.abs(dx) + Math.abs(dy); if (d < bd) { bd = d; best = tw; } }
     });
     return best;

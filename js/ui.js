@@ -121,7 +121,7 @@ var G = window.G = window.G || {};
     $('p-note').innerHTML = '';
     var p1 = document.createElement('span'); p1.className = 'rar-label r-' + R2.rarity; p1.textContent = RARITY[R2.rarity]; $('p-note').appendChild(p1);
     $('p-note').appendChild(document.createTextNode('　' + R2.text + '（' + (R2.kind === 'commander' ? '指揮官の印・最初から持っている' : R2.kind === 'change' ? '遊び方が変わる' : R2.kind === 'combo' ? '組み合わせで強くなる' : '数値が上がる') + '）' + (n > 1 ? '　同じものを' + n + '個持っているので、効果が' + n + '回分重なる。' : '')));
-    var ul = $('p-list'); ul.innerHTML = '';
+    var ul = $('p-list'); ul.innerHTML = ''; ul.classList.remove('mini-cards');
     var li = document.createElement('li'); li.className = 'relic-big';
     var c = document.createElement('canvas'); c.width = 14; c.height = 14; c.getContext('2d').drawImage(G.relicIcon(id), 0, 0); li.appendChild(c);
     ul.appendChild(li);
@@ -288,6 +288,7 @@ var G = window.G = window.G || {};
       if (st.drag) {
         if (ui.selType) {
           var t = cancel ? null : tileFromClient(e.clientX, e.clientY);
+          if (t && ui.selType) t = B.fitTile(s, t, ui.selType) || t;   // 2マスのタワーは、置ける向きに合わせる
           // ドラッグで離した場所も仮置き。確定はタップで
           if (t && B.canPlaceAt(s, t.tx, t.ty, ui.selType)) { renderHand(); setPending(t); }
           else if (t) { ui.preview = null; renderHand(); toast('そこには置けません'); }
@@ -334,6 +335,7 @@ var G = window.G = window.G || {};
     var tw = towerFromClient(e.clientX, e.clientY);
     if (ui.selType) {
       var t = tileFromClient(e.clientX, e.clientY);
+      t = B.fitTile(s, t, ui.selType) || t;
       // タワーを置くカードを選んでいる間は、タワーの絵をタップしても小窓は開かない（後ろのマスをねらった誤タップを防ぐ）
       if (t && B.canPlaceAt(s, t.tx, t.ty, ui.selType)) {
         if (ui.pending && ui.pending.tx === t.tx && ui.pending.ty === t.ty) tryPlace(ui.selIndex, t.tx, t.ty);
@@ -366,7 +368,7 @@ var G = window.G = window.G || {};
     B.nextWave(s).filter(function (g) { return g.gate === k; }).forEach(function (g) {
       var row = document.createElement('div'); row.className = 'row';
       row.appendChild(enemyIcon(g.type));
-      row.appendChild(document.createTextNode(G.ENEMIES[g.type].name + ' ×' + g.n + (G.ENEMIES[g.type].fly ? '（空）' : '')));
+      row.appendChild(document.createTextNode(G.ENEMIES[g.type].name + ' ×' + g.n + (G.ENEMIES[g.type].fly ? '（空）' : G.ENEMIES[g.type].warp ? '（途中で別の道へワープ）' : '')));
       var sub = document.createElement('span'); sub.className = 'sub';
       sub.textContent = g.delay > 0 ? '（' + g.delay + '秒後から）' : '';
       row.appendChild(sub);
@@ -588,14 +590,14 @@ var G = window.G = window.G || {};
     ids.forEach(function (id) { if (!count[id]) order.push(id); count[id] = (count[id] || 0) + 1; });
     $('p-title').textContent = title + '（' + ids.length + '枚）';
     $('p-note').textContent = note || '';
-    var ul = $('p-list'); ul.innerHTML = '';
+    // 手札と同じ見た目のカードを小さくして並べる（同じカードは1枚にまとめて「×枚数」）。タップで詳しい説明
+    var ul = $('p-list'); ul.innerHTML = ''; ul.classList.add('mini-cards');
     if (!order.length) ul.innerHTML = '<li class="none">カードはありません</li>';
     var keys = Object.keys(G.CARDS);
     order.sort(function (a, b) { return keys.indexOf(a) - keys.indexOf(b); }).forEach(function (k) {
       var li = document.createElement('li');
-      li.appendChild(cardArt(k));
-      var nm = document.createElement('span'); nm.textContent = G.CARDS[k].name; li.appendChild(nm);
-      var n = document.createElement('b'); n.textContent = '×' + count[k]; li.appendChild(n);
+      li.appendChild(cardEl(k));
+      if (count[k] > 1) { var n = document.createElement('b'); n.className = 'mini-n'; n.textContent = '×' + count[k]; li.appendChild(n); }
       li.addEventListener('click', function () { showDetail(k); });
       ul.appendChild(li);
     });
@@ -661,6 +663,7 @@ var G = window.G = window.G || {};
         case 'bossHit': SND.play('bossHit'); break;
         case 'bossArrive': SND.play('bossRoar'); break;
         case 'healcast': SND.play('heal'); break;
+        case 'warp': SND.play('warp'); break;
         case 'attack': SND.play('attack'); break;
         case 'income': SND.play('coin'); break;
         case 'win': SND.play('win'); if (s.kind === 'boss') SND.music('victory'); break;   // ボスに勝ったら勝利の曲（次の層へ進むまで）
@@ -699,7 +702,7 @@ var G = window.G = window.G || {};
   var prev = performance.now(), freeze = 0;
   function frame(now) {
     var dt = Math.min(0.05, (now - prev) / 1000); prev = now;
-    if (s && G.currentScreen === 'game') {
+    if (s && G.currentScreen === 'game' && !G.paused) {   // G.paused：メニューを開いている間は止める
       ui.time += dt;
       // 手ごたえの演出：大きな敵を倒した瞬間だけ、ほんの少し時間を止める
       if (freeze > 0) freeze -= dt;

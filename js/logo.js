@@ -111,20 +111,22 @@
     { text: 'the', x: 68, y: 14, scale: 0.6, gap: 0, layer: 1, rot: [-5, 3, 6], dy: [0, -1, 0] },
     { text: 'Syoppaiya', x: 24, y: 36, scale: 1, gap: 0, layer: 0, rot: [-7, 5, -3, 3, -4, 4, -2, 6, -3], dy: [-2, 1, 0, -1, 0, 1, -1, 0, 1], big: { 0: 1.14 } }
   ];
+  // K：解像度の倍率（2026-10-22 に1→2。形・色・ふち・影の雰囲気はそのままで、ドットを2倍細かくした）
+  var K = 2;
   var built = null;
   function build() {
     var items = [], maxX = 0, maxY = 0;
     LAYOUT.forEach(function (L) {
-      var x = L.x;
+      var x = L.x * K;
       for (var i = 0; i < L.text.length; i++) {
-        var sc = L.scale * ((L.big && L.big[i]) || 1);
+        var sc = L.scale * K * ((L.big && L.big[i]) || 1);
         var gm = glyphMask(L.text[i], sc, (L.rot ? L.rot[i] : 0) * Math.PI / 180);
-        items.push({ g: gm, x: x, y: L.y + (L.dy ? L.dy[i] : 0) - Math.round((sc - L.scale) * 22), ph: items.length * 0.55, big: L.scale >= 1, layer: L.layer || 0 });
-        maxX = Math.max(maxX, x + gm.w); maxY = Math.max(maxY, L.y + gm.h);
-        x += gm.adv + L.gap + (L.scale >= 1 ? 1 : 1);
+        items.push({ g: gm, x: x, y: (L.y + (L.dy ? L.dy[i] : 0)) * K - Math.round((sc - L.scale * K) * 22), ph: items.length * 0.55, big: L.scale >= 1, layer: L.layer || 0 });
+        maxX = Math.max(maxX, x + gm.w); maxY = Math.max(maxY, L.y * K + gm.h);
+        x += gm.adv + (L.gap + 1) * K;
       }
     });
-    built = { items: items, W: maxX + 5, H: maxY + 7 };
+    built = { items: items, W: maxX + 5 * K, H: maxY + 7 * K };
     return built;
   }
 
@@ -136,7 +138,7 @@
 
   // 描く（t：秒。文字の上下ゆれと炎の動き）
   // 文字の上下ゆれ（1文字ずつずらして波のように）。大きい文字は±2ドット、小さい the は±1ドット
-  function bobY(it, t) { return Math.round(Math.sin(t * 2.6 + it.ph) * (it.big ? 1.6 : 1.1)); }
+  function bobY(it, t) { return Math.round(Math.sin(t * 2.6 + it.ph) * (it.big ? 1.6 : 1.1) * K); }
   function draw(cv, t) {
     var B = built || build(), W = B.W, H = B.H;
     var img = new ImageData(W, H), d = img.data;
@@ -148,18 +150,20 @@
         if (it.layer !== layer) return;
         var oy = bobY(it, t), g = it.g;
         for (var y = 0; y < g.h; y++) for (var x = 0; x < g.w; x++) if (g.m[y * g.w + x]) {
-          var X = it.x + x + 2, Y = it.y + y + 4 + oy; if (X < 0 || Y < 0 || X >= W || Y >= H) continue;
+          var X = it.x + x + 2 * K, Y = it.y + y + 4 * K + oy; if (X < 0 || Y < 0 || X >= W || Y >= H) continue;
           mask[Y * W + X] = 1; rel[Y * W + X] = (y - 2 * (g.h / 32)) / (g.h * 0.75);
         }
       });
       function on(x, y) { return x >= 0 && y >= 0 && x < W && y < H && mask[y * W + x]; }
       for (var y = 0; y < H; y++) for (var x = 0; x < W; x++) {
         if (on(x, y)) continue;
-        var near = on(x - 1, y) || on(x + 1, y) || on(x, y - 1) || on(x, y + 1) || on(x - 1, y - 1) || on(x + 1, y - 1) || on(x - 1, y + 1) || on(x + 1, y + 1);
+        // ふち（K ドットの太さ）と、右下へ落ちる影（K 倍ずらす）
+        var near = false;
+        for (var ny = -K; ny <= K && !near; ny++) for (var nx = -K; nx <= K; nx++) if ((nx || ny) && on(x + nx, y + ny)) { near = true; break; }
         if (near) px(x, y, [46, 18, 6]);
-        else if (on(x - 1, y - 2) || on(x, y - 2) || on(x - 2, y - 2) || on(x - 1, y - 3)) px(x, y, [26, 8, 4], 230);
+        else if (on(x - K, y - 2 * K) || on(x, y - 2 * K) || on(x - 2 * K, y - 2 * K) || on(x - K, y - 3 * K)) px(x, y, [26, 8, 4], 230);
       }
-      for (y = 0; y < H; y++) for (x = 0; x < W; x++) if (on(x, y)) px(x, y, fillCol(rel[y * W + x], !on(x, y - 1)));
+      for (y = 0; y < H; y++) for (x = 0; x < W; x++) if (on(x, y)) px(x, y, fillCol(rel[y * W + x], !on(x, y - K)));
     });
     var c = cv.getContext('2d');
     if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
@@ -168,16 +172,17 @@
     var fr = FLAME[[0, 1, 3, 0, 2][Math.floor(t * 9) % 5]];
     B.items.forEach(function (it) {
       if (!it.g.dot) return;
-      var fx = it.x + it.g.dot[0] + 2 - 4, fy = it.y + it.g.dot[1] + 4 - 12 + bobY(it, t);
+      var fx = it.x + it.g.dot[0] + (2 - 4) * K, fy = it.y + it.g.dot[1] + (4 - 12) * K + bobY(it, t);
       // 炎のふち（こい紺）
       c.fillStyle = '#0c1430';
       for (var yy = 0; yy < fr.length; yy++) for (var xx = 0; xx < fr[yy].length; xx++) {
         if (fr[yy][xx] === '.') continue;
-        c.fillRect(fx + xx - 1, fy + yy, 1, 1); c.fillRect(fx + xx + 1, fy + yy, 1, 1); c.fillRect(fx + xx, fy + yy - 1, 1, 1); c.fillRect(fx + xx, fy + yy + 1, 1, 1);
+        var X2 = fx + xx * K, Y2 = fy + yy * K;   // 炎も K 倍の大きさで描く
+        c.fillRect(X2 - K, Y2, K, K); c.fillRect(X2 + K, Y2, K, K); c.fillRect(X2, Y2 - K, K, K); c.fillRect(X2, Y2 + K, K, K);
       }
       for (yy = 0; yy < fr.length; yy++) for (xx = 0; xx < fr[yy].length; xx++) {
         var k = fr[yy][xx]; if (k === '.') continue;
-        c.fillStyle = FC[k]; c.fillRect(fx + xx, fy + yy, 1, 1);
+        c.fillStyle = FC[k]; c.fillRect(fx + xx * K, fy + yy * K, K, K);
       }
     });
   }

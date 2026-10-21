@@ -366,6 +366,7 @@ dt{color:var(--muted);text-align:right} dd{margin:0;text-align:left}
 .help-body .rr{display:inline-block;padding:0 6px;border-radius:6px;border:1px solid currentColor;font-size:12px;line-height:18px}
 .title-help{min-height:40px;padding:0 16px;font-size:14px;background:rgba(18,12,16,.78);border-color:rgba(246,217,138,.6);color:#f6d98a}
 .help-btn{min-width:34px;padding:0;font-size:16px}
+.menu-nav{min-width:38px;padding:0;font-size:20px;line-height:1}
 .help-box{height:auto;max-height:calc(100dvh - 32px)}
 .help-body{font-size:15px}
 .help-list{list-style:none;padding-left:0!important}
@@ -426,7 +427,7 @@ dt{color:var(--muted);text-align:right} dd{margin:0;text-align:left}
 .world-map .node.pick{background:var(--accent);animation:none}
 
 /* イベントの場面の絵（js/eventart.js） */
-.event-art{display:block;width:100%;max-width:440px;height:auto;aspect-ratio:120/56;margin:0 auto 10px;image-rendering:pixelated;border-radius:10px;border:2px solid #4a3a26;box-shadow:0 3px 0 rgba(0,0,0,.45)}
+.event-art{display:block;width:100%;max-width:440px;height:auto;aspect-ratio:240/112;margin:0 auto 10px;image-rendering:pixelated;border-radius:10px;border:2px solid #4a3a26;box-shadow:0 3px 0 rgba(0,0,0,.45)}
 
 /* 指揮官のレリック（最初から持っている）：オレンジの二重のふち */
 .relic-ico.r-starter{border-color:#ff9a4a;box-shadow:0 0 0 1px #5a2a10 inset,0 0 5px rgba(255,154,74,.45)}
@@ -473,3 +474,50 @@ dt{color:var(--muted);text-align:right} dd{margin:0;text-align:left}
 .world-map .node.boss-art.pick{background:radial-gradient(ellipse at 50% 58%,rgba(255,200,90,.7),rgba(255,200,90,0) 70%);animation:none}
 @keyframes bosspulse{0%,100%{filter:brightness(1)}50%{filter:brightness(1.35)}}
 @media (prefers-reduced-motion:reduce){.world-map .node.boss-art.reach{animation:none}}
+
+/* デッキ・山札・捨て札の一覧：小さくしたカードを4列で並べる（2026-10-22） */
+.pile-list.mini-cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;padding:2px}
+.pile-list.mini-cards li{display:block;position:relative;min-width:0;padding:0;background:none;border-radius:0}
+.pile-list.mini-cards li.none{grid-column:1/-1;background:var(--panel2);border-radius:8px;padding:10px;text-align:center}
+.pile-list.mini-cards .card{height:84px;box-shadow:none;cursor:pointer;touch-action:pan-y}
+.pile-list.mini-cards .card canvas{width:auto;height:auto}
+.pile-list.mini-cards .mini-n{position:absolute;right:-2px;bottom:-4px;min-width:24px;padding:1px 5px;border-radius:9px;background:var(--accent);color:#1a1408;font-size:12px;font-weight:700;text-align:center;box-shadow:0 1px 0 rgba(0,0,0,.5)}
+.pile-list.mini-cards .card .nm{font-size:9.5px;letter-spacing:-.05em;padding-right:0}
+.pile-list.mini-cards .card .cost{width:15px;height:15px;font-size:11px}
+
+/* 終わりの画面（クリア・敗北）：記録を2列×3段のタイルで（2026-10-22） */
+.end-lead{text-align:center}
+.end-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;width:100%;margin:6px 0 10px}
+.end-stat{display:flex;flex-direction:column;align-items:center;gap:2px;padding:7px 4px;border-radius:9px;background:var(--panel2);border:1px solid rgba(255,255,255,.06);box-shadow:inset 0 1px 0 rgba(255,255,255,.05)}
+.end-stat small{font-size:11px;color:var(--muted);letter-spacing:-.02em;white-space:nowrap}
+.end-stat b{font-size:17px;font-weight:400;color:var(--fg);font-variant-numeric:tabular-nums}
+.panel-title.win{color:#ffd84a;text-shadow:0 2px 0 #6a3a10,0 0 14px rgba(255,190,60,.45)}
+.panel-title.lose{color:#ff8a7a;text-shadow:0 2px 0 #3a0e0a}
+
+/* ============================================================
+   UIの見た目の底上げ（2026-10-22）：ドットの世界に合わせて、ボタンや選択肢を「石・木の板」のような立体に
+   ・上のふち＝明るい線、下のふち＝暗い厚み（押すと1ドット沈む）
+   ・画面の見出しは金色、下に飾り線（まん中にひし形）
+   ============================================================ */
+#panel{background:repeating-linear-gradient(0deg,rgba(255,255,255,.012) 0 1px,transparent 1px 22px),repeating-linear-gradient(90deg,rgba(0,0,0,.05) 0 1px,transparent 1px 44px),radial-gradient(120% 70% at 50% 0%,#1f2a24 0%,#141a17 60%,#0e1210 100%)}
+button{box-shadow:inset 0 1px 0 rgba(255,255,255,.07),inset 0 -2px 0 rgba(0,0,0,.28),0 2px 0 rgba(0,0,0,.35);transition:transform .06s,box-shadow .06s,filter .1s}
+button:active:not(:disabled){transform:translateY(1px);box-shadow:inset 0 1px 0 rgba(255,255,255,.05),inset 0 -1px 0 rgba(0,0,0,.25),0 1px 0 rgba(0,0,0,.35)}
+button.go{background:linear-gradient(#f2cc66,#d9a63a);border-color:#f6d77a;box-shadow:inset 0 1px 0 rgba(255,255,255,.45),inset 0 -3px 0 #a87420,0 2px 0 rgba(0,0,0,.45);text-shadow:0 1px 0 rgba(255,240,200,.5)}
+button.go:disabled{filter:saturate(.5)}
+.choice{background:linear-gradient(#27342d,#1e2823);border:2px solid #34463c;border-radius:10px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08),inset 0 -3px 0 rgba(0,0,0,.3),0 2px 0 rgba(0,0,0,.4)}
+.choice b{color:#f6e7b8}
+.choice:not(:disabled):hover{border-color:#4f6a5a}
+.choice.cmd.sel,.choice.sel{outline:none;border-color:#ffd84a;box-shadow:0 0 0 1px #6a4a10,0 0 14px rgba(255,216,74,.35),inset 0 1px 0 rgba(255,255,255,.1),inset 0 -3px 0 rgba(0,0,0,.3)}
+.choice:disabled{background:#1a221e;border-color:#2a3630;box-shadow:none}
+.panel-title{position:relative;color:#ffe08a;text-shadow:0 2px 0 #3a2a10;padding-bottom:10px}
+.panel-title::after{content:"";position:absolute;left:0;bottom:0;width:min(220px,70%);height:2px;
+  background:linear-gradient(90deg,#e6b84a,rgba(230,184,74,.5) 70%,transparent)}
+.panel-title::before{content:"";position:absolute;left:-1px;bottom:-3px;width:6px;height:6px;background:#ffd84a;transform:rotate(45deg);box-shadow:0 0 6px rgba(255,216,74,.6)}
+.panel-title.win::after,.panel-title.lose::after,.panel-title.win::before,.panel-title.lose::before{left:50%}
+.panel-title.win::after,.panel-title.lose::after{transform:translateX(-50%);background:linear-gradient(90deg,transparent,#e6b84a 30%,#e6b84a 70%,transparent)}
+.panel-title.win::before,.panel-title.lose::before{margin-left:-3px}
+.panel-title.win,.panel-title.lose{text-align:center}
+.nav-btn{background:linear-gradient(#26322c,#1c2521)}
+.modal-box{border:2px solid #3e5246;box-shadow:0 0 0 1px #0a0e0c,0 10px 30px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.06)}
+.modal-box h2{color:#ffe08a;text-shadow:0 2px 0 #3a2a10}

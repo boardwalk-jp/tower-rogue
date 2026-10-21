@@ -140,12 +140,26 @@ var G = window.G = window.G || {};
   function nextWave(s) { return s.waves[s.turn] || []; }
 
   // type：置こうとしているタワーの種類。道に置く物（place: 'path'）は道のマスだけ、ほかは道以外の地面だけ
+  // size: 2 のタワーは横に2マス使う（tx が左のマス、tx+1 が右のマス）。2026-10-22 追加
+  function sizeOf(type) { return (type && G.TOWERS[type] && G.TOWERS[type].size) || 1; }
+  function occupies(tw, tx, ty) { return tw.ty === ty && tx >= tw.tx && tx < tw.tx + sizeOf(tw.type); }
   function canPlaceAt(s, tx, ty, type) {
-    var c = tileAt(s, tx, ty);
-    if (c === null) return false;
-    for (var i = 0; i < s.towers.length; i++) if (s.towers[i].tx === tx && s.towers[i].ty === ty) return false;
-    if (type && G.TOWERS[type].place === 'path') return c === '#' && ty > 0;
-    return c === '.';
+    var n = sizeOf(type);
+    for (var k = 0; k < n; k++) {
+      var c = tileAt(s, tx + k, ty);
+      if (c === null) return false;
+      for (var i = 0; i < s.towers.length; i++) if (occupies(s.towers[i], tx + k, ty)) return false;
+      if (type && G.TOWERS[type].place === 'path') { if (!(c === '#' && ty > 0)) return false; }
+      else if (c !== '.') return false;
+    }
+    return true;
+  }
+  // タップしたマスを、置ける位置に合わせる（2マスのタワーは、タップしたマスを左にして置けなければ右にする）。置けなければ null
+  function fitTile(s, t, type) {
+    if (!t) return null;
+    if (canPlaceAt(s, t.tx, t.ty, type)) return t;
+    if (sizeOf(type) === 2 && canPlaceAt(s, t.tx - 1, t.ty, type)) return { tx: t.tx - 1, ty: t.ty };
+    return null;
   }
 
   // スキルが今そのタワーに使えるか（使えない理由を返す。使えるなら null）
@@ -179,7 +193,7 @@ var G = window.G = window.G || {};
 
     if (def.kind === 'tower') {
       var TD0 = G.TOWERS[def.tower];
-      var t = { id: s.nextId++, type: def.tower, tx: target.tx, ty: target.ty, x: target.tx + 0.5, y: target.ty + 0.5,
+      var t = { id: s.nextId++, type: def.tower, tx: target.tx, ty: target.ty, x: target.tx + sizeOf(def.tower) / 2, y: target.ty + 0.5,
                 lv: Math.min(def.startLv || 0, TD0.up.length), bonusDmg: 0, turnDmgMult: 1, cd: 0.2, aim: 0, fire: 0, target: TD0.defTarget || 'first' };
       var TD = G.TOWERS[def.tower];
       if (TD.blocker) t.hp = t.maxHp = baseStats(t.type, t.lv).blocker.hp;
@@ -311,7 +325,7 @@ var G = window.G = window.G || {};
   function enemyAtk(E) { return E.atk || (5 + E.life * 3); }
 
   function findTowerAt(s, tx, ty) {
-    for (var i = 0; i < s.towers.length; i++) if (s.towers[i].tx === tx && s.towers[i].ty === ty) return s.towers[i];
+    for (var i = 0; i < s.towers.length; i++) if (occupies(s.towers[i], tx, ty)) return s.towers[i];
     return null;
   }
   function findTower(s, id) {
@@ -550,6 +564,15 @@ var G = window.G = window.G || {};
       if (e.slowT > 0) { sp *= (1 - e.slowPct); e.slowT -= dt; if (e.slowT <= 0) e.slowPct = 0; }
       e.d += sp * dt;
       e.walk += dt * sp * 4;
+      // ワープ：道の決まった所まで来たら、別の入口の道の同じ進み具合の所へ飛ぶ（1回だけ）。道が1本のマップでは、少し先へ飛ぶ
+      if (E.warp && !e.warped && !e.fly && e.d >= pathOf(s, e.gate).len * E.warp.at) {
+        var P0 = pathOf(s, e.gate), ox = e.x, oy = e.y, others = Object.keys(s.paths).filter(function (k) { return k !== e.gate; });
+        e.warped = true;
+        if (others.length) { var ng = others[Math.floor(s.rand() * others.length)], frac = e.d / P0.len; e.gate = ng; e.d = Math.min(pathOf(s, ng).len - 1.5, frac * pathOf(s, ng).len); }
+        else e.d = Math.min(P0.len - 1.5, e.d + E.warp.jump);
+        place(s, e);
+        ev(s, { k: 'warp', x0: ox, y0: oy, x: e.x, y: e.y });
+      }
       if (e.flash > 0) e.flash -= dt;
       if (e.poisonT > 0) {
         e.poisonT -= dt; e.poisonTick += dt;
@@ -746,6 +769,6 @@ var G = window.G = window.G || {};
     create: create, update: update, startAttack: startAttack, playCard: playCard, skillBlocked: skillBlocked,
     canPlaceAt: canPlaceAt, upgrade: upgrade, upgradeCost: upgradeCost, towerStats: towerStats, nextStats: nextStats,
     baseStats: baseStats, extraDraw: extraDraw, nextWave: nextWave, findTower: findTower, tileAt: tileAt,
-    cardCost: cardCost, cardDef: cardDef, pathLengths: function (map) { var P = pathsOf(map), o = {}; Object.keys(P).forEach(function (k) { o[k] = P[k].len; }); return o; }, nearestPathPoint: nearestPathPoint, rng: rng, shuffle: shuffle, TARGET_MODES: TARGET_MODES, setTarget: setTarget, findTowerAt: findTowerAt
+    cardCost: cardCost, cardDef: cardDef, pathLengths: function (map) { var P = pathsOf(map), o = {}; Object.keys(P).forEach(function (k) { o[k] = P[k].len; }); return o; }, nearestPathPoint: nearestPathPoint, rng: rng, shuffle: shuffle, TARGET_MODES: TARGET_MODES, setTarget: setTarget, findTowerAt: findTowerAt, fitTile: fitTile, sizeOf: sizeOf
   };
 })();

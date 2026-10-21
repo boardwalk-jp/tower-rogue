@@ -35,79 +35,114 @@ var G = window.G = window.G || {};
   function music(name) { if (G.Sound) G.Sound.music(name); }
 
   // ---- スタート画面 ----
-  // ---- タイトルの背景：夕暮れの空、星、月、山、城、タワーが魔物の行列に矢を撃つ（ずっと動く） ----
+  // ---- タイトルの背景：夕暮れの空・星・月・山・石の砦。タワーが魔物の行列に矢を撃つ（ずっと動く） ----
+  // 2026-10-22 作り直し：戦闘画面と同じドット疑似3Dの絵（砦・木・タワー・敵）を使い、1.67倍の細かさ（240×426ドット）にした
   (function titleScene() {
-    var cv = $('title-bg'), c = cv.getContext('2d'), W = cv.width, H = cv.height;
+    var cv = $('title-bg'), c = cv.getContext('2d'), W = cv.width, H = cv.height, DA = G.DotArt, ART = DA.build();
     c.imageSmoothingEnabled = false;
-    // 動かない部分（空・山・城）は先に描いておく
-    var bg = document.createElement('canvas'); bg.width = W; bg.height = H;
-    var g = bg.getContext('2d');
-    var sky = g.createLinearGradient(0, 0, 0, H * 0.8);
-    sky.addColorStop(0, '#120a24'); sky.addColorStop(0.45, '#3a1638'); sky.addColorStop(0.72, '#9a3a2a'); sky.addColorStop(0.86, '#e8843a'); sky.addColorStop(1, '#ffc46a');
-    g.fillStyle = sky; g.fillRect(0, 0, W, H);
-    g.fillStyle = '#ffe9c0'; g.beginPath(); g.arc(24, 14, 7, 0, Math.PI * 2); g.fill();
-    g.fillStyle = '#f6d6a0'; g.beginPath(); g.arc(21, 12, 2, 0, Math.PI * 2); g.fill(); g.beginPath(); g.arc(27, 17, 1.5, 0, Math.PI * 2); g.fill();
-    function ridge(y0, amp, col, seed) {
-      g.fillStyle = col; g.beginPath(); g.moveTo(0, H);
-      for (var x = 0; x <= W; x += 2) g.lineTo(x, y0 - Math.abs(Math.sin(x * 0.045 + seed) * amp) - Math.abs(Math.sin(x * 0.13 + seed * 2)) * amp * 0.35);
-      g.lineTo(W, H); g.fill();
+    function hsh(n) { var x = Math.sin(n * 127.1) * 43758.5453; return x - Math.floor(x); }
+    function R2(g, col, x, y, w, h) { g.fillStyle = col; g.fillRect(Math.round(x), Math.round(y), w || 1, h || 1); }
+    var GY = 336, RY = 352, RH = 18;   // GY：地面の上のふち、RY：道の上のふち、RH：道の幅
+    // 夕暮れの色をかぶせた絵を作る（昼の色の絵を、空になじませる）
+    function dusk(cv0, a) {
+      var o = DA.mk(cv0.width, cv0.height); o.c.drawImage(cv0, 0, 0);
+      o.c.globalCompositeOperation = 'source-atop'; o.c.fillStyle = 'rgba(40,14,48,' + a + ')'; o.c.fillRect(0, 0, cv0.width, cv0.height);
+      o.c.fillStyle = 'rgba(255,140,60,' + (a * 0.25).toFixed(2) + ')'; o.c.fillRect(0, 0, Math.round(cv0.width * 0.4), cv0.height);   // 左（夕日の側）を少しオレンジに
+      return o.cv;
     }
-    ridge(178, 26, '#4a1e3a', 1.3); ridge(192, 18, '#2a1428', 4.1);
-    // 城（右の丘の上）
-    g.fillStyle = '#160c18';
-    g.fillRect(96, 150, 40, 50); g.fillRect(92, 138, 10, 62); g.fillRect(130, 136, 10, 64); g.fillRect(110, 128, 12, 30);
-    for (var k = 0; k < 6; k++) { g.fillRect(92 + k * 9, 146, 4, 4); }
-    g.fillRect(93, 134, 2, 4); g.fillRect(98, 134, 2, 4); g.fillRect(131, 132, 2, 4); g.fillRect(137, 132, 2, 4); g.fillRect(112, 124, 2, 4); g.fillRect(118, 124, 2, 4);
-    g.fillRect(115, 112, 1, 16); g.fillStyle = '#d94a3a'; g.fillRect(116, 112, 7, 4);
-    // 地面と道
-    g.fillStyle = '#1a1a14'; g.fillRect(0, 200, W, H - 200);
-    g.fillStyle = '#3a2a1a'; g.fillRect(0, 214, W, 9); g.fillStyle = '#4a3622'; g.fillRect(0, 214, W, 2);
-    for (var x2 = 0; x2 < W; x2 += 3) { g.fillStyle = (x2 * 7) % 5 ? '#22281a' : '#2e3820'; g.fillRect(x2, 200 + (x2 * 13) % 6, 2, 2); }
-    var stars = []; for (var i2 = 0; i2 < 46; i2++) stars.push({ x: (i2 * 53) % W, y: (i2 * 37) % 110, p: i2 * 0.7 });
+    // ---- 動かない部分（空・月・山・砦・地面・道・木）は先に描いておく ----
+    var bg = DA.mk(W, H), g = bg.c;
+    var SKY = ['#0e0820', '#1a0e2e', '#2e1438', '#4a1a3a', '#742634', '#a83c2c', '#d8662e', '#f69a44', '#ffc46a'];
+    for (var y = 0; y < GY; y++) {   // 色の帯。帯のさかい目は1ドットおきに混ぜる
+      var k = Math.pow(y / GY, 1.35) * (SKY.length - 1.001), a = Math.floor(k), f = k - a;
+      R2(g, SKY[a], 0, y, W, 1);
+      if (f > 0.7) for (var x = (y & 1); x < W; x += 2) R2(g, SKY[a + 1], x, y);
+    }
+    // 月：明るい円・左上にハイライト・クレーター・まわりのうすい光
+    DA.ell(g, 44, 34, 20, 20, 'rgba(255,233,192,.08)'); DA.ell(g, 44, 34, 15, 15, 'rgba(255,233,192,.1)');
+    DA.disc(g, 44, 34, 11, '#f6dcae'); DA.disc(g, 42, 32, 9, '#ffe9c0'); R2(g, '#fff8e4', 38, 27, 3, 2);
+    DA.disc(g, 40, 36, 2, '#e8c890'); DA.disc(g, 48, 30, 1, '#e8c890'); DA.disc(g, 47, 39, 2, '#ecd09c');
+    // 山（奥・手前の2列）。上のふちは夕日で明るい
+    function ridge(y0, amp, col, lit, seed) {
+      for (var x = 0; x < W; x++) {
+        var top = Math.round(y0 - Math.abs(Math.sin(x * 0.027 + seed) * amp) - Math.abs(Math.sin(x * 0.08 + seed * 2)) * amp * 0.35);
+        R2(g, col, x, top, 1, GY - top); R2(g, lit, x, top, 1, 1);
+        if (Math.sin(x * 0.027 + seed) * Math.cos(x * 0.027 + seed) < 0) R2(g, lit, x, top + 1, 1, 1);   // 左を向いた斜面は、ふちを2ドット明るく
+      }
+    }
+    ridge(300, 44, '#4a1e3a', '#7a3448', 1.3); ridge(322, 28, '#2a1428', '#4a2236', 4.1);
+    // 地面：戦闘画面の草原の色に、夕暮れの色をかぶせる
+    var GC = ['#2f4a2c', '#283f27', '#34522f', '#2a4429'];
+    for (y = GY; y < H; y++) for (x = 0; x < W; x++) { var h = hsh(x * 0.37 + y * 13.1); R2(g, GC[h < 0.55 ? 0 : h < 0.75 ? 1 : h < 0.9 ? 2 : 3], x, y); }
+    for (var i = 0; i < 160; i++) { x = Math.round(hsh(i + 0.5) * W); y = Math.round(GY + 3 + hsh(i + 7.3) * (H - GY - 4)); R2(g, '#1c2e1c', x, y, 1, 2); R2(g, '#1c2e1c', x - 1, y + 1); R2(g, '#1c2e1c', x + 1, y + 1); }
+    for (y = GY; y < GY + 6; y++) { g.fillStyle = 'rgba(240,120,60,' + (0.22 - (y - GY) * 0.035) + ')'; g.fillRect(0, y, W, 1); }   // 地平線の照り返し
+    // 道（戦闘画面と同じ作り：上のふち＝かげ、下のふち＝光、まん中に小石）
+    for (x = 0; x < W; x++) {
+      var wob = Math.round(Math.sin(x * 0.11) * 0.8);
+      R2(g, '#6a5236', x, RY + wob, 1, RH); R2(g, '#4a3824', x, RY + wob, 1, 2); R2(g, '#3a2c1c', x, RY + wob, 1, 1);
+      R2(g, '#8a6c46', x, RY + RH - 3 + wob, 1, 2); R2(g, '#5e4a30', x, RY + RH - 1 + wob, 1, 1);
+      if (hsh(x * 3.7) < 0.12) { R2(g, '#a88a62', x, RY + 5 + Math.round(hsh(x) * 8), 2, 1); R2(g, '#463420', x, RY + 6 + Math.round(hsh(x) * 8), 2, 1); }
+    }
+    // 木（遠く・左右）と岩
+    [[10, GY + 4, 0], [226, GY + 6, 1], [140, GY + 2, 1]].forEach(function (q) { var sp = ART.tree[q[2]]; g.drawImage(dusk(sp.cv, 0.55), q[0] - sp.ax, q[1] - sp.ay); });
+    var rk = ART.rock.grass; g.drawImage(dusk(rk.cv, 0.5), 96 - rk.ax, GY + 46 - rk.ay); g.drawImage(dusk(rk.cv, 0.5), 30 - rk.ax, GY + 62 - rk.ay);
+    // 石の砦（右の丘の上）：戦闘画面の砦を夕暮れの色で
+    var fort = ART.castle.grass, FX = 166, FY = RY + 4;   // 縦長の画面では左右が切れるので、砦は少し内側に
+    DA.ell(g, FX + 3, FY, 52, 6, 'rgba(0,0,0,.35)');
+    g.drawImage(dusk(fort.cv, 0.52), FX - fort.ax, FY - fort.ay);
+    // ---- 動く部分 ----
+    var stars = []; for (var i2 = 0; i2 < 70; i2++) stars.push({ x: Math.round(hsh(i2 + 1) * W), y: Math.round(hsh(i2 + 50) * 200), p: i2 * 0.7, big: i2 % 9 === 0 });
     var embers = [], arrows = [], mons = [], t = 0, spawnT = 0, last = performance.now();
-    [-6, 22, 48].forEach(function (x0, i0) { mons.push({ type: ['goblin', 'slime', 'wolf'][i0], x: x0, hp: 7 }); });   // 最初から何体か歩いている
-    var TYPES = ['goblin', 'slime', 'wolf', 'orc', 'skeleton', 'goblin', 'bat'];
-    var TOWERS = [{ type: 'bowman', lv: 2, x: 18, cd: 0 }, { type: 'frost', lv: 1, x: 44, cd: 0.5 }, { type: 'mage', lv: 1, x: 70, cd: 1 }];
+    var MY = RY + 13;   // 魔物の足もと（道のまん中より少し手前）
+    [-10, 30, 70].forEach(function (x0, i0) { mons.push({ type: ['goblin', 'slime', 'wolf'][i0], x: x0, hp: 7 }); });
+    var TYPES = ['goblin', 'slime', 'wolf', 'orc', 'skeleton', 'goblin', 'bat', 'shaman'];
+    var TOWERS = [{ type: 'bowman', lv: 2, x: 34, cd: 0 }, { type: 'frost', lv: 1, x: 64, cd: 0.5 }, { type: 'mage', lv: 1, x: 94, cd: 1 }];
+    var TOWER_Y = RY + 1;   // タワーの足もと（道の上のふちのすぐ上）
     function frame(now) {
       var dt = Math.max(0, Math.min(0.05, (now - last) / 1000)); last = now;
       if (!$('start').hidden) {
         t += dt;
-        c.drawImage(bg, 0, 0);
-        stars.forEach(function (st) { var a = 0.35 + 0.65 * Math.abs(Math.sin(t * 1.3 + st.p)); c.globalAlpha = a; c.fillStyle = '#fff6e0'; c.fillRect(st.x, st.y, 1, 1); });
+        c.drawImage(bg.cv, 0, 0);
+        stars.forEach(function (st) { var a = 0.3 + 0.7 * Math.abs(Math.sin(t * 1.3 + st.p)); c.globalAlpha = a * (1 - st.y / 260); c.fillStyle = '#fff6e0'; c.fillRect(st.x, st.y, 1, 1); if (st.big && a > 0.8) { c.fillRect(st.x - 1, st.y, 3, 1); c.fillRect(st.x, st.y - 1, 1, 3); } });
         c.globalAlpha = 1;
-        // 城の窓（ゆらぐ灯り）
-        c.fillStyle = Math.sin(t * 9) > -0.6 ? '#ffcf6a' : '#d9952e';
-        [[100, 160], [110, 160], [124, 160], [97, 176], [133, 150], [115, 138]].forEach(function (w) { c.fillRect(w[0], w[1], 2, 3); });
-        // 魔物の行列（左から城へ）
+        // 砦の窓とたいまつの灯り（ゆらぐ）
+        c.globalAlpha = 0.25 + 0.15 * Math.sin(t * 9); c.fillStyle = '#ffb040';
+        DA.ell(c, FX - 13, FY - 18, 5, 4, '#ffb040'); DA.ell(c, FX + 13, FY - 18, 5, 4, '#ffb040'); c.globalAlpha = 1;
+        // タワー（後ろ）
+        TOWERS.forEach(function (tw) {
+          var img = G.towerImg(tw.type, tw.lv, tw.fire > 0);
+          DA.ell(c, tw.x + 3, TOWER_Y - 2, 11, 5, 'rgba(0,0,0,.35)');
+          c.drawImage(img, Math.round(tw.x - img.width / 2), TOWER_Y - img.height);
+          tw.cd -= dt; if (tw.fire > 0) tw.fire -= dt;
+          var tgt = mons.filter(function (mo) { return mo.hp > 0 && Math.abs(mo.x - tw.x) < 70; })[0];
+          if (tgt && tw.cd <= 0) { tw.cd = 1.6 + Math.random() * 1.0; tw.fire = 0.15; arrows.push({ x: tw.x, y: TOWER_Y - img.height + 10, tgt: tgt, col: tw.type === 'frost' ? '#bfe8ff' : tw.type === 'mage' ? '#c79bff' : '#ffffff' }); }
+        });
+        // 魔物の行列（左から砦へ）
         spawnT -= dt;
-        if (spawnT <= 0) { spawnT = 1.1 + Math.random() * 1.0; var ty = TYPES[Math.floor(Math.random() * TYPES.length)]; mons.push({ type: ty, x: -20, hp: 7, fly: ty === 'bat' }); }
+        if (spawnT <= 0) { spawnT = 1.1 + Math.random() * 1.0; var ty = TYPES[Math.floor(Math.random() * TYPES.length)]; mons.push({ type: ty, x: -24, hp: 7, fly: ty === 'bat' }); }
         for (var m = mons.length - 1; m >= 0; m--) {
-          var mo = mons[m]; mo.x += dt * (mo.type === 'wolf' ? 14 : mo.type === 'orc' ? 6 : 9);
-          var fr = Math.abs(Math.floor(t * 4 + m)) % 2, spr = SPR[mo.type][fr].r, my = mo.fly ? 196 + Math.sin(t * 5 + m) * 3 : 220;
+          var mo = mons[m]; mo.x += dt * (mo.type === 'wolf' ? 22 : mo.type === 'orc' ? 9 : 14);
+          var fr = Math.abs(Math.floor(t * 4 + m)) % 2, spr = SPR[mo.type][fr].r, my = mo.fly ? MY - 16 + Math.sin(t * 6 + m) * 1.5 : MY;
+          DA.ell(c, Math.round(mo.x), MY, spr.sr || 5, 2, mo.fly ? 'rgba(0,0,0,.18)' : 'rgba(0,0,0,.3)');
           c.drawImage(spr, Math.round(mo.x - spr.width / 2), Math.round(my - spr.height));
-          if (mo.x > 96 || mo.hp <= 0) {
-            if (mo.hp <= 0) for (var q = 0; q < 8; q++) embers.push({ x: mo.x, y: my - 6, vx: (Math.random() - 0.5) * 30, vy: -Math.random() * 30, life: 0.6, col: '#ffd84a' });
+          if (mo.x > FX - 40 || mo.hp <= 0) {
+            if (mo.hp <= 0) for (var q = 0; q < 10; q++) embers.push({ x: mo.x, y: my - 8, vx: (Math.random() - 0.5) * 40, vy: -Math.random() * 40, life: 0.6, col: '#ffd84a' });
             mons.splice(m, 1);
           }
         }
-        // タワー（矢を撃つ）
-        TOWERS.forEach(function (tw) {
-          var img = G.towerImg(tw.type, tw.lv); c.drawImage(img, Math.round(tw.x - img.width / 2), 204 - img.height);
-          tw.cd -= dt;
-          var tgt = mons.filter(function (mo) { return mo.hp > 0 && Math.abs(mo.x - tw.x) < 50; })[0];
-          if (tgt && tw.cd <= 0) { tw.cd = 1.8 + Math.random() * 1.0; arrows.push({ x: tw.x, y: 204 - img.height + 6, tgt: tgt, col: tw.type === 'frost' ? '#bfe8ff' : tw.type === 'mage' ? '#c79bff' : '#ffffff' }); }
-        });
+        // 矢（タワー→魔物）
         for (var a2 = arrows.length - 1; a2 >= 0; a2--) {
-          var ar = arrows[a2], tx = ar.tgt.x, ty2 = ar.tgt.fly ? 190 : 212, dx = tx - ar.x, dy = ty2 - ar.y, d = Math.hypot(dx, dy);
-          if (d < 4) { ar.tgt.hp--; for (var q2 = 0; q2 < 4; q2++) embers.push({ x: tx, y: ty2, vx: (Math.random() - 0.5) * 20, vy: -Math.random() * 20, life: 0.35, col: ar.col }); arrows.splice(a2, 1); continue; }
-          ar.x += dx / d * 90 * dt; ar.y += dy / d * 90 * dt;
-          c.fillStyle = ar.col; c.fillRect(Math.round(ar.x), Math.round(ar.y), 2, 1);
+          var ar = arrows[a2], tx = ar.tgt.x, ty2 = ar.tgt.fly ? MY - 24 : MY - 8, dx = tx - ar.x, dy = ty2 - ar.y, d = Math.hypot(dx, dy);
+          if (d < 5) { ar.tgt.hp--; for (var q2 = 0; q2 < 5; q2++) embers.push({ x: tx, y: ty2, vx: (Math.random() - 0.5) * 30, vy: -Math.random() * 30, life: 0.35, col: ar.col }); arrows.splice(a2, 1); continue; }
+          ar.x += dx / d * 140 * dt; ar.y += dy / d * 140 * dt;
+          c.fillStyle = 'rgba(0,0,0,.5)'; c.fillRect(Math.round(ar.x) - 1, Math.round(ar.y), 4, 2);
+          c.fillStyle = ar.col; c.fillRect(Math.round(ar.x), Math.round(ar.y), 3, 1);
         }
         // 火の粉（下からふわっと上る）
-        if (Math.random() < 0.5) embers.push({ x: Math.random() * W, y: H, vx: (Math.random() - 0.5) * 6, vy: -12 - Math.random() * 14, life: 4, col: Math.random() < 0.5 ? '#ff9a3a' : '#ffd84a' });
+        if (Math.random() < 0.6) embers.push({ x: Math.random() * W, y: H, vx: (Math.random() - 0.5) * 8, vy: -16 - Math.random() * 20, life: 5, col: Math.random() < 0.5 ? '#ff9a3a' : '#ffd84a' });
         for (var e2 = embers.length - 1; e2 >= 0; e2--) {
           var em = embers[e2]; em.life -= dt; if (em.life <= 0) { embers.splice(e2, 1); continue; }
-          em.x += em.vx * dt + Math.sin(t * 2 + e2) * 0.1; em.y += em.vy * dt;
+          em.x += em.vx * dt + Math.sin(t * 2 + e2) * 0.15; em.y += em.vy * dt;
           c.globalAlpha = Math.min(1, em.life); c.fillStyle = em.col; c.fillRect(Math.round(em.x), Math.round(em.y), 1, 1);
         }
         c.globalAlpha = 1;
@@ -204,7 +239,7 @@ var G = window.G = window.G || {};
       });
       body.appendChild(list);
       // ---- アセンション（難易度）：1回クリアすると出てくる。◀ ▶ で A0〜 を切りかえる。下の固定欄に置く（スクロールなしで見える） ----
-      var maxA = Math.min(G.ASC_MAX, R.metaLoad().ascMax || 0), ascPick = Math.min(maxA, lastAsc());
+      var maxA = Math.min(G.ASC_MAX, R.metaLoad().ascMax || 0), ascPick = maxA;   // 初めは、いちばん上の解放ずみアセンションを選んでおく（2026-10-22 オーナー指定）
       if (maxA > 0) {
         var row = el('div', 'asc-pick'), note = el('p', 'asc-note'), lbl = el('b', 'asc-label'), prev = button('◀', 'asc-arrow', function () { setAsc(ascPick - 1); }), next = button('▶', 'asc-arrow', function () { setAsc(ascPick + 1); });
         var setAsc = function (v) {
@@ -237,9 +272,18 @@ var G = window.G = window.G || {};
     refreshTitle();
     window.scrollTo(0, 0);
   }
-  $('world-menu-btn').addEventListener('click', function () { $('world-menu').hidden = false; });
-  $('wm-close').addEventListener('click', function () { $('world-menu').hidden = true; });
-  $('wm-title').addEventListener('click', function () { $('world-menu').hidden = true; backToTitle(); });
+  // メニュー：ワールドマップと戦闘画面（右上の「≡」）のどちらからでも開く。戦闘中は開いている間、戦闘を止める
+  var MENU_NOTE = 'マスを1つ進めるたびに自動で保存しています。タイトルの「つづきから」で再開できます。';
+  function openMenu() {
+    var inBattle = G.currentScreen === 'game';
+    G.paused = inBattle;
+    $('wm-note').textContent = inBattle ? '戦闘は止まっています。タイトルに戻ると、「つづきから」はこの戦闘の始めからになります（この戦闘で置いたタワー・使ったカードはもどります）。' : MENU_NOTE;
+    $('world-menu').hidden = false;
+  }
+  function closeMenu() { $('world-menu').hidden = true; G.paused = false; }
+  $('world-menu-btn').addEventListener('click', openMenu);
+  $('wm-close').addEventListener('click', closeMenu);
+  $('wm-title').addEventListener('click', function () { closeMenu(); backToTitle(); });
   // 音の切り替え（効果音・BGM。このブラウザに覚えておく）
   function soundLabels() {
     if (!G.Sound) return;
@@ -328,7 +372,7 @@ var G = window.G = window.G || {};
       var ic = document.createElement('canvas'), bossId = n.type === 'boss' ? R.bossType(run) : '';
       if (bossId && SPR[bossId]) {
         // ボスマス：枠をなくして、そのボスの絵を大きく出す（どのボスが出るか、マップで見分けられる）
-        var bi = SPR[bossId][0].r, bw = Math.round(bi.width * 1.7), bh = Math.round(bi.height * 1.7);
+        var bi = SPR[bossId][0].r, bk = bi.nu ? Math.min(1.7, 56 / bi.height) : 1.7, bw = Math.round(bi.width * bk), bh = Math.round(bi.height * bk);   // 新しい絵は大きいので、高さ56pxまでに縮める
         ic.width = bi.width; ic.height = bi.height; ic.getContext('2d').drawImage(bi, 0, 0);
         ic.style.width = bw + 'px'; ic.style.height = bh + 'px';
         b.classList.add('boss-art');
@@ -383,7 +427,7 @@ var G = window.G = window.G || {};
       if (!run) return;
       if (G.Sound) G.Sound.play('tap');
       if (b.dataset.nav === 'deck') return showDeck();
-      if (b.dataset.nav === 'help') return showHelp();
+      if (b.dataset.nav === 'menu') return openMenu();
       if (G.currentScreen === 'world') return;
       viewFrom = G.currentScreen;       // 戦闘中は、マップを見ている間 戦闘が止まる
       // カードを選んでいる途中なら、選ぶ画面をいったん隠して、もどる時に戻す
@@ -641,10 +685,16 @@ var G = window.G = window.G || {};
   function showEnd() {
     clearSave(); music(run.won ? 'victory' : null);
     openPanel(run.won ? 'クリア' : '敗北', function (body, foot) {
+      // 場面の絵（クリア＝朝日の砦と花火、敗北＝燃える砦）と、記録のタイル（2026-10-22 新デザイン）
+      var art = G.eventArt && G.eventArt(run.won ? 'victory' : 'defeat', run.act); if (art) body.appendChild(art);
       body.appendChild(el('h2', 'panel-title ' + (run.won ? 'win' : 'lose'), (run.won ? '全3層クリア！' : '敗北…') + (run.asc ? '（アセンション' + run.asc + '）' : '')));
-      var n = R.node(run);
-      body.appendChild(el('p', 'panel-text', (run.won ? 'ラスボスの' + R.bossName(run) + 'を倒した。' : G.ACTS[run.act - 1].name + 'の' + (n ? (n.type === 'boss' ? 'ボス戦' : (n.floor + 1) + '階') : '') + 'で力つきた。') +
-        ' 勝った戦闘 ' + run.stats.battles + '回（エリート ' + run.stats.elites + '回）、手に入れたカード ' + run.stats.cardsTaken + '枚、最後のデッキ ' + run.deck.length + '枚。'));
+      var n = R.node(run), cmd = (G.COMMANDERS[run.cmd] || G.COMMANDERS.captain).name;
+      body.appendChild(el('p', 'panel-text end-lead', cmd + '：' + (run.won ? 'ラスボスの' + R.bossName(run) + 'を倒した。' : G.ACTS[run.act - 1].name + 'の' + (n ? (n.type === 'boss' ? 'ボス戦' : (n.floor + 1) + '階') : '') + 'で力つきた。')));
+      var tiles = el('div', 'end-stats');
+      [['勝った戦闘', run.stats.battles + '回'], ['エリート', run.stats.elites + '回'], ['手に入れたカード', run.stats.cardsTaken + '枚'], ['最後のデッキ', run.deck.length + '枚'], ['レリック', run.relics.length + '個'], ['ライフ', Math.max(0, run.life) + '/' + run.maxLife]].forEach(function (q) {
+        var d = el('div', 'end-stat'); d.appendChild(el('small', '', q[0])); d.appendChild(el('b', '', q[1])); tiles.appendChild(d);
+      });
+      body.appendChild(tiles);
       // 経験値（ランごとに1回だけ足す）
       if (!run.xpResult) run.xpResult = R.gainXp(run);
       body.appendChild(xpBox(run.xpResult));
@@ -722,7 +772,7 @@ var G = window.G = window.G || {};
   $('help-close').addEventListener('click', function () { $('help').hidden = true; });
   $('t-help').addEventListener('click', function () { showHelp(); });
   $('t-save').addEventListener('click', function () { showHelp('help-save'); });
-  $('wm-help').addEventListener('click', function () { $('world-menu').hidden = true; showHelp(); });
+  $('wm-help').addEventListener('click', function () { closeMenu(); showHelp(); });
   $('help-body').addEventListener('click', function (e) { if (e.target.id === 'help-data') { $('help').hidden = true; openData(); } });
   G.showHelp = showHelp;
 
@@ -784,7 +834,7 @@ var G = window.G = window.G || {};
     dataMsg('読み込みました（経験値 ' + d.meta.xp + '）。');
   });
   $('dt-close').addEventListener('click', function () { $('data-modal').hidden = true; });
-  $('wm-data').addEventListener('click', function () { $('world-menu').hidden = true; openData(); });
+  $('wm-data').addEventListener('click', function () { closeMenu(); openData(); });
   // ---- タイトルのメニュー ----
   $('t-menu').addEventListener('click', function () { $('title-menu').hidden = false; });
   $('tm-close').addEventListener('click', function () { $('title-menu').hidden = true; });

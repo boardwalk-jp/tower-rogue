@@ -144,6 +144,13 @@ G.MAPS.wave   = buildMap('波打つ道', { A: [[3, 0], [3, 3], [8, 3], [8, 7], [
 // エリート・ボス用（入口3つ）：中央の道が曲がりくねる
 G.MAPS.crown  = buildMap('王冠の谷', { A: [[1, 0], [1, 4], [3, 4], [3, 9], [5, 9], [5, 14]], B: [[9, 0], [9, 4], [7, 4], [7, 9], [5, 9], [5, 14]], C: [[5, 0], [5, 14]] },
                           { A: '左の入口', B: '右の入口', C: '中央の入口' }, 97);
+// ---- 2026-10-22 追加：長い道・砦に着く道が2本・橋でくぐる渦巻き（マップのパターンを増やす）----
+G.MAPS.longsnake = buildMap('大蛇の道', { A: [[9, 0], [9, 1], [1, 1], [1, 4], [9, 4], [9, 7], [1, 7], [1, 10], [9, 10], [9, 12], [5, 12], [5, 14]] }, ONE, 101);
+G.MAPS.spiral    = buildMap('渦巻きの丘', { A: [[1, 0], [1, 11], [9, 11], [9, 2], [3, 2], [3, 8], [7, 8], [7, 5], [5, 5], [5, 14]] }, ONE, 113);
+G.MAPS.forkgate  = buildMap('砦への二本道', { A: [[1, 0], [1, 4], [4, 4], [4, 8], [1, 8], [1, 12], [5, 12], [5, 14]], B: [[9, 0], [9, 4], [6, 4], [6, 8], [9, 8], [9, 12], [5, 12], [5, 14]] }, TWO, 127);
+// エリート・ボス用（入口3つ）：左右の道は砦の手前で左右から合流、中央の道は長く曲がる
+G.MAPS.trident   = buildMap('三つ又の砦', { A: [[1, 0], [1, 6], [2, 6], [2, 12], [5, 12], [5, 14]], B: [[9, 0], [9, 6], [8, 6], [8, 12], [5, 12], [5, 14]], C: [[5, 0], [5, 2], [3, 2], [3, 9], [7, 9], [7, 4], [5, 4], [5, 14]] },
+                          { A: '左の入口', B: '右の入口', C: '中央の入口' }, 131);
 // ---- 13列にする：左右に1列ずつ足す（画面の横幅いっぱいに使うため）----
 // 足した列は、決まった数から計算して木・岩・地面にする（毎回同じ形）。敵の道・城の位置は1列ぶん右にずらすだけで、通る順番や長さは変わらない
 function widen(k, m) {
@@ -307,6 +314,12 @@ G.TOWERS = {
     text: '遠くへ大きな砲弾を撃ち、広い範囲を吹き飛ばす。空の敵には当たらない。',
     up: [{ cost: 40, dmg: 50, splash: 1.4 }, { cost: 80, dmg: 70, range: 3.9, splash: 1.5 }]
   },
+  // size: 2 ＝ 横に2マス使う（2026-10-22 追加）
+  trebuchet: {
+    name: '大投石機', size: 2, noAir: true, muzzle: 1.4, cost: 3, range: 4.6, dmg: 70, rate: 3.4, dmgType: 'physical', shot: 'ball', speed: 3.0, splash: 1.6,
+    text: '横に2マスを使う大きな投石機。とても遠くまで大岩を投げ、広い範囲に大ダメージ。空の敵には当たらない。',
+    up: [{ cost: 50, dmg: 100, splash: 1.7 }, { cost: 100, dmg: 140, range: 5.0, splash: 1.8 }]
+  },
   blizzard: {
     name: '吹雪の塔', muzzle: 1.6, cost: 2, range: 2.2, dmg: 9, rate: 1.0, dmgType: 'magic', aura: true, slow: { pct: 0.45, dur: 1.2 },
     text: '弾を撃たず、射程の中の敵すべてに1秒ごとに冷たい風（ダメージ＋遅くする）。',
@@ -359,6 +372,7 @@ G.CARDS = {
   sniper:   { kind: 'tower', tower: 'sniper', rarity: 'rare' },
   storm:    { kind: 'tower', tower: 'storm', rarity: 'rare' },
   mortar:   { kind: 'tower', tower: 'mortar', rarity: 'rare' },
+  trebuchet: { kind: 'tower', tower: 'trebuchet', rarity: 'rare' },
   blizzard: { kind: 'tower', tower: 'blizzard', rarity: 'rare' },
   golem:    { kind: 'tower', tower: 'golem', rarity: 'rare' },
   dart:     { kind: 'tower', tower: 'dart', rarity: 'common' },
@@ -456,9 +470,15 @@ G.ASCENSION = [
   { lv: 2, text: '最大ライフ-4', life: 4 },
   { lv: 3, text: '通常の敵の体力が増える', hp: 1.05 },
   { lv: 4, text: 'ボスの体力が増える', boss: 1.06 },
-  { lv: 5, text: '戦闘で手に入るお金が15%減る', gold: 0.85 }
+  { lv: 5, text: '戦闘で手に入るお金が15%減る', gold: 0.85 },
+  // 6〜10：2026-10-22 追加
+  { lv: 6, text: '敵の歩く速さが5%上がる', speed: 1.05 },
+  { lv: 7, text: 'ボスが砦に着いた時のダメージ+2', bossHit: 2 },
+  { lv: 8, text: '通常の敵の体力がさらに増える', hp: 1.06 },
+  { lv: 9, text: 'エリートとボスの体力がさらに増える', elite: 1.1, boss: 1.06 },
+  { lv: 10, text: '最大ライフ-6・敵の歩く速さがさらに5%上がる', life: 6, speed: 1.05 }
 ];
-G.ASC_MAX = 5;
+G.ASC_MAX = 10;
 // a までのアセンションの効果をまとめる（倍率はかけ算、ライフ・攻撃は足し算）
 G.ascMods = function (a) {
   var m = { hp: 1, elite: 1, life: 0, boss: 1, bossHit: 0, speed: 1, gold: 1 };
@@ -500,6 +520,8 @@ G.ENEMIES = {
   icebat:    { name: '氷コウモリ', hp: 24,  speed: 0.95,  armor: 0,   life: 1,  gold: 4,   gap: 0.5, fly: true },
   harpy:     { name: 'ハーピー',   hp: 90, speed: 0.75, armor: 0,   life: 1,  gold: 8,   gap: 1.4, fly: true },
   wyvern:    { name: 'ワイバーン', hp: 380, speed: 0.48,  armor: 0.2, life: 3,  gold: 24,  gap: 4.0, fly: true, immune: ['burn'] },
+  // warp：道の at（0〜1）まで進むと、別の入口の道の同じ進み具合の所へワープする（道が1本なら jump マス先へ）。2026-10-22 追加
+  warper:    { name: '影の魔術師', hp: 80, speed: 0.95, armor: 0, magicResist: 0.2, life: 2, gold: 10, gap: 1.8, warp: { at: 0.4, jump: 3 } },
   shaman:    { name: 'ゴブリン呪術師', hp: 150, speed: 0.8, armor: 0, life: 2, gold: 14, gap: 3.0, heal: { r: 1.4, amt: 15, every: 3 } },
   goblinlord: { name: 'ゴブリン将軍', hp: 1400, speed: 0.42, armor: 0.25, life: 10, gold: 100, gap: 1, boss: true, summon: { type: 'goblin', n: 3, every: 8 } },
   lich:      { name: '死霊の王',   hp: 1000, speed: 0.4, armor: 0.2, magicResist: 0.2, life: 10, gold: 100, gap: 1, boss: true, summon: { type: 'skeleton', n: 2, every: 8 } },
@@ -570,7 +592,8 @@ G.WAVE_SETS = {
     mid: [
       [[['wolf', 8, 0]], [['yeti', 2, 0], ['icebat', 3, 3]], [['skeleton', 6, 0], ['yeti', 2, 4]]],
       [[['skeleton', 6, 0]], [['icebat', 5, 0], ['wolf', 4, 3]], [['yeti', 3, 0], ['skeleton', 5, 4]]],
-      [[['icebat', 3, 0], ['wolf', 4, 2]], [['harpy', 2, 0], ['skeleton', 5, 2]], [['yeti', 2, 0], ['harpy', 2, 3], ['icebat', 2, 5]]]
+      [[['icebat', 3, 0], ['wolf', 4, 2]], [['harpy', 2, 0], ['skeleton', 5, 2]], [['yeti', 2, 0], ['harpy', 2, 3], ['icebat', 2, 5]]],
+      [[['skeleton', 5, 0], ['warper', 2, 3]], [['wolf', 6, 0], ['warper', 3, 2]], [['yeti', 2, 0], ['warper', 3, 2], ['icebat', 3, 5]]]
     ],
     elite: [[[['wolf', 5, 0], ['icebat', 2, 3]], [['iceknight', 1, 0], ['skeleton', 4, 3]], [['yeti', 2, 0], ['wolf', 5, 4]], [['iceknight', 1, 0], ['icebat', 3, 3], ['yeti', 1, 8]]],
             [[['icebat', 4, 0]], [['harpy', 3, 0], ['icebat', 2, 3]], [['iceknight', 1, 0], ['harpy', 2, 3]], [['harpy', 4, 0], ['yeti', 2, 3]]],
@@ -598,7 +621,8 @@ G.WAVE_SETS = {
     mid: [
       [[['salamander', 5, 0], ['bat', 2, 3]], [['magma', 2, 0], ['skeleton', 4, 3]], [['demon', 1, 0], ['salamander', 6, 3]]],
       [[['bat', 5, 0]], [['skeleton', 6, 0], ['magma', 1, 4]], [['salamander', 8, 0], ['orc', 3, 3]]],
-      [[['salamander', 5, 0]], [['harpy', 3, 0], ['bat', 3, 2]], [['magma', 1, 0], ['harpy', 2, 2], ['salamander', 4, 4]]]
+      [[['salamander', 5, 0]], [['harpy', 3, 0], ['bat', 3, 2]], [['magma', 1, 0], ['harpy', 2, 2], ['salamander', 4, 4]]],
+      [[['salamander', 4, 0], ['warper', 3, 2]], [['skeleton', 5, 0], ['warper', 4, 2]], [['demon', 1, 0], ['warper', 4, 2], ['salamander', 4, 5]]]
     ],
     elite: [[[['salamander', 5, 0], ['bat', 2, 3]], [['demon', 1, 0], ['skeleton', 4, 3]], [['magma', 2, 0], ['salamander', 5, 4]], [['demon', 2, 0], ['bat', 3, 3]]],
             [[['bat', 4, 0]], [['wyvern', 1, 0], ['bat', 3, 2]], [['harpy', 3, 0], ['salamander', 4, 2]], [['wyvern', 2, 0], ['harpy', 2, 4]]],
@@ -618,9 +642,9 @@ G.WAVE_SETS = {
 // maps：ふつうの戦闘のマップ（theme で色を変えて使い回す）。big：エリート・ボスのマップ
 // ============================================================
 G.ACTS = [
-  { name: '第1層', area: '草原', theme: 'grass',   maps: ['field', 'snake', 'zigzag', 'cross', 'ushape', 'stairs', 'twin', 'hook', 'wave'], big: ['valley', 'crown'], hp: 1.0 },
-  { name: '第2層', area: '雪山', theme: 'snow',    maps: ['snowpass', 'snowpass', 'field', 'snake', 'zigzag', 'cross', 'ushape', 'stairs', 'twin', 'hook', 'wave'], big: ['valley', 'crown'], hp: 1.05 },
-  { name: '第3層', area: '火山', theme: 'volcano', maps: ['lavaflow', 'lavaflow', 'snake', 'field', 'zigzag', 'cross', 'ushape', 'stairs', 'twin', 'hook', 'wave'], big: ['valley', 'crown'], hp: 1.2 }
+  { name: '第1層', area: '草原', theme: 'grass',   maps: ['field', 'snake', 'zigzag', 'cross', 'ushape', 'stairs', 'twin', 'hook', 'wave', 'longsnake', 'forkgate'], big: ['valley', 'crown', 'trident'], hp: 1.0 },
+  { name: '第2層', area: '雪山', theme: 'snow',    maps: ['snowpass', 'snowpass', 'field', 'snake', 'zigzag', 'cross', 'ushape', 'stairs', 'twin', 'hook', 'wave', 'longsnake', 'spiral', 'forkgate'], big: ['valley', 'crown', 'trident'], hp: 1.05 },
+  { name: '第3層', area: '火山', theme: 'volcano', maps: ['lavaflow', 'lavaflow', 'snake', 'field', 'zigzag', 'cross', 'ushape', 'stairs', 'twin', 'hook', 'wave', 'longsnake', 'spiral', 'forkgate'], big: ['valley', 'crown', 'trident'], hp: 1.2 }
 ];
 
 // ============================================================

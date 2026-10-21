@@ -877,6 +877,45 @@ var G = window.G = window.G || {};
     return trim(s);
   }
 
+  // ================= 大投石機（trebuchet）：横に2マス使う。石の台・木の組み枠・長い腕・鉄のおもり（2026-10-22） =================
+  // 2マス分の幅なので、ほかのタワーより大きい下書き（48×72）に描く。足もとの幅は44ドット以内
+  function trebuchet(lv, fire) {
+    var W = 48, s = DA.mk(W, CH), c = s.c, cx = 24, i;
+    var Pb = lv === 0 ? P.stone : P.rock, bh = [5, 6, 7][lv];
+    box(c, cx, BY, 44, ds(12), hs(bh), Pb);                                     // 石の台（2マス）
+    for (var r = BY - 4; r > BY - hs(bh); r -= 3) R(c, cx - 21, r, 42, 1, Pb.m);
+    if (lv >= 1) { R(c, cx - 22, BY - hs(bh), 3, hs(bh) - 1, P.iron.f); R(c, cx + 19, BY - hs(bh), 3, hs(bh) - 1, P.iron.s); }
+    if (lv === 2) { R(c, cx - 22, BY - hs(bh), 44, 1, GOLD); for (i = -18; i <= 18; i += 6) R(c, cx + i, BY - 3, 1, 1, GOLD); }
+    var top = BY - hs(bh) - 6;                                                    // 台の上の面のまん中
+    // 木の組み枠（左右に A の字）。奥の枠は暗く、手前の枠は明るい
+    function frame(fx, col, colS) {
+      for (var j = 0; j < 22; j++) { var w = Math.round(j * 0.35); R(c, fx - w - 1, top - 22 + j, 2, 1, col); R(c, fx + w, top - 22 + j, 2, 1, colS); }
+      R(c, fx - 7, top - 4, 16, 2, col); R(c, fx - 7, top - 3, 16, 1, colS);   // 下の横木
+    }
+    frame(cx - 4, P.wood.d, P.wood.d);
+    // 腕とおもり：ふだんは腕が右下に下がり、おもりが上。攻撃中は腕が左上へふり上がり、おもりが下がる
+    var ax = cx, ay = top - 21;                                                   // 軸の位置
+    var tipX = fire ? ax - 16 : ax + 18, tipY = fire ? ay - 15 : ay + 13, n = 20;
+    for (i = 0; i <= n; i++) { var x = Math.round(ax + (tipX - ax) * i / n), y = Math.round(ay + (tipY - ay) * i / n); R(c, x, y, 2, 2, P.wood.f); R(c, x, y, 1, 1, P.wood.hi); }
+    var cwx = fire ? ax + 6 : ax - 7, cwy = fire ? ay + 4 : ay - 6;               // おもり（鉄の箱）
+    R(c, Math.round((ax + cwx) / 2), Math.round((ay + cwy) / 2), 1, 1, P.iron.d);
+    box(c, cwx, cwy + 8, 9, 3, 6, P.iron); if (lv === 2) R(c, cwx - 4, cwy + 3, 9, 1, GOLD);
+    // 腕の先のひもと石（ふだんは下にたれる。攻撃中は石が飛んでいくので、ひもだけ）
+    R(c, tipX, tipY + 1, 1, 4, '#d8c39a');
+    if (!fire) { DA.ell(c, tipX, tipY + 6, 2, 2, P.rock.f); R(c, tipX - 1, tipY + 5, 1, 1, P.rock.hi); }
+    else { DA.ell(c, tipX - 4, tipY - 3, 2, 2, P.rock.f); R(c, tipX - 5, tipY - 4, 1, 1, P.rock.hi); R(c, tipX - 1, tipY - 1, 2, 1, 'rgba(255,255,255,.6)'); }
+    frame(cx + 4, P.wood.f, P.wood.s);
+    R(c, ax - 1, ay - 1, 3, 3, lv === 2 ? GOLD : P.iron.t); R(c, ax, ay, 1, 1, P.iron.d);   // 軸
+    // 石の山（左はし）と旗（右はし）
+    DA.ell(c, cx - 15, top + 1, 4, 2, P.rock.f); R(c, cx - 17, top - 1, 2, 1, P.rock.hi); DA.ell(c, cx - 12, top, 2, 1, P.rock.t);
+    flag(c, cx + 18, top + 2, 10 + lv * 2, lv);
+    // 上の空白を切り落とす（下のふち＝足もと）
+    var d = c.getImageData(0, 0, W, CH).data, t0 = CH - 1, x2, y2;
+    for (y2 = 0; y2 < CH; y2++) { for (x2 = 0; x2 < W; x2++) if (d[(y2 * W + x2) * 4 + 3]) break; if (x2 < W) { t0 = y2; break; } }
+    var o = DA.mk(W, CH - t0); o.c.drawImage(s.cv, 0, -t0); o.cv.nu = true;
+    return o.cv;
+  }
+
   // ---------- 種類ごとの作り方（ここに描き足していく） ----------
   var MAKERS = {
     archer: archer,
@@ -901,7 +940,8 @@ var G = window.G = window.G || {};
     spikes: spikes,
     tar: tar,
     barrel: barrel_,
-    barricade: barricade
+    barricade: barricade,
+    trebuchet: trebuchet
   };
 
   G.TowerArt = {
