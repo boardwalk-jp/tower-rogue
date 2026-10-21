@@ -684,10 +684,8 @@ var G = window.G = window.G || {};
   function fit() {
     var st = $('stage').getBoundingClientRect();
     if (!st.width) return;
-    // 手札が1段の時も2段分の高さを見込んでおき、枚数でマップの大きさが変わらないようにする
-    var two = $('hand').classList.contains('two');
-    var extra = two ? 0 : parseFloat(getComputedStyle($('hand')).getPropertyValue('--row2')) || 0;
-    var W = G.Render.W, H = G.Render.H, k = Math.min(st.width / W, (st.height - extra) / H);
+    // 手札の場所はいつも2段分の高さを確保してある（style.css の .hand）ので、マップの大きさと位置は手札の枚数で変わらない
+    var W = G.Render.W, H = G.Render.H, k = Math.min(st.width / W, st.height / H);
     var cw = Math.floor(W * k), ch = Math.floor(H * k);
     cv.style.width = cw + 'px'; cv.style.height = ch + 'px';
     var d = Math.min(window.devicePixelRatio || 1, 3);

@@ -85,7 +85,7 @@ h1 span{font-size:18px;color:var(--muted)}
 .en-num{color:var(--energy);margin-left:4px;font-size:17px}
 .gem.on{background:var(--energy);border-color:#b8ecff}
 
-.stage{position:relative;flex:1 1 auto;min-height:120px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.stage{position:relative;flex:1 1 auto;min-height:120px;display:flex;align-items:flex-start;justify-content:center;overflow:hidden}   /* マップは上にそろえる（手札の枚数で動かさない） */
 #map{display:block;image-rendering:pixelated;border-radius:6px;touch-action:none}
 .banner{position:absolute;left:0;right:0;top:38%;text-align:center;font-size:26px;pointer-events:none;
   text-shadow:0 2px 0 #000,0 0 12px #000;opacity:0;transition:opacity .25s}
@@ -136,7 +136,8 @@ h1 span{font-size:18px;color:var(--muted)}
 /* 手札：4枚までは1段。5枚以上は4枚×2段で、1段目の上側（名前とコスト）だけ見えるように2段目を重ねる。
    --row2 は2段目で増える高さ。マップの大きさはこの分をいつも見込んで計算する（ui.js の fit） */
 .hand{--card-h:76px;--peek:36px;--row2:var(--peek);
-  display:grid;grid-template-columns:repeat(4,1fr);column-gap:6px;padding:8px 8px 0}
+  display:grid;grid-template-columns:repeat(4,1fr);align-content:start;column-gap:6px;padding:8px 8px 0;
+  min-height:calc(8px + var(--card-h) + var(--row2))}   /* 0枚でも1段でも2段でも、場所の高さを同じにする */
 .card{position:relative;min-width:0;height:var(--card-h);border-radius:9px;border:2px solid #4a5a50;background:linear-gradient(#2b3a31,#1d2621);
   display:flex;flex-direction:column;align-items:center;padding:3px 3px 4px;gap:1px;
   transition:transform .12s, border-color .12s;touch-action:none;cursor:pointer;box-shadow:0 -3px 8px rgba(0,0,0,.35)}

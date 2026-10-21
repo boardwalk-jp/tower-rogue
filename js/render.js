@@ -1,9 +1,9 @@
-// 描画：小さなドット画面（264×324）に描いてから拡大表示する。1マス＝24×18ドット（疑似3D、見る角度48°）
+// 描画：小さなドット画面（312×300）に描いてから拡大表示する。1マス＝24×18ドット（疑似3D、見る角度48°）
 'use strict';
 var G = window.G = window.G || {};
 
 (function () {
-  var TW = 24, TH = 18, OY = 46, SLAB = 8;   // OY：地面の上の余白（背の高い絵がはみ出す所）、SLAB：地面の下の厚み
+  var TW = 24, TH = 18, OY = 22, SLAB = 8;   // OY：地面の上の余白（背の高い絵がはみ出す所）、SLAB：地面の下の厚み
   var W = G.MAP.cols * TW, H = G.MAP.rowsN * TH + OY + SLAB;
   var DA = G.DotArt, ART = DA.build();   // DA：ドット絵の道具、ART：作り置きした背景の絵
   var buf = document.createElement('canvas'); buf.width = W; buf.height = H;
@@ -44,39 +44,44 @@ var G = window.G = window.G || {};
     }
   }
 
-  // ---- 地域ごとの色（草原の色は試作「ドット疑似3D」と同じ。雪山・火山は同じ作りで色だけ変えた） ----
-  // g/gB：地面（明るい・暗い・中くらい・ふつう の4色。市松でgとgBを交互に）／road：道／verge：道ぎわの土まじりの地面
+  // ---- 地域ごとの色 ----
+  // 草原は試作「ドット疑似3D」と同じ色。雪山・火山は、草原の色を替えただけにせず、地面の質感から別に作った
+  //   雪山：やわらかい雪の起伏（光が左上から当たる）／踏み固めた雪の道／凍った湖
+  //   火山：黒い岩の地面と赤くひかる割れ目／灰色の焼けた道／ふちが光る溶岩
   var THEMES = {
     grass: {
       g: ['#5a9846', '#356430', '#468338', '#417a37'], gB: ['#528f40', '#2f5d2a', '#3f7a34', '#3a6f31'],
       road: { hi: '#b08a5c', dark: '#94724a', base: '#a07e52', rimUp: ['#6f5436', '#5e4a2e'], rimDn: ['#cfa874', '#c09a66'], inner: '#8a6a42' },
       verge: ['#7a8a44', '#6a7c3a', '#4f8a3e'], pebHi: '#d8c39a', pebLo: '#6b5235', blade: '#3f7a34', tuft: '#2c5a28', fl: ['#f4e36a', '#f0f0f0'],
-      slab: ['#9a7a50', '#5a4028', '#7a5a3a', '#624630', '#3e2c1c'], lake: null
+      slab: ['#9a7a50', '#5a4028', '#7a5a3a', '#624630', '#3e2c1c'], stn: ['#9a958a', '#74706a', '#85807a', '#8c877f'], stnLine: '#6a665e',
+      lake: { c: ['#7cc4ee', '#4a98d0', '#3a7cb8'], t: [0.1, 0.4], rim: ['#d8ecf8', '#a8cce4'] }
     },
     snow: {
-      g: ['#ffffff', '#c8d4e2', '#dfe8f2', '#e9f0f7'], gB: ['#f6fafd', '#c0ccdc', '#d8e2ee', '#e2ebf4'],
-      road: { hi: '#aab4c2', dark: '#7c8796', base: '#8c97a6', rimUp: ['#5c6676', '#4a5262'], rimDn: ['#c8d2de', '#b8c2d0'], inner: '#7a8594' },
-      verge: ['#c0ccda', '#b0bece', '#d4deea'], pebHi: '#e8eef5', pebLo: '#5c6676', blade: '#f4f8fc', tuft: '#aab8c8', fl: ['#b8d8f0', '#ffffff'],
-      slab: ['#8a98a8', '#566272', '#6e7c8c', '#5a6676', '#3a4452'],
-      lake: { c: ['#ffffff', '#9fd0f0', '#7fb8e0'], t: [0.1, 0.4], rim: ['#dfe8f2', '#c8d4e2'] }
+      g: [], gB: [],
+      road: { hi: '#bcbbc3', dark: '#868590', base: '#a2a1a9', rimUp: ['#6a6874', '#585664'], rimDn: ['#ffffff', '#eef3f9'], inner: '#94939d' },
+      verge: ['#d6dadd', '#c6cccf', '#e2e7ec'], pebHi: '#f0f4f8', pebLo: '#6c7484', blade: '#ffffff', tuft: '#8e937c', fl: ['#ffffff', '#c4e6fa'],
+      slab: ['#f4f8fc', '#c4d2e2', '#8fa0b4', '#6c7c92', '#4a586c'], stn: ['#a6abb6', '#8b919e', '#979dab', '#9aa0ad'], stnLine: '#757c8a',
+      lake: { c: ['#e6f6ff', '#bde2f4', '#9ccbe6'], t: [0.1, 0.4], rim: ['#ffffff', '#e2ecf6'] }
     },
     volcano: {
-      g: ['#5a4440', '#2a201e', '#46363a', '#3a2e2c'], gB: ['#533e3a', '#261c1a', '#3f3034', '#352928'],
-      road: { hi: '#8a6a44', dark: '#5a4028', base: '#6a4c30', rimUp: ['#2a1a10', '#1e120a'], rimDn: ['#9a7448', '#8a6840'], inner: '#4a3420' },
-      verge: ['#5a4838', '#4e3e32', '#3a2a28'], pebHi: '#9a7a50', pebLo: '#2a1a10', blade: '#4a3a38', tuft: '#1e1614', fl: ['#ff8a2a', '#ffd84a'],
-      slab: ['#5a463e', '#2a1e1a', '#46352e', '#352620', '#1e1410'],
-      lake: { c: ['#ffd84a', '#ff6a2a', '#e04a1a'], t: [0.15, 0.5], rim: ['#2a1a10', '#1e120a'] }
+      g: [], gB: [],
+      road: { hi: '#7a6d69', dark: '#4a4140', base: '#5f5654', rimUp: ['#120a08', '#1e130f'], rimDn: ['#94806f', '#826f61'], inner: '#544b49' },
+      verge: ['#4a3d3c', '#3d3234', '#54484a'], pebHi: '#a08a72', pebLo: '#1e1410', blade: '#54484a', tuft: '#171011', fl: ['#ff8a2a', '#ffd84a'],
+      slab: ['#6a5650', '#3a2a26', '#4a3a34', '#2e211e', '#1a1210'], stn: ['#5e5052', '#463a3d', '#524548', '#4c4144'], stnLine: '#2e2426',
+      lake: { c: ['#ffe98a', '#ffb030', '#ff7a24', '#d84418'], t: [0.1, 0.4], rim: ['#2a1410', '#3a1c14'] }
     }
   };
-  var STN = ['#9a958a', '#74706a', '#85807a', '#8c877f'];   // 城の敷地の石畳
+  var SNOW_G = ['#ffffff', '#f6f9fd', '#ecf2f9', '#dbe5f1', '#c6d4e6'];          // 雪の地面：いちばん明るい→影
+  var VOL_G = ['#4a3e40', '#3a3032', '#2e2527', '#241c1e', '#191214'];           // 火山の地面：明るい→暗い
 
-  // ---- 地面（草・道・湖・城の敷地）と、木・岩・洞穴の一覧を作り置き ----
-  // 道と湖は「なめらかな地図」で形を決める：マスの角を丸め、ふちを少しゆらして、草となじませる
+  // ---- 地面（草・道・湖・砦の敷地）と、木・岩の一覧を作り置き ----
+  // 道と湖は「なめらかな地図」で形を決める：マスの角を丸め、ふちを少しゆらして、地面となじませる
+  // いちばん上の余白（OY）にも地面と道を続けて描く（入口は洞穴ではなく、画面の上から地続き）
   function buildBg() {
     var cv = document.createElement('canvas'); cv.width = W; cv.height = H;
-    var g = cv.getContext('2d'), th = THEMES[M.theme || 'grass'], rd = th.road, tx, ty, px, py, i, j, k;
+    var g = cv.getContext('2d'), theme = M.theme || 'grass', th = THEMES[theme], rd = th.road, tx, ty, px, py, i, j, k;
     g.fillStyle = '#0d120e'; g.fillRect(0, 0, W, H);
-    var MW = M.cols * TW, MH = M.rowsN * TH;
+    var MW = M.cols * TW, MH = M.rowsN * TH, HH = OY + MH;
     function charAt(x, y) { return (y < 0 || y >= M.rowsN || x < 0 || x >= M.cols) ? null : M.rows[y][x]; }
     function isGate(c) { return c === 'A' || c === 'B' || c === 'C'; }
     function isRoadCh(c) { return c === '#' || c === 'G' || isGate(c); }
@@ -90,7 +95,7 @@ var G = window.G = window.G || {};
       var mask = [], F = new Float32Array(MW * MH), RAD = 0.78, offs = [-1, -0.67, -0.33, 0, 0.33, 0.67, 1], oa, ob, smp = [];
       for (oa = 0; oa < 7; oa++) for (ob = 0; ob < 7; ob++) if (offs[oa] * offs[oa] + offs[ob] * offs[ob] <= 1.02) smp.push(offs[oa] * RAD, offs[ob] * RAD);   // 見る点（円の中の37か所）を先に出しておく
       var nS = smp.length / 2, rowsN = M.rowsN, cols = M.cols;
-      for (j = -1; j <= rowsN; j++) { var mr = []; for (i = -1; i <= cols; i++) mr.push(isMine(M.rows[j < 0 ? 0 : j >= rowsN ? rowsN - 1 : j][i < 0 ? 0 : i >= cols ? cols - 1 : i]) ? 1 : 0); mask.push(mr); }   // ふちは外側を同じ値でのばす
+      for (j = -1; j <= rowsN; j++) { var mr = []; for (i = -1; i <= cols; i++) mr.push(isMine(M.rows[j < 0 ? 0 : j >= rowsN ? rowsN - 1 : j][i < 0 ? 0 : i >= cols ? cols - 1 : i]) ? 1 : 0); mask.push(mr); }   // ふちは外側を同じ値でのばす（上の余白では入口の道が上まで続く）
       for (py = 0; py < MH; py++) for (px = 0; px < MW; px++) {
         var u = (px + 0.5) / TW, v = (py + 0.5) / TH, sum = 0, q;
         for (q = 0; q < nS; q++) sum += mask[((v + smp[q * 2 + 1]) | 0) + (v + smp[q * 2 + 1] < 0 ? -1 : 0) + 1][((u + smp[q * 2]) | 0) + (u + smp[q * 2] < 0 ? -1 : 0) + 1];
@@ -102,43 +107,127 @@ var G = window.G = window.G || {};
     var hasLake = M.rows.join('').indexOf('L') >= 0;
     var fr = smooth(isRoadCh), fl = hasLake ? smooth(function (c) { return c === 'L'; }) : function () { return -1; };
     function plazaAt(x, y) { var c = charAt(Math.floor(x / TW), Math.floor(y / TH)); return c === 'X' || c === 'G'; }
-    for (ty = 0; ty < M.rowsN; ty++) for (tx = 0; tx < M.cols; tx++) {
-      var ch = M.rows[ty][tx], plaza = ch === 'X' || ch === 'G', x0 = tx * TW, y0 = sy(ty), pal = (tx + ty) & 1 ? th.g : th.gB;
-      for (py = 0; py < TH; py++) for (px = 0; px < TW; px++) {
-        var mx = x0 + px, my = ty * TH + py, gr = fr(mx, my), h = hash(mx, my + 99), col;
-        if (plaza) col = h < 0.1 ? STN[0] : h < 0.2 ? STN[1] : h < 0.26 ? STN[2] : STN[3];
-        else if (gr >= 0) {
-          col = h < 0.11 ? rd.hi : (h >= 0.15 && h < 0.19) ? rd.dark : rd.base;
-          if (gr < 0.07) {
-            var up = fr(mx, my - 1) < 0 || fr(mx - 1, my) < 0, dn = fr(mx, my + 1) < 0 || fr(mx + 1, my) < 0;
-            col = up ? (h < 0.5 ? rd.rimUp[0] : rd.rimUp[1]) : dn ? (h < 0.5 ? rd.rimDn[0] : rd.rimDn[1]) : rd.base;
-          } else if (gr < 0.12 && h < 0.4) col = rd.inner;
-        } else if (hasLake && fl(mx, my) >= 0) {
-          var lk = th.lake, lg = fl(mx, my);
-          if (lg < 0.07) col = h < 0.5 ? lk.rim[0] : lk.rim[1];
-          else col = h < lk.t[0] ? lk.c[0] : h < lk.t[1] ? lk.c[1] : lk.c[2];
-        } else {
-          col = h < 0.1 ? pal[0] : h < 0.2 ? pal[1] : h < 0.26 ? pal[2] : pal[3];
-          if (gr > -0.09) col = h < 0.45 ? th.verge[0] : h < 0.7 ? th.verge[1] : col;            // 道ぎわは土まじりの地面
-          else if (gr > -0.17 && h < 0.3) col = th.verge[2];
-        }
-        g.fillStyle = col; g.fillRect(mx, OY + my, 1, 1);
+
+    // 雪・火山の地面の起伏（なめらかなノイズ）。となりの点との差で「光の当たり方」を出す（左上から光）
+    var ST = MW + 2, HF = null;
+    if (theme !== 'grass') {
+      HF = new Float32Array(ST * (HH + 2));
+      var sn = theme === 'snow';
+      for (py = 0; py < HH + 2; py++) for (px = 0; px < ST; px++)
+        HF[py * ST + px] = sn ? vn(px / 24, py / 17) * 0.7 + vn(px / 10 + 50, py / 7.5) * 0.3 : vn(px / 18, py / 13) * 0.65 + vn(px / 7 + 50, py / 5.5) * 0.35;
+    }
+    function edgeUp(mx, my) { return fr(mx, my - 1) < 0 || fr(mx - 1, my) < 0; }
+    function edgeDn(mx, my) { return fr(mx, my + 1) < 0 || fr(mx + 1, my) < 0; }
+    function roadRim(mx, my, h) { return edgeUp(mx, my) ? (h < 0.5 ? rd.rimUp[0] : rd.rimUp[1]) : edgeDn(mx, my) ? (h < 0.5 ? rd.rimDn[0] : rd.rimDn[1]) : rd.base; }
+
+    // ---- 1ドットの色（草原） ----
+    function pGrass(mx, my, h, gr, pal) {
+      var col;
+      if (gr >= 0) {
+        col = h < 0.11 ? rd.hi : (h >= 0.15 && h < 0.19) ? rd.dark : rd.base;
+        if (gr < 0.07) col = roadRim(mx, my, h); else if (gr < 0.12 && h < 0.4) col = rd.inner;
+      } else if (hasLake && fl(mx, my) >= 0) {
+        var lk = th.lake, lg = fl(mx, my);
+        col = lg < 0.07 ? (h < 0.5 ? lk.rim[0] : lk.rim[1]) : h < lk.t[0] ? lk.c[0] : h < lk.t[1] ? lk.c[1] : lk.c[2];
+      } else {
+        col = h < 0.1 ? pal[0] : h < 0.2 ? pal[1] : h < 0.26 ? pal[2] : pal[3];
+        if (gr > -0.09) col = h < 0.45 ? th.verge[0] : h < 0.7 ? th.verge[1] : col;            // 道ぎわは土まじりの地面
+        else if (gr > -0.17 && h < 0.3) col = th.verge[2];
       }
-      if (plaza) { g.fillStyle = '#6a665e'; g.fillRect(x0, y0 + (TH >> 1), TW, 1); g.fillRect(x0 + (TW >> 1), y0, 1, TH >> 1); }
-      else if (!isRoadCh(ch) && ch !== 'L') {
+      return col;
+    }
+    // ---- 1ドットの色（雪山） ----
+    function pSnow(mx, my, h, gr) {
+      var m = vn(mx / 9 + 11, my / 7 + 3), lg = hasLake ? fl(mx, my) : -1, col, lk = th.lake;
+      if (gr >= 0) {                                   // 踏み固めた雪の道：大きなまだら＋ところどころ小さな点
+        if (gr < 0.07) return roadRim(mx, my, h);
+        col = m > 0.6 ? rd.hi : m < 0.38 ? rd.dark : rd.base;
+        if (h < 0.025) col = rd.hi; else if (h > 0.985) col = rd.dark; else if (gr < 0.12 && h < 0.4) col = rd.inner;
+        return col;
+      }
+      if (lg >= 0) {                                   // 凍った湖：なめらかな氷、ななめの光のすじ、細いひび
+        if (lg < 0.07) return h < 0.5 ? lk.rim[0] : lk.rim[1];
+        var streak = ((mx + my * 2 + Math.floor(vn(mx / 14, my / 9) * 14)) % 19 + 19) % 19;
+        col = m > 0.55 ? lk.c[1] : lk.c[2];
+        if (streak < 1.2) col = lk.c[0];
+        var ck = Math.abs(vn(mx / 8 + 80, my / 6 + 12) - 0.5);
+        if (ck < 0.013 && lg > 0.12) col = '#76add0';
+        return col;
+      }
+      var idx = (my + OY) * ST + mx, hf = HF[idx], lit = hf - HF[idx + ST + 1];
+      col = hf > 0.56 ? SNOW_G[1] : SNOW_G[2];
+      if (lit > 0.026) col = hf > 0.56 ? SNOW_G[0] : SNOW_G[1];
+      else if (lit < -0.026) col = lit < -0.055 ? SNOW_G[4] : SNOW_G[3];
+      if (h < 0.004) col = '#ffffff';
+      if (gr > -0.09) col = h < 0.4 ? th.verge[0] : h < 0.7 ? th.verge[1] : col;      // 道ぎわは雪がうすく、土やよごれが見える
+      else if (gr > -0.17 && h < 0.3) col = th.verge[2];
+      if (hasLake && lg > -0.1) col = h < 0.6 ? '#ffffff' : '#eef4fa';                // 湖のふちは雪が盛り上がる
+      return col;
+    }
+    // ---- 1ドットの色（火山） ----
+    function pVolc(mx, my, h, gr) {
+      var m = vn(mx / 9 + 11, my / 7 + 3), lg = hasLake ? fl(mx, my) : -1, col, lk = th.lake;
+      if (gr >= 0) {                                   // 焼けた灰色の道：まだら＋ときどき火の粉
+        if (gr < 0.07) return roadRim(mx, my, h);
+        col = m > 0.6 ? rd.hi : m < 0.38 ? rd.dark : rd.base;
+        if (h < 0.025) col = rd.hi; else if (h > 0.985) col = rd.dark; else if (gr < 0.12 && h < 0.4) col = rd.inner;
+        if (h > 0.9985) col = '#ff8a2a';
+        return col;
+      }
+      if (lg >= 0) {                                   // 溶岩：明るい流れ、ところどころ黒く固まった面
+        if (lg < 0.07) return h < 0.5 ? lk.rim[0] : lk.rim[1];
+        var q = vn(mx / 7, my / 5) * 0.6 + vn(mx / 3 + 20, my / 2.4) * 0.4;
+        col = q > 0.68 ? lk.c[0] : q > 0.52 ? lk.c[1] : q > 0.36 ? lk.c[2] : lk.c[3];
+        var cr = vn(mx / 9 + 70, my / 6 + 5);
+        if (cr > 0.74 && lg > 0.12) col = cr > 0.8 ? '#2e1a14' : '#4a2a1c';
+        return col;
+      }
+      var idx = (my + OY) * ST + mx, hf = HF[idx], lit = hf - HF[idx + ST + 1], bi = hf > 0.6 ? 1 : hf > 0.42 ? 2 : 3;
+      if (lit > 0.03) bi--; else if (lit < -0.03) bi++;
+      col = VOL_G[bi < 0 ? 0 : bi > 4 ? 4 : bi];
+      var cn = Math.abs(vn(mx / 10 + 3, my / 8 + 7) - 0.5), zone = vn(mx / 28 + 5, my / 22 + 2);
+      if (zone > 0.68 && gr < -0.1 && (!hasLake || lg < -0.14)) { if (cn < 0.005) col = '#ffb040'; else if (cn < 0.011) col = '#ff6a2a'; else if (cn < 0.017) col = '#4e2018'; }
+      else if (h < 0.0012) col = '#ff8a2a';
+      if (gr > -0.09) col = h < 0.45 ? th.verge[0] : h < 0.7 ? th.verge[1] : col;
+      else if (gr > -0.17 && h < 0.3) col = th.verge[2];
+      if (hasLake && lg > -0.07) col = h < 0.5 ? '#9a421e' : '#7a3018';                // 溶岩のまわりは赤く照らされる
+      else if (hasLake && lg > -0.15) col = h < 0.5 ? '#5e2a1c' : col;
+      return col;
+    }
+    var paint = theme === 'snow' ? pSnow : theme === 'volcano' ? pVolc : pGrass;
+
+    // 地面・道・湖・砦の敷地（上の余白から）
+    for (py = -OY; py < MH; py++) {
+      ty = Math.floor(py / TH);
+      for (px = 0; px < MW; px++) {
+        tx = Math.floor(px / TW);
+        var ch = ty < 0 ? '.' : M.rows[ty][tx], plaza = ch === 'X' || ch === 'G', hh = hash(px, py + 99), col;
+        if (plaza) {
+          col = hh < 0.1 ? th.stn[0] : hh < 0.2 ? th.stn[1] : hh < 0.26 ? th.stn[2] : th.stn[3];
+          if (theme === 'snow' && hh > 0.965) col = '#f4f8fc';
+          if (theme === 'volcano' && hh > 0.992) col = '#ff6a2a';
+        } else col = paint(px, py, hh, fr(px, py), (tx + ty) & 1 ? th.g : th.gB);
+        g.fillStyle = col; g.fillRect(px, OY + py, 1, 1);
+      }
+    }
+    // 砦の敷地の石のつなぎ目、草のはっぱ・小さな花など
+    for (ty = -2; ty < M.rowsN; ty++) for (tx = 0; tx < M.cols; tx++) {
+      var c0 = ty < 0 ? '.' : M.rows[ty][tx], pl = c0 === 'X' || c0 === 'G', x0 = tx * TW, y0 = sy(ty);
+      if (pl) { g.fillStyle = th.stnLine; g.fillRect(x0, y0 + (TH >> 1), TW, 1); g.fillRect(x0 + (TW >> 1), y0, 1, TH >> 1); }
+      else if (!isRoadCh(c0) && c0 !== 'L') {
         var gx, gy, fx, fy;
-        if (hash(tx, ty) < 0.55) {   // 草のはっぱ
+        if (hash(tx, ty) < 0.55) {   // 草のはっぱ（雪山＝かれ草、火山＝かれ枝）
           gx = x0 + 3 + Math.floor(hash(ty, tx) * 16); gy = y0 + 3 + Math.floor(hash(tx + 7, ty) * (TH - 6));
-          if (fr(gx, gy - OY) < -0.2 && fl(gx, gy - OY) < 0) { g.fillStyle = th.tuft; g.fillRect(gx, gy, 1, 2); g.fillRect(gx + 1, gy + 1, 1, 1); g.fillRect(gx - 1, gy + 1, 1, 1); }
+          if (fr(gx, gy - OY) < -0.2 && fl(gx, gy - OY) < -0.2) { g.fillStyle = th.tuft; g.fillRect(gx, gy, 1, 2); g.fillRect(gx + 1, gy + 1, 1, 1); g.fillRect(gx - 1, gy + 1, 1, 1); }
         }
-        if (hash(tx, ty + 3) < 0.28) {   // 小さな花
+        if (hash(tx, ty + 3) < 0.28) {   // 小さな花（雪山＝きらきら、火山＝火の粉）
           fx = x0 + 3 + Math.floor(hash(ty + 5, tx) * 17); fy = y0 + 2 + Math.floor(hash(tx + 9, ty) * (TH - 4));
-          if (fr(fx, fy - OY) < -0.2 && fl(fx, fy - OY) < 0) { g.fillStyle = hash(tx, ty + 8) < 0.5 ? th.fl[0] : th.fl[1]; g.fillRect(fx, fy, 1, 1); }
+          if (fr(fx, fy - OY) < -0.2 && fl(fx, fy - OY) < -0.2) { g.fillStyle = hash(tx, ty + 8) < 0.5 ? th.fl[0] : th.fl[1]; g.fillRect(fx, fy, 1, 1); }
         }
       }
     }
-    // 道の上の小石と、ふちの草のはみ出し
-    for (py = 2; py < MH - 2; py++) for (px = 2; px < MW - 2; px++) {
+    // 道の上の小石と、ふちのはみ出し
+    for (py = -OY + 2; py < MH - 2; py++) for (px = 2; px < MW - 2; px++) {
       var gg = fr(px, py), hh2 = hash(px * 3 + 1, py * 5 + 7);
       if (hh2 >= 0.05 || plazaAt(px, py) || (hasLake && fl(px, py) >= -0.1)) continue;
       if (gg > 0.18 && hh2 < 0.012) { g.fillStyle = th.pebHi; g.fillRect(px, OY + py, 2, 1); g.fillStyle = th.pebLo; g.fillRect(px, OY + py + 1, 2, 1); }
@@ -153,13 +242,12 @@ var G = window.G = window.G || {};
     }
     // 橋：道が十字に交わるマス。先に通る道が橋の上、あとから通る道が橋の下をくぐる
     (M.bridges || []).forEach(function (br) { drawBridge(g, br); });
-    // 木・岩・入口：敵やタワーと重なりを正しくするため、絵の一覧にして描く時に並べ替える
-    var statics = [], tree = M.theme === 'snow' ? ART.pine : M.theme === 'volcano' ? ART.spire : ART.tree;
+    // 木・岩：敵やタワーと重なりを正しくするため、絵の一覧にして描く時に並べ替える
+    var statics = [], tree = theme === 'snow' ? ART.pine : theme === 'volcano' ? ART.spire : ART.tree;
     for (ty = 0; ty < M.rowsN; ty++) for (tx = 0; tx < M.cols; tx++) {
       var c = M.rows[ty][tx];
       if (c === 'T') statics.push({ spr: tree[hash(tx, ty) < 0.5 ? 0 : 1], x: tx + 0.5, y: ty + 0.62, sh: 9 });
-      else if (c === 'R') statics.push({ spr: ART.rock, x: tx + 0.5, y: ty + 0.6, sh: 8 });
-      else if (isGate(c)) statics.push({ spr: ART.gate, x: tx + 0.5, y: ty + 0.55, sh: 12 });
+      else if (c === 'R') statics.push({ spr: ART.rock[theme], x: tx + 0.5, y: ty + 0.6, sh: 8 });
     }
     return { cv: cv, statics: statics };
   }
@@ -256,8 +344,7 @@ var G = window.G = window.G || {};
         if (e.small) burst(e.x, e.y, 6, ['#9ca1a7', '#cfc2ab', '#6b5235'], 26, 60, 0.35);
         else { burst(e.x, e.y, 14, ['#ffb347', '#ffe08a', '#ff6b3a', '#5a5048'], 50, 40, 0.5); addShake(e.r >= 1.4 ? 2.5 : 1); }
         rings.push({ x: sx(e.x), y: sy(e.y), r: 2, max: e.r * TW, col: e.small ? '#cfc2ab' : '#ffcf6a', life: 0.3, ml: 0.3 });
-      } else if (e.k === 'spawn') { // 洞穴から出てきた時の土ぼこり
-        burst(e.x, e.y, 8, ['#8a7a68', '#b0a08a', '#5a5048'], 18, -10, 0.45);
+      } else if (e.k === 'spawn') { // 入口（画面の上）から現れた時：ボスだけ衝撃を出す
         if (e.boss) { addShake(4); rings.push({ x: sx(e.x), y: sy(e.y), r: 4, max: 40, col: '#ff4d3a', life: 0.7, ml: 0.7 }); }
       } else if (e.k === 'chain') {
         beams.push({ x0: sx(e.x0), y0: sy(e.y0), x1: sx(e.x1), y1: sy(e.y1), life: 0.18 });
@@ -385,7 +472,7 @@ var G = window.G = window.G || {};
     // 次の攻撃で使われる入口に「！」（タップすると次の敵が見える）
     if (s.phase === 'prep') {
       gatesNext(s).forEach(function (k) {
-        var p = M.paths[k][0], gx = Math.round(sx(p[0])), gy = sy(0) - 14 + Math.round(Math.sin(t * 5) * 2);   // 洞穴の上にういて見える
+        var p = M.paths[k][0], gx = Math.round(sx(p[0])), gy = 20 + Math.round(Math.sin(t * 5) * 2);   // 入口の道の、画面の上のふちの近くにういて見える
         var open = ui.gateOpen === k;
         b.fillStyle = '#16120f'; b.fillRect(gx - 7, gy - 19, 14, 18);
         b.fillStyle = open ? '#ffe14d' : '#ff4d3a'; b.fillRect(gx - 5, gy - 17, 10, 14);
@@ -421,7 +508,6 @@ var G = window.G = window.G || {};
       }
       if (it.k === 'castle') {
         var cpx = Math.round(sx(castleAt.x)), cpy = Math.round(sy(castleAt.y + 1)), cs = ART.castle;
-        DA.ell(b, cpx + 4, cpy - 2, 40, Math.max(3, Math.round(40 * TH / TW * 0.4)), 'rgba(0,0,0,.25)');
         b.drawImage(cs.cv, cpx - cs.ax, cpy - cs.ay);
         if (fx.castleHit > 0) { b.globalCompositeOperation = 'lighter'; b.globalAlpha = fx.castleHit * 2; b.drawImage(cs.cv, cpx - cs.ax, cpy - cs.ay); b.globalAlpha = 1; b.globalCompositeOperation = 'source-over'; }
         continue;
@@ -472,6 +558,8 @@ var G = window.G = window.G || {};
       // 敵
       var E = G.ENEMIES[o.type], fr = Math.floor(o.walk) % 2, es = S[o.type][fr];
       var img = o.face < 0 ? es.l : es.r, ex = sx(o.x), ey = sy(o.y) + 3;
+      var born = o.d < 0.8 ? Math.max(0, o.d) / 0.8 : 1;   // 入口から歩いて現れる：最初の0.8マスで少しずつ濃くなる
+      if (born < 1) b.globalAlpha = born;
       b.fillStyle = 'rgba(0,0,0,.35)'; b.fillRect(ex - 5, ey - 1, 10, 2);
       if (o.fly) ey -= 7 + Math.round(Math.sin(t * 5 + o.id) * 1.5);   // 空を飛ぶ敵は影から浮かせて描く
       // 城の前のボス：攻撃の時に、のけぞってから城へ体当たりする動き
@@ -487,6 +575,7 @@ var G = window.G = window.G || {};
       if (o.poisonT > 0 && Math.random() < 0.3) parts.push({ x: ex + (Math.random() - 0.5) * 8, y: ey - img.height * 0.6, vx: 0, vy: -10, g: 0, life: 0.5, ml: 0.5, col: '#a6e85a' });
       var barW = E.boss ? 28 : (o.type === 'orc' || o.type === 'knight' || o.type === 'yeti' || o.type === 'kingslime' || o.type === 'wyvern' || o.type === 'shaman' || o.type === 'iceknight' || o.type === 'demon') ? 14 : 10;
       if (o.hp < o.max || E.boss) hpBar(ex, ey - img.height - 3, barW, Math.max(0, o.hp / o.max), o.hp / o.max > 0.5 ? '#7fd36a' : '#ffb347');
+      b.globalAlpha = 1;
     }
 
     // 時止め：画面全体をうすい青に
