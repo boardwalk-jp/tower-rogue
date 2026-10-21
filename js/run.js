@@ -226,7 +226,7 @@ var G = window.G = window.G || {};
         var E = G.ENEMIES[g[0]];
         // ボスは一番長い道から来る（倒すまでの時間をかせげるように）
         var gate = E.boss ? longest : pick(gates, r);
-        return { gate: gate, type: g[0], n: g[1], gap: E.gap, delay: g[2] };
+        return { gate: gate, type: g[0], n: E.boss ? g[1] : countFor(map, PL, gate, g[1]), gap: E.gap, delay: g[2] };
       });
     });
     var AM = G.ascMods(run.asc);   // アセンションで敵を強く
@@ -234,6 +234,9 @@ var G = window.G = window.G || {};
              bossMult: A.hp * G.RULES.bossHp * AM.hp * AM.boss, enemySpeed: AM.speed, bossHitAdd: AM.bossHit, ascGold: AM.gold, gold: run.gold, seed: Math.floor(r() * 1e9), kind: kind, relics: run.relics.slice(), cmd: run.cmd,
              phoenix: Math.max(0, count(run.relics, 'phoenix') - (run.phoenixUsed || 0)) };
   }
+  // 敵の数：道が長いマップほど多く（道の長さに比例）。マップに enemyMult があればその倍率を使う（マップごとの個別の調整）
+  function enemyMult(map, PL, gate) { return map.enemyMult != null ? map.enemyMult : PL[gate] / G.RULES.mapLenRef; }
+  function countFor(map, PL, gate, n) { return Math.max(1, Math.round(n * enemyMult(map, PL, gate))); }
   // 戦闘の結果をランに戻す
   function finishBattle(run, s) {
     run.life = s.life; run.gold = s.gold;

@@ -145,9 +145,11 @@ var G = window.G = window.G || {};
   function occupies(tw, tx, ty) { return tw.ty === ty && tx >= tw.tx && tx < tw.tx + sizeOf(tw.type); }
   function canPlaceAt(s, tx, ty, type) {
     var n = sizeOf(type);
+    var Z = s.map.fortZone;   // 砦の絵が重なるマスには置けない
     for (var k = 0; k < n; k++) {
       var c = tileAt(s, tx + k, ty);
       if (c === null) return false;
+      if (Z && tx + k >= Z.x0 && tx + k <= Z.x1 && ty >= Z.y0 && ty <= Z.y1) return false;
       for (var i = 0; i < s.towers.length; i++) if (occupies(s.towers[i], tx + k, ty)) return false;
       if (type && G.TOWERS[type].place === 'path') { if (!(c === '#' && ty > 0)) return false; }
       else if (c !== '.') return false;

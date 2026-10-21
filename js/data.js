@@ -166,8 +166,23 @@ function widen(k, m) {
   Object.keys(m.paths).forEach(function (gk) { m.paths[gk] = m.paths[gk].map(function (p) { return [p[0] + 1, p[1]]; }); });
 }
 Object.keys(G.MAPS).forEach(function (k) { widen(k, G.MAPS[k]); });
+// ---- 砦のまわりは何も重ならないようにする（2026-10-22）----
+// 砦の絵（横112×縦106ドット）が重なるマス（砦の列の左右2マス・下から5行）では、木・岩を地面に変える
+// タワー・罠を置けないのは、壁と塔の本体が重なる下から3行だけ（fortZone）。その上の2行は旗と門の塔の先だけなので置ける
+//   （5行すべてを置けなくすると、道が集まる大事な場所が減り、自動対戦の勝ちが 24/30 → 3/30 に下がったため）
+function clearFort(m) {
+  var gy = -1, gx = -1;
+  m.rows.forEach(function (r, y) { var x = r.indexOf('G'); if (x >= 0) { gx = x; gy = y; } });
+  if (gx < 0) return;
+  m.fortZone = { x0: gx - 2, x1: gx + 2, y0: gy - 2, y1: gy };
+  m.rows = m.rows.map(function (r, y) {
+    if (y < gy - 4 || y > gy) return r;
+    return r.split('').map(function (c, x) { return x >= gx - 2 && x <= gx + 2 && (c === 'T' || c === 'R') ? '.' : c; }).join('');
+  });
+}
 Object.keys(G.MAPS).forEach(function (k) {
   var m = G.MAPS[k];
+  clearFort(m);
   m.id = k; m.cols = m.rows[0].length; m.rowsN = m.rows.length;
   m.rows.forEach(function (r, i) { if (r.length !== m.cols) throw new Error('map ' + k + ' row ' + i + ' width'); });
   m.bridges = findBridges(m);
@@ -757,6 +772,9 @@ G.DOWN_COLOR = '#4ea8ff';
 // ルール（仮の数値）
 // ============================================================
 G.RULES = {
+  // 敵の数とマップの道の長さ（2026-10-22）：敵の数を「その敵が通る道の長さ ÷ mapLenRef」倍にする（ボスは増やさない）
+  // mapLenRef は「草原の分かれ道」（field）の道の長さ。マップごとに決めたい時は G.MAPS[種類].enemyMult に倍率を書く（書いた方が優先）
+  mapLenRef: 25.8,
   maxLife: 40,        // ラン全体のライフ（戦闘をまたいで持ち越す）
   startGold: 30,      // ラン開始時のお金（戦闘・商人で共通）
   energyPerTurn: 3,   // 準備ターンの始めにこの値まで回復（持ち越しなし）
