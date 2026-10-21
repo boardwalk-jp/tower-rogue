@@ -534,22 +534,25 @@ var G = window.G = window.G || {};
     var ev = R.rollEvent(run);
     lockTaps(TAP_LOCK_MS);
     // イベントの場面の絵（js/eventart.js）
-    function eventArt(box) { var a = G.eventArt && G.eventArt(ev.id, run.act); if (a) box.appendChild(a); }
+    // key：選んだ後の結果の絵（選択肢の番号。賭けは当たり・はずれで分ける）。結果の絵がない選択肢は元の絵のまま
+    function eventArt(box, key) { var a = G.eventArt && G.eventArt(ev.id, run.act, key); if (a) box.appendChild(a); }
     openPanel('イベント', function (body, foot) {
       eventArt(body); body.appendChild(el('h2', 'panel-title', ev.title));
       body.appendChild(el('p', 'panel-text', ev.text));
       var list = el('div', 'choices');
-      ev.choices.forEach(function (ch) {
+      ev.choices.forEach(function (ch, ci) {
         var b = button('', 'choice', function () {
           var res = R.eventChoice(run, ch);
           renderRunBar();
           if (res.fail) { msg.textContent = res.msg; return; }
+          var key = String(ci) + (ch.effect === 'gamble' ? (res.msg.indexOf('当たり') === 0 ? 'win' : 'lose') : '');
+          function afterEvent(text, rid) { afterEventK(text, rid, key); }
           if (res.next === 'pickCopy') return pickFromDeck('複製するカードを選ぶ', function (i) { var id = run.deck[i]; R.addCard(run, id); afterEvent('「' + G.CARDS[id].name + '」をもう1枚手に入れた。'); }, true);
           if (res.next === 'pickRemove') return pickFromDeck('手放すカードを選ぶ', function (i) { R.removeCard(run, i); afterEvent('カードを手放した。'); }, true);
           if (res.next === 'pickUpgrade') return pickFromDeck('鍛えるカードを選ぶ', function (i) { var nm = G.CARDS[run.deck[i]].name; R.upgradeCard(run, i); afterEvent('「' + nm + '」を鍛えて「' + G.CARDS[run.deck[i]].name + '」にした。'); }, true, null, R.canUpgradeCard);
           if (res.next === 'pickCard') {
             return openPanel('イベント', function (b2, f2) {
-              eventArt(b2); b2.appendChild(el('h2', 'panel-title', ev.title));
+              eventArt(b2, key); b2.appendChild(el('h2', 'panel-title', ev.title));
               b2.appendChild(el('p', 'panel-text', res.msg + ' カードを1枚えらぶ。'));
               choose(b2, f2, res.cards, '受け取る', function (id) { R.addCard(run, id); afterEvent('「' + G.CARDS[id].name + '」を手に入れた。'); });
             });
@@ -563,12 +566,12 @@ var G = window.G = window.G || {};
       body.appendChild(list);
       var msg = el('p', 'panel-sub'); body.appendChild(msg);
     });
-    function afterEvent(text, rid) {
+    function afterEventK(text, rid, key) {
       if (run.life <= 0) { run.over = true; clearSave(); return showEnd(); }
       lastResume = { type: 'map' }; save(lastResume);   // 選択肢が決まった時点で保存（つづきからはマップに戻る）
       lockTaps(TAP_LOCK_MS);
       openPanel('イベント', function (body, foot) {
-        eventArt(body); body.appendChild(el('h2', 'panel-title', ev.title));
+        eventArt(body, key); body.appendChild(el('h2', 'panel-title', ev.title));
         body.appendChild(el('p', 'panel-text', text));
         if (rid) {
           var RR = G.RELICS[rid], line = el('div', 'card-detail relic-get r-' + RR.rarity), h3 = el('h3', 'relic-line');
@@ -652,9 +655,12 @@ var G = window.G = window.G || {};
   // ============================================================
   // 休憩：ライフ回復 または カードを1枚手放す
   // ============================================================
+  // たき火の背景の絵を、画面のいちばん下の層に敷く（選択肢は上にそのまま並ぶ）
+  function restBg() { if (G.restArt) $('panel').insertBefore(G.restArt(run ? run.act : 1), $('panel').firstChild); }
   function showRest() {
     lockTaps(TAP_LOCK_MS);
     openPanel('休憩', function (body, foot) {
+      restBg();
       body.appendChild(el('h2', 'panel-title', 'たき火'));
       body.appendChild(el('p', 'panel-text', 'ひと休みできる。どれか1つを選ぶ。'));
       var list = el('div', 'choices');
@@ -672,6 +678,7 @@ var G = window.G = window.G || {};
       lastResume = { type: 'map' }; save(lastResume);
       lockTaps(TAP_LOCK_MS);
       openPanel('休憩', function (body, foot) {
+        restBg();
         body.appendChild(el('h2', 'panel-title', 'たき火'));
         body.appendChild(el('p', 'panel-text', text));
         foot.appendChild(button('先へ進む', 'go', showWorld));
@@ -864,6 +871,7 @@ var G = window.G = window.G || {};
     $('panel-kind').textContent = kind;
     var body = $('panel-body'), foot = $('panel-foot');
     body.innerHTML = ''; foot.innerHTML = '';
+    var oldBg = $('panel').querySelector('.panel-bg'); if (oldBg) oldBg.remove();   // 前の画面の背景の絵（たき火など）を外す
     body.scrollTop = 0;
     fill(body, foot);
     renderRunBar();

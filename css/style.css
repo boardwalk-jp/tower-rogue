@@ -521,3 +521,8 @@ button.go:disabled{filter:saturate(.5)}
 .nav-btn{background:linear-gradient(#26322c,#1c2521)}
 .modal-box{border:2px solid #3e5246;box-shadow:0 0 0 1px #0a0e0c,0 10px 30px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.06)}
 .modal-box h2{color:#ffe08a;text-shadow:0 2px 0 #3a2a10}
+
+/* たき火マスなどの背景の絵：画面いっぱいに敷き、文字やボタンはその上（2026-10-22） */
+#panel .panel-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 100%;image-rendering:pixelated;z-index:0;pointer-events:none}
+#panel > :not(.panel-bg){position:relative;z-index:1}
+#panel .rest-bg ~ .panel-body .choice{background:linear-gradient(rgba(39,52,45,.86),rgba(30,40,35,.86));backdrop-filter:blur(1px)}

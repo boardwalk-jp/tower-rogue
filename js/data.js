@@ -168,13 +168,12 @@ function widen(k, m) {
 Object.keys(G.MAPS).forEach(function (k) { widen(k, G.MAPS[k]); });
 // ---- 砦のまわりは何も重ならないようにする（2026-10-22）----
 // 砦の絵（横112×縦106ドット）が重なるマス（砦の列の左右2マス・下から5行）では、木・岩を地面に変える
-// タワー・罠を置けないのは、壁と塔の本体が重なる下から3行だけ（fortZone）。その上の2行は旗と門の塔の先だけなので置ける
-//   （5行すべてを置けなくすると、道が集まる大事な場所が減り、自動対戦の勝ちが 24/30 → 3/30 に下がったため）
+// タワー・罠は置いてよい（重なっても、砦をいちばん手前に描く。render.js）。fortZone は範囲の記録だけ
 function clearFort(m) {
   var gy = -1, gx = -1;
   m.rows.forEach(function (r, y) { var x = r.indexOf('G'); if (x >= 0) { gx = x; gy = y; } });
   if (gx < 0) return;
-  m.fortZone = { x0: gx - 2, x1: gx + 2, y0: gy - 2, y1: gy };
+  m.fortZone = { x0: gx - 2, x1: gx + 2, y0: gy - 4, y1: gy };
   m.rows = m.rows.map(function (r, y) {
     if (y < gy - 4 || y > gy) return r;
     return r.split('').map(function (c, x) { return x >= gx - 2 && x <= gx + 2 && (c === 'T' || c === 'R') ? '.' : c; }).join('');

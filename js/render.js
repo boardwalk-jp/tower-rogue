@@ -108,7 +108,7 @@ var G = window.G = window.G || {};
       Object.keys(M.paths).forEach(function (k) {
         var P = M.paths[k];
         for (var q = 0; q < P.length - 1; q++) {
-          var ax = P[q][0], ay = q === 0 ? -3 : P[q][1], bx = P[q + 1][0], by2 = P[q + 1][1];   // 入口は画面の上のふちの外まで道をのばす
+          var ax = P[q][0], ay = q === 0 ? -3 : P[q][1], bx = P[q + 1][0], by2 = q === P.length - 2 ? M.rowsN + 2 : P[q + 1][1];   // 入口は画面の上のふちの外まで、砦の門からは画面の下のふちの外まで道をのばす
           var dup = segs.some(function (o) { return o[0] === ax && o[1] === ay && o[2] === bx && o[3] === by2; });
           if (!dup) segs.push([ax, ay, bx, by2, ax === bx ? 1 : 0]);
         }
@@ -155,7 +155,7 @@ var G = window.G = window.G || {};
       return Math.sqrt(ex * ex + ey * ey);
     }
     var fr = roadField(), fl = hasLake ? lakeField() : function () { return -1; };
-    function plazaAt(x, y) { var c = charAt(Math.floor(x / TW), Math.floor(y / TH)); return c === 'X' || c === 'G'; }
+    function plazaAt(x, y) { var c = charAt(Math.floor(x / TW), Math.floor(y / TH)); return c === 'X'; }   // 門のマス（G）は石畳でなく道（門から道が画面の下へ続く）
 
     // 雪・火山の地面の起伏（なめらかなノイズ）。となりの点との差で「光の当たり方」を出す（左上から光）
     var ST = MW + 2, HF = null;
@@ -256,7 +256,7 @@ var G = window.G = window.G || {};
       ty = Math.floor(py / TH);
       for (px = 0; px < MW; px++) {
         tx = Math.floor(px / TW);
-        var ch = ty < 0 || ty >= M.rowsN ? '.' : M.rows[ty][tx], plaza = ch === 'X' || ch === 'G', hh = hash(px, py + 99), col;
+        var ch = ty < 0 || ty >= M.rowsN ? '.' : M.rows[ty][tx], plaza = ch === 'X', hh = hash(px, py + 99), col;
         if (plaza) {
           col = hh < 0.1 ? th.stn[0] : hh < 0.2 ? th.stn[1] : hh < 0.26 ? th.stn[2] : th.stn[3];
           if (theme === 'snow' && hh > 0.965) col = '#f4f8fc';
@@ -267,7 +267,7 @@ var G = window.G = window.G || {};
     }
     // 砦の敷地の石のつなぎ目、草のはっぱ・小さな花など
     for (ty = -2; ty < M.rowsN; ty++) for (tx = 0; tx < M.cols; tx++) {
-      var c0 = ty < 0 ? '.' : M.rows[ty][tx], pl = c0 === 'X' || c0 === 'G', x0 = tx * TW, y0 = sy(ty);
+      var c0 = ty < 0 ? '.' : M.rows[ty][tx], pl = c0 === 'X', x0 = tx * TW, y0 = sy(ty);
       if (pl) { g.fillStyle = th.stnLine; g.fillRect(x0, y0 + (TH >> 1), TW, 1); g.fillRect(x0 + (TW >> 1), y0, 1, TH >> 1); }
       else if (!isRoadCh(c0) && c0 !== 'L') {
         var gx, gy, fx, fy;
@@ -569,7 +569,7 @@ var G = window.G = window.G || {};
     s.enemies.forEach(function (e) { var ub = underBridge(s, e); list.push({ y: ub ? ub.y + 0.01 : e.y, k: 'enemy', o: e }); });
     var castleAt = null;
     M.rows.forEach(function (r, y) { var x = r.indexOf('G'); if (x >= 0) castleAt = { x: x + 0.5, y: y }; });
-    list.push({ y: castleAt.y + 0.4, k: 'castle' });
+    list.push({ y: 1e9, k: 'castle' });   // 砦はいつもいちばん手前（タワー・敵・木より後に描く）
     list.sort(function (a, c) { return a.y - c.y; });
 
     for (var i = 0; i < list.length; i++) {
@@ -589,6 +589,8 @@ var G = window.G = window.G || {};
         var cpx = Math.round(sx(castleAt.x)), cpy = Math.round(sy(castleAt.y + 1)), cs = ART.castle[M.theme || 'grass'];
         b.drawImage(cs.cv, cpx - cs.ax, cpy - cs.ay);
         if (fx.castleHit > 0) { b.globalCompositeOperation = 'lighter'; b.globalAlpha = fx.castleHit * 2; b.drawImage(cs.cv, cpx - cs.ax, cpy - cs.ay); b.globalAlpha = 1; b.globalCompositeOperation = 'source-over'; }
+        // 門の下の部分は、手前を通る道で見切れる（道が門から画面の下へ続いて見える）。背景の道をもう一度上に重ねる
+        var gy0 = cpy - 3; b.drawImage(BG.cv, cpx - 10, gy0, 21, H - gy0, cpx - 10, gy0, 21, H - gy0);
         continue;
       }
       if (it.k === 'soldier') {

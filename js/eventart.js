@@ -340,6 +340,60 @@
     }
   };
 
+  // ---- 選んだ後の絵（見本2つ。2026-10-22）----
+  SCENES2.box.after = {
+    // 開ける：ふたが後ろに開き、中から紫の光の柱。光の中にレリックのかがやき
+    '0': {
+      stat: function (g) {
+        var P = TP();
+        R(g, P.wood2.s, 102, 58, 38, 16); R(g, P.wood2.t, 102, 58, 38, 2); R(g, P.wood2.hi, 102, 58, 1, 16);   // 後ろに立ったふた
+        [106, 130].forEach(function (bx) { R(g, P.gold.s, bx, 58, 4, 16); });
+        R(g, '#1a0e2a', 102, 74, 38, 12); R(g, '#2a1840', 103, 75, 36, 10);                                   // 箱の中（暗い）
+        R(g, P.gold.f, 102, 85, 38, 1);
+      },
+      anim: function (g, t) {
+        var gl = 0.5 + 0.5 * Math.sin(t * 3), i;
+        g.globalCompositeOperation = 'lighter';
+        for (i = 0; i < 74; i++) { var w = 30 - Math.round(i * 0.18); g.fillStyle = 'rgba(170,110,255,' + ((0.28 - i * 0.0035) * (0.8 + gl * 0.2)).toFixed(3) + ')'; g.fillRect(120 - (w >> 1), 82 - i, w, 1); }
+        g.globalCompositeOperation = 'source-over';
+        var ry = 50 + Math.round(Math.sin(t * 2) * 3);                                                          // うかぶレリック（金色のひし形）
+        for (i = 0; i < 6; i++) R(g, i < 3 ? '#fff0b0' : '#e8c040', 120 - i, ry + i, i * 2 + 1, 1);
+        for (i = 0; i < 5; i++) R(g, i < 2 ? '#e8c040' : '#b8902a', 116 + i, ry + 6 + i, 9 - i * 2, 1);
+        for (i = 0; i < 8; i++) { var q = (t * 0.7 + i / 8) % 1; R(g, i % 2 ? '#efd8ff' : '#ffe14d', 108 + i * 3 + Math.sin(t * 4 + i) * 4, 80 - q * 60, 1, 1); }
+        sparkle(g, 132, ry - 4, t, 0, '#ffffff'); sparkle(g, 108, ry + 8, t, 0.7, '#ffe14d');
+      }
+    }
+  };
+  SCENES2.gambler.after = {
+    // 当たり：金貨がたくさんはじけ飛ぶ。賭け師はくやしそうに帽子を下げる
+    '0win': {
+      anim: function (g, t, act) {
+        var k = kindOf(act), P = TP(), i;
+        person2(g, 134, 98, { body: '#6a3a8a', hair: '#1a1a1a', hat: '#1a1a1a' });
+        R(g, '#1a1a1a', 129, 72, 11, 4);                                                                        // 深くかぶった帽子
+        R(g, '#7fc8ff', 140, 80, 1, 2); R(g, '#7fc8ff', 141, 82 + Math.floor(t * 4) % 2, 1, 1);                 // あせ
+        for (i = 0; i < 14; i++) {
+          var p = (t * 0.9 + i / 14) % 1, x = 66 + (i - 7) * 5 * p * 1.6, y = 74 - Math.sin(p * Math.PI) * 34 + p * 20;
+          R(g, P.gold.f, x, y, 3, 2); R(g, P.gold.hi, x, y, 2, 1);
+        }
+        for (i = 0; i < 9; i++) { R(g, P.gold.f, 52 + i * 3, 94 - (i % 3), 3, 2); R(g, P.gold.hi, 52 + i * 3, 94 - (i % 3), 1, 1); }   // 台の前の金貨の山
+        sparkle(g, 60, 80, t, 0, '#fff6c0'); sparkle(g, 76, 72, t, 0.6, '#fff6c0');
+        if (k === 'snow') snowfall(g, t); else if (k === 'volcano') embers(g, t);
+      }
+    },
+    // はずれ：賭け師が金貨の袋をかかえてにやり。地面に1枚だけ落ちた金貨
+    '0lose': {
+      anim: function (g, t, act) {
+        var k = kindOf(act), P = TP();
+        person2(g, 134, 98, { body: '#6a3a8a', hair: '#1a1a1a', hat: '#1a1a1a' });
+        DA.ell(g, 142, 88, 4, 4, '#8a6a3a'); R(g, '#6a4a22', 140, 83, 4, 2); R(g, P.gold.f, 141, 86, 2, 2);    // 金貨の袋
+        R(g, '#1b1b22', 134, 81, 4, 1); R(g, '#c84a3a', 136, 82, 2, 1);                                         // にやり
+        var b = Math.floor(t * 2) % 2; R(g, P.gold.f, 108, 99 - b, 3, 2); R(g, P.gold.hi, 108, 99 - b, 1, 1);
+        if (k === 'snow') snowfall(g, t); else if (k === 'volcano') embers(g, t);
+      }
+    }
+  };
+
   // 火山の炉：黒レンガの大きな炉・金床・鍛冶屋（金づち・火花）
   SCENES2.forge = {
     stat: function (g) {
@@ -478,19 +532,20 @@
 
   // 溶岩の宝：流れる溶岩の川の向こう岸に、金貨の山
   SCENES2.lavatreasure = {
-    stat: function (g) {
+    stat: function (g, act, small) {
       var P = TP(), A = art(), y, x; sky2(g, 'volcano'); ground2(g, 'volcano');
       put(g, A.spire[0], 30, 66); put(g, A.spire[1], 60, 64); put(g, A.rock.volcano, 224, 66); put(g, A.rock.volcano, 24, 106); put(g, A.rock.volcano, 214, 108);
       // 向こう岸のふち → 川 → 手前の岸のふち
       R(g, '#1a1210', 0, 62, W2, 4); R(g, '#54484a', 0, 62, W2, 1);
       for (y = 66; y < 90; y++) { var q = (y - 66) / 24; for (x = 0; x < W2; x += 2) R(g, q < 0.25 ? '#a82814' : q < 0.5 ? '#d84418' : q < 0.8 ? '#e85a1c' : '#b82e14', x, y, 2, 1); }
       R(g, '#1a1210', 0, 90, W2, 3); R(g, '#3a2c2a', 0, 90, W2, 1); R(g, '#0e0808', 0, 93, W2, 1);
-      // 金貨の山（向こう岸）：左は明るく、右は影。ところどころの金貨の輪
-      shadow(g, 176, 66, 30, 0.35);
-      DA.ell(g, 176, 62, 28, 7, P.gold.d); DA.ell(g, 175, 60, 25, 7, P.gold.s); DA.ell(g, 174, 57, 20, 6, P.gold.f); DA.ell(g, 172, 53, 13, 5, P.gold.t); DA.ell(g, 170, 50, 6, 3, P.gold.hi);
-      for (x = 0; x < 16; x++) { R(g, x % 2 ? P.gold.hi : P.gold.d, 156 + hash(x) * 40, 50 + hash(x + 3) * 14, 3, 1); }
+      // 金貨の山（向こう岸）：左は明るく、右は影。small（0〜1）で山の大きさを変える（手を伸ばした後は小さくする）
+      var sc = small || 1, X = function (v) { return Math.round(176 + (v - 176) * sc); }, Y = function (v) { return Math.round(66 - (66 - v) * sc); };
+      shadow(g, 176, 66, Math.round(30 * sc), 0.35);
+      DA.ell(g, 176, Y(62), Math.round(28 * sc), Math.max(2, Math.round(7 * sc)), P.gold.d); DA.ell(g, X(175), Y(60), Math.round(25 * sc), Math.max(2, Math.round(7 * sc)), P.gold.s); DA.ell(g, X(174), Y(57), Math.round(20 * sc), Math.max(2, Math.round(6 * sc)), P.gold.f); DA.ell(g, X(172), Y(53), Math.round(13 * sc), Math.max(1, Math.round(5 * sc)), P.gold.t); DA.ell(g, X(170), Y(50), Math.round(6 * sc), Math.max(1, Math.round(3 * sc)), P.gold.hi);
+      for (x = 0; x < 16; x++) { R(g, x % 2 ? P.gold.hi : P.gold.d, X(156 + hash(x) * 40), Y(50 + hash(x + 3) * 14), 3, 1); }
       R(g, P.gold.f, 206, 64, 4, 2); R(g, P.gold.hi, 206, 64, 4, 1); R(g, P.gold.f, 140, 63, 4, 2); R(g, P.gold.hi, 140, 63, 4, 1);
-      R(g, '#d82a2a', 184, 48, 3, 3); R(g, '#ff8a8a', 184, 48, 1, 1); R(g, '#3ac8e8', 164, 52, 3, 3); R(g, '#bff4ff', 164, 52, 1, 1);   // 宝石
+      R(g, '#d82a2a', X(184), Y(48), 3, 3); R(g, '#ff8a8a', X(184), Y(48), 1, 1); R(g, '#3ac8e8', X(164), Y(52), 3, 3); R(g, '#bff4ff', X(164), Y(52), 1, 1);   // 宝石
     },
     anim: function (g, t) {
       var i, off = Math.floor(t * 12);
@@ -501,6 +556,367 @@
       embers(g, t);
     }
   };
+  // ======================================================================
+  // 選んだ後の絵（2026-10-22）：各場面の .after に足す。キーは選択肢の番号
+  // ======================================================================
+  // 地域に合わせて雪・火の粉を重ねる
+  function weather(g, t, act) { var k = kindOf(act); if (k === 'snow') snowfall(g, t); else if (k === 'volcano') embers(g, t); }
+  // 元の背景（空と地面など）を作り直して、指定の四角だけ上から貼る（置いてあった物を消す時に使う）
+  function patchBg(g, x, y, w, h, build) { var tmp = DA.mk(W2, H2); build(tmp.c); g.drawImage(tmp.cv, x, y, w, h, x, y, w, h); }
+  // 草の地面だけ四角く描き直す（地面の色の決まりは ground2 と同じ）
+  function regrow(g, x0, y0, x1, y1) {
+    var C = GROUND.grass, x, y;
+    for (y = y0; y < y1; y++) for (x = x0; x < x1; x++) { var h = hash(x * 0.37 + y * 13.1); R(g, C[h < 0.55 ? 0 : h < 0.75 ? 1 : h < 0.9 ? 2 : 3], x, y); }
+  }
+  // 小さな人（高さ約13ドット）。遠くにいる人用。arm：1＝右手を上げる、0＝下ろす
+  function mini(g, x, y, bd, hr, arm) {
+    var sk = '#f1c6a0';
+    shadow(g, x, y, 3, 0.25);
+    R(g, '#3a4a6a', x - 2, y - 3, 2, 3); R(g, '#3a4a6a', x + 1, y - 3, 2, 3);
+    R(g, bd, x - 2, y - 8, 5, 5); R(g, shade2(bd, -0.3), x + 2, y - 8, 1, 5);
+    R(g, sk, x - 2, y - 12, 5, 4); R(g, hr, x - 2, y - 13, 5, 2); R(g, '#1b1b22', x + 1, y - 10, 1, 1);
+    if (arm) { R(g, bd, x + 3, y - 11, 1, 4); R(g, sk, x + 3, y - 13, 1, 2); } else R(g, bd, x + 3, y - 8, 1, 4);
+  }
+  // ひざをついた人（右向き。高さ約19ドット）。(x,y)＝ひざの下
+  function kneel(g, x, y, bd, hr) {
+    var sk = '#f1c6a0';
+    shadow(g, x, y, 7, 0.25);
+    R(g, '#4a392b', x - 7, y - 3, 8, 3); R(g, '#2a2018', x - 8, y - 2, 2, 2);   // 曲げたひざとくつ
+    R(g, '#4a392b', x - 2, y - 7, 6, 4);
+    R(g, bd, x - 3, y - 15, 7, 9); R(g, shade2(bd, -0.3), x + 3, y - 15, 1, 9); R(g, shade2(bd, 0.25), x - 3, y - 15, 1, 9);
+    R(g, sk, x - 2, y - 21, 6, 6); R(g, '#c89870', x + 3, y - 21, 1, 6); R(g, hr, x - 2, y - 22, 6, 3); R(g, hr, x - 3, y - 21, 1, 4); R(g, '#1b1b22', x + 2, y - 18, 1, 1);
+  }
+  function zed(g, x, y, s) { R(g, '#ffffff', x, y, s, 1); R(g, '#ffffff', x, y + s - 1, s, 1); for (var i = 1; i < s - 1; i++) R(g, '#ffffff', x + s - 1 - i, y + i); }
+  function shard(g, x, y, w, h) { R(g, '#e8f8ff', x, y, w, 1); R(g, '#9fd4f0', x, y + 1, w, h - 1); R(g, '#6fb0d8', x + w - 2, y + 1, 2, h - 1); R(g, '#ffffff', x, y, 1, h); }
+  function smoke(g, x, y, t, n) { for (var i = 0; i < n; i++) { var q = (t * 0.4 + i / n) % 1; DA.ell(g, x + Math.sin(t + i) * 2, y - q * 18, 2 + Math.round(q * 3), 1 + Math.round(q * 2), 'rgba(220,220,225,' + (0.45 * (1 - q)).toFixed(2) + ')'); } }
+  function glow(g, cx, cy, rx, ry, col) { g.globalCompositeOperation = 'lighter'; DA.ell(g, cx, cy, rx, ry, col); g.globalCompositeOperation = 'source-over'; }
+
+  // 鍛冶屋
+  SCENES2.smith.after = {
+    // カードを鍛える：光る武器を高くかかげる。火花が降る
+    '0': {
+      anim: function (g, t, act) {
+        var P = TP(), i, f = 0.85 + 0.15 * Math.sin(t * 9);
+        fire2(g, 66, 80, t, 1.1);
+        person2(g, 156, 98, { body: '#7a4a2a', apron: '#4a3020', hair: '#2a1a10' });
+        R(g, '#7a4a2a', 160, 74, 3, 11); R(g, '#f1c6a0', 160, 71, 3, 3);                            // 上げた腕と手
+        glow(g, 161, 52, Math.round(14 * f), Math.round(24 * f), 'rgba(255,190,70,0.16)'); glow(g, 161, 52, 7, 16, 'rgba(255,230,140,0.2)');
+        R(g, '#ffd84a', 160, 34, 3, 36); R(g, '#fff6c0', 161, 34, 1, 36); R(g, '#ffffff', 161, 34, 1, 5);   // 光る刃
+        R(g, P.gold.f, 157, 68, 9, 2); R(g, P.gold.hi, 157, 68, 9, 1);                              // つば
+        for (i = 0; i < 12; i++) { var p = (t * 1.4 + i / 12) % 1; R(g, i % 3 ? '#ffd84a' : '#ffffff', 161 + (hash(i) - 0.5) * 34 * p, 36 + p * 40, 1, 1); }   // 火花
+        sparkle(g, 150, 40, t, 0, '#fff6c0'); sparkle(g, 172, 48, t, 0.8, '#fff6c0');
+        weather(g, t, act);
+      }
+    },
+    // カードを手放す：受け取った物を炉に入れる。炉の火が大きく燃える
+    '1': {
+      anim: function (g, t, act) {
+        var i;
+        fire2(g, 66, 80, t, 1.9);
+        R(g, '#e8dcc0', 59, 74, 6, 8); R(g, '#8a7a5a', 59, 74, 6, 1); R(g, '#3a2414', 62, 76, 3, 4);   // 炉に入った物（紙のカードが焦げる）
+        fire2(g, 64, 80, t + 0.4, 1.2);
+        person2(g, 42, 98, { body: '#7a4a2a', apron: '#4a3020', hair: '#2a1a10' });
+        R(g, '#7a4a2a', 47, 82, 6, 3); R(g, '#f1c6a0', 52, 80, 6, 3);                                    // のばした腕
+        DA.ell(g, 66, 92, 22, 6, 'rgba(255,120,40,' + (0.14 + 0.04 * Math.sin(t * 8)).toFixed(2) + ')');
+        for (i = 0; i < 6; i++) { var p = (t * 0.8 + i / 6) % 1; R(g, i % 2 ? '#ffd84a' : '#ff8a2a', 62 + Math.sin(t * 3 + i * 2) * 8, 64 - p * 30, 1, 1); }   // 上がる火の粉
+        weather(g, t, act);
+      }
+    }
+  };
+
+  // 泉
+  SCENES2.spring.after = {
+    // 水を飲む：ふちでひざをつき、両手で水をすくう。緑の回復の光
+    '0': {
+      anim: function (g, t) {
+        var i, gl = 0.5 + 0.5 * Math.sin(t * 3);
+        kneel(g, 76, 98, '#3b6fab', '#3a2416');
+        R(g, '#3b6fab', 76, 84, 6, 3); R(g, '#f1c6a0', 80, 85, 4, 2); R(g, '#7ec0ea', 80, 84, 4, 1);   // 手ですくった水
+        for (i = 0; i < 2; i++) { var r = (t * 0.35 + i * 0.5) % 1; ring(g, 88, 90, 3 + r * 18, 1 + r * 4, 'rgba(255,255,255,' + (0.5 * (1 - r)).toFixed(2) + ')'); }
+        glow(g, 80, 80, 26, 22, 'rgba(80,255,140,' + (0.1 + gl * 0.08).toFixed(2) + ')'); glow(g, 120, 86, 50, 12, 'rgba(80,255,150,0.08)');
+        for (i = 0; i < 9; i++) { var q = (t * 0.45 + i / 9) % 1, px = 66 + hash(i) * 40, py = 92 - q * 54; R(g, i % 2 ? '#7dffa0' : '#d8ffe0', px, py - 1, 1, 3); R(g, i % 2 ? '#7dffa0' : '#d8ffe0', px - 1, py, 3, 1); }   // 回復の「+」
+        sparkle(g, 70, 70, t, 0, '#bfffd0'); sparkle(g, 92, 74, t, 0.8, '#bfffd0');
+      }
+    },
+    // 金貨を投げ入れる：泉の真ん中から光の柱が立つ
+    '1': {
+      anim: function (g, t) {
+        var i, gl = 0.5 + 0.5 * Math.sin(t * 4);
+        for (i = 0; i < 2; i++) { var r = (t * 0.4 + i * 0.5) % 1; ring(g, 120, 88, 4 + r * 44, 1.5 + r * 11, 'rgba(255,255,255,' + (0.6 * (1 - r)).toFixed(2) + ')'); }
+        g.globalCompositeOperation = 'lighter';
+        for (i = 0; i < 84; i++) { var w = 22 - Math.round(i * 0.1); g.fillStyle = 'rgba(255,236,150,' + ((0.3 - i * 0.0033) * (0.8 + gl * 0.2)).toFixed(3) + ')'; g.fillRect(120 - (w >> 1), 86 - i, w, 1); }
+        g.fillStyle = 'rgba(255,255,255,' + (0.25 + gl * 0.15).toFixed(2) + ')'; g.fillRect(117, 6, 6, 80);
+        g.globalCompositeOperation = 'source-over';
+        glow(g, 120, 86, 30, 7, 'rgba(255,230,140,0.25)');
+        for (i = 0; i < 12; i++) { var q = (t * 0.5 + i / 12) % 1; R(g, i % 2 ? '#ffe98a' : '#ffffff', 108 + hash(i) * 24 + Math.sin(t * 3 + i) * 3, 84 - q * 70, 1, 1); }
+        for (i = 0; i < 6; i++) sparkle(g, 76 + i * 17 + (i % 2) * 4, 80 + (i % 3) * 5, t, i * 0.45, '#fff6c0');
+        sparkle(g, 108, 40, t, 0.2); sparkle(g, 134, 28, t, 0.9);
+      }
+    }
+  };
+
+  // 倒れた旅人
+  SCENES2.fallen.after = {
+    // 荷物を探す：荷物が開き、中身が地面に散らばってきらめく
+    '0': {
+      stat: function (g) {
+        var P = TP();
+        R(g, '#241408', 152, 83, 16, 5);                                                          // 開いた口
+        R(g, P.wood2.t, 150, 75, 20, 7); R(g, P.wood2.hi, 150, 75, 20, 1); R(g, P.wood2.s, 165, 75, 5, 7);   // 後ろに倒したふた
+        R(g, '#b02a2a', 155, 80, 3, 4); R(g, '#e86a6a', 155, 80, 1, 4); R(g, '#e8dcc0', 162, 79, 3, 6); R(g, '#ffffff', 162, 79, 1, 6);   // 中から出た薬びんと巻物
+        [[134, 100], [141, 103], [176, 104], [184, 100], [190, 104]].forEach(function (c) { R(g, P.gold.f, c[0], c[1], 4, 3); R(g, P.gold.hi, c[0], c[1], 4, 1); R(g, P.gold.d, c[0], c[1] + 2, 4, 1); });   // 散らばった金貨
+        R(g, '#b02a2a', 146, 102, 2, 4); R(g, '#e86a6a', 146, 102, 1, 4); R(g, '#7a828a', 146, 101, 2, 1);   // 倒れた薬びん
+        DA.ell(g, 170, 106, 4, 2, '#c8923a'); R(g, '#e8b860', 168, 105, 3, 1);                     // パン
+        R(g, '#e8dcc0', 126, 104, 8, 3); R(g, '#ffffff', 126, 104, 8, 1); R(g, '#8a7a5a', 133, 104, 1, 3);     // ころがった巻物
+      },
+      anim: function (g, t) {
+        sparkle(g, 135, 97, t, 0, '#ffe14d'); sparkle(g, 186, 97, t, 0.5, '#ffe14d'); sparkle(g, 178, 101, t, 1.1, '#ffe14d'); sparkle(g, 160, 72, t, 0.8, '#ffffff'); sparkle(g, 142, 100, t, 1.4, '#ffffff');
+      }
+    },
+    // 弔う：小さな土の墓と木の十字。花がそなえてある（倒れた人はいない）
+    '1': {
+      stat: function (g) {
+        var P = TP(), i;
+        regrow(g, 36, 88, 143, 110);
+        DA.ell(g, 98, 100, 17, 4, 'rgba(0,0,0,0.25)');
+        DA.ell(g, 98, 98, 15, 5, '#5a3a20'); DA.ell(g, 97, 97, 13, 4, '#7a5230'); DA.ell(g, 95, 95, 8, 2, '#9a6a3a');   // 土のもりあがり
+        for (i = 0; i < 6; i++) R(g, i % 2 ? '#5a3a20' : '#9a6a3a', 88 + i * 4, 98 + (i % 2), 2, 1);
+        R(g, P.wood.f, 97, 74, 3, 24); R(g, P.wood.hi, 97, 74, 1, 24); R(g, P.wood.s, 99, 74, 1, 24);                 // 木の十字
+        R(g, P.wood.f, 91, 80, 15, 3); R(g, P.wood.hi, 91, 80, 15, 1); R(g, P.wood.s, 91, 82, 15, 1);
+        [[84, 100, '#f0f0f0'], [88, 102, '#f4e36a'], [108, 100, '#e86a8a'], [112, 102, '#f0f0f0'], [104, 103, '#f4e36a'], [92, 103, '#e86a8a']].forEach(function (f) { R(g, '#2c5a28', f[0], f[1], 1, 3); R(g, f[2], f[0] - 1, f[1] - 2, 3, 2); R(g, '#f4e36a', f[0], f[1] - 1, 1, 1); });   // 花
+        R(g, '#7a828a', 78, 100, 6, 3); R(g, '#a0a8b0', 78, 100, 6, 1); R(g, '#7a828a', 114, 104, 5, 2);
+      },
+      anim: function (g, t) {
+        for (var i = 0; i < 5; i++) { var q = (t * 0.2 + i / 5) % 1; R(g, i % 2 ? '#ffffff' : '#f6b0c0', 80 + q * 50 + Math.sin(t * 2 + i) * 4, 70 + hash(i) * 20 + q * 10, 2, 1); }   // 風に飛ぶ花びら
+        glow(g, 98, 86, 20, 16, 'rgba(255,250,210,' + (0.06 + 0.03 * Math.sin(t * 2)).toFixed(2) + ')');
+        sparkle(g, 95, 72, t, 0, '#ffffff'); sparkle(g, 108, 84, t, 0.9, '#fff6c0');
+      }
+    }
+  };
+
+  // 赤い祭壇
+  SCENES2.altar.after = {
+    // 血をささげる：宝石が強く光り、祭壇の赤い模様が赤い光の筋で光る
+    '0': {
+      stat: function (g) {
+        var i;
+        for (i = 0; i < 4; i++) R(g, '#ff4a2a', 100 + i * 12, 84, 1, 12);                          // 赤いほりこみを明るく
+        R(g, '#ff4a2a', 99, 90, 44, 1); R(g, '#ff8a4a', 116, 86, 8, 1); R(g, '#ffb070', 119, 90, 2, 4); R(g, '#ff4a2a', 117, 92, 6, 1);
+      },
+      anim: function (g, t) {
+        var gl = 0.5 + 0.5 * Math.sin(t * 5), by = Math.round(Math.sin(t * 2) * 1.5), i;
+        glow(g, 120, 66 + by, 30, 24, 'rgba(255,40,30,' + (0.14 + gl * 0.1).toFixed(2) + ')'); glow(g, 120, 66 + by, 16, 13, 'rgba(255,90,60,' + (0.22 + gl * 0.12).toFixed(2) + ')');
+        g.globalCompositeOperation = 'lighter';
+        for (i = 0; i < 4; i++) { g.fillStyle = 'rgba(255,60,40,' + (0.3 + gl * 0.3).toFixed(2) + ')'; g.fillRect(100 + i * 12 - 1, 84, 3, 12); }
+        g.fillStyle = 'rgba(255,60,40,' + (0.3 + gl * 0.3).toFixed(2) + ')'; g.fillRect(99, 89, 44, 3);
+        for (i = 0; i < 7; i++) { g.fillStyle = 'rgba(255,70,50,' + (0.25 + gl * 0.2).toFixed(2) + ')'; g.fillRect(120 + (i - 3) * 2 - 1, 70 + by, 2, 14); }   // 宝石から台へのびる赤い筋
+        g.globalCompositeOperation = 'source-over';
+        for (i = 0; i < 6; i++) { var p = (t * 1.2 + i / 6) % 1; R(g, '#ff8a6a', 120 + (i - 2.5) * 16 * p, 72 + by + p * 22, 2, 1); R(g, '#ffd0c0', 120 + (i - 2.5) * 16 * p, 72 + by + p * 22, 1, 1); }   // 光の筋が左右に走る
+        gem(g, 120, 62 + by, '#ff3a3a', '#ffb0b0', '#b01818'); R(g, '#ffffff', 119, 65 + by, 2, 2);
+        fire2(g, 93, 84, t, 0.55); fire2(g, 149, 84, t + 1, 0.55);
+        sparkle(g, 106, 54 + by, t, 0, '#ffd0c0'); sparkle(g, 135, 60 + by, t, 0.6, '#ffd0c0'); sparkle(g, 120, 46 + by, t, 1.2, '#ffffff');
+        embers(g, t);
+      }
+    }
+  };
+
+  // 泣く子ども
+  SCENES2.child.after = {
+    // 家まで送る：家の前で子どもと親が手をふる
+    '0': {
+      anim: function (g, t) {
+        var w = Math.floor(t * 3) % 2;
+        smoke(g, 202, 33, t, 3);
+        mini(g, 177, 66, '#4a7a4a', '#2a1a10', w);                                              // 親
+        R(g, '#4a7a4a', 175, 66, 5, 1);
+        mini(g, 187, 68, '#d2586f', '#7a4a2a', 1 - w);                                          // 子ども
+        R(g, '#ffd27a', 188, 46, 5, 10);                                                        // あいたドアの明かり
+        sparkle(g, 172, 54, t, 0, '#ffffff'); sparkle(g, 196, 60, t, 0.9, '#fff6c0');
+      }
+    },
+    // 道だけ教える：子どもが小道を家のほうへ小さくなって歩いていく
+    '1': {
+      anim: function (g, t) {
+        var p = (t * 0.07) % 1, y = Math.round(90 - p * 28), cx = Math.round(190 - (y - HZ) * 1.15), b = Math.floor(t * 4) % 2;
+        smoke(g, 202, 33, t, 3);
+        mini(g, cx, y + b * 0, '#d2586f', '#7a4a2a', 0);
+        R(g, '#2a2018', cx - 2, y - 1 + b, 2, 1);
+        sparkle(g, 60, 94, t, 0.3, '#ffffff');
+      }
+    }
+  };
+
+  // 火山の炉
+  SCENES2.forge.after = {
+    // カードを複製する：金床の上に、光るまったく同じ物が2つならぶ
+    '0': {
+      anim: function (g, t) {
+        var P = TP(), bob = Math.round(Math.sin(t * 3) * 1.5), gl = 0.5 + 0.5 * Math.sin(t * 4), i;
+        DA.ell(g, 62, 96, 26, 8, 'rgba(255,120,40,' + (0.12 + 0.04 * Math.sin(t * 7)).toFixed(2) + ')');
+        DA.ell(g, 62, 94, 12, 2, '#ff6a2a'); DA.ell(g, 62, 94, 7, 1, '#ffd84a'); fire2(g, 62, 94, t, 1.5);
+        person2(g, 150, 98, { body: '#5a2a1a', apron: '#3a2010', hair: '#1a1a1a' });
+        R(g, '#5a3a1e', 140, 90, 2, 10); R(g, P.iron.f, 138, 88, 6, 3);                         // 下ろした金づち
+        glow(g, 126, 66 + bob, 28, 16, 'rgba(255,200,90,' + (0.12 + gl * 0.1).toFixed(2) + ')');
+        [112, 134].forEach(function (cx, n) {   // 同じ形の光る物が2つ
+          var y = 58 + bob + (n ? 1 : 0);
+          R(g, '#fff6c0', cx, y, 10, 14); R(g, '#e8c040', cx, y, 10, 1); R(g, '#e8c040', cx, y + 13, 10, 1); R(g, '#e8c040', cx, y, 1, 14); R(g, '#b8902a', cx + 9, y, 1, 14);
+          R(g, '#ffffff', cx + 4, y + 2, 2, 7); R(g, '#c89a2a', cx + 2, y + 9, 6, 1); R(g, '#c89a2a', cx + 4, y + 10, 2, 2);
+        });
+        for (i = 0; i < 5; i++) R(g, '#fff6c0', 124 + i * 2, 63 + bob, 1, 1);                    // 2つをつなぐきらめき
+        sparkle(g, 124, 60 + bob, t, 0, '#ffffff'); sparkle(g, 108, 56 + bob, t, 0.6, '#fff6c0'); sparkle(g, 148, 62 + bob, t, 1.2, '#fff6c0');
+        embers(g, t);
+      }
+    }
+  };
+
+  // 山小屋
+  SCENES2.hut.after = {
+    // 暖まって休む：暖炉の前のラグで毛布をかけて眠る。Zzz
+    '0': {
+      keepAnim: true,
+      stat: function (g) {
+        shadow(g, 120, 104, 34, 0.3);
+        R(g, '#e8e0d0', 84, 90, 10, 7); R(g, '#ffffff', 84, 90, 10, 1);                          // まくら
+        R(g, '#f1c6a0', 88, 91, 7, 7); R(g, '#c89870', 94, 91, 1, 7); R(g, '#3a2416', 87, 90, 8, 3); R(g, '#1b1b22', 91, 95, 2, 1);   // 顔と閉じた目
+        R(g, '#3a6a8a', 96, 91, 46, 9); R(g, '#5a8aaa', 96, 91, 46, 1); R(g, '#24465c', 96, 99, 46, 1); R(g, '#24465c', 138, 91, 4, 9);   // 毛布
+        for (var i = 0; i < 5; i++) R(g, '#d8b060', 102 + i * 8, 92, 2, 7);
+        R(g, '#2a2018', 142, 94, 5, 5);                                                          // はみ出したくつ
+      },
+      anim: function (g, t) {
+        for (var i = 0; i < 3; i++) { var q = (t * 0.35 + i / 3) % 1; if (q < 0.9) zed(g, 98 + Math.round(q * 16) + i * 3, 84 - Math.round(q * 28), 3 + Math.min(2, i)); }
+        glow(g, 120, 90, 50, 14, 'rgba(255,160,70,0.07)');
+      }
+    },
+    // 薪を売りに持っていく：薪の山がなくなり、床に金貨が少し
+    '1': {
+      keepAnim: true,
+      stat: function (g) {
+        var P = TP(), y, x;
+        for (y = 72; y < H2; y += 6) {   // 薪の山があった所を、元の床と同じ描き方で描き直す
+          R(g, hash(y) < 0.5 ? '#a67a48' : '#9a7040', 172, y, 47, 5); R(g, '#c4915a', 172, y, 47, 1); R(g, '#6a4a28', 172, y + 5, 47, 1);
+          for (x = Math.floor(hash(y + 2) * 30); x < W2; x += 40 + Math.floor(hash(y) * 20)) if (x >= 172 && x < 219) R(g, '#6a4a28', x, y, 1, 5);
+        }
+        g.fillStyle = 'rgba(40,20,8,.28)'; g.fillRect(172, 72, 47, H2 - 72);
+        R(g, P.wood.d, 172, 68, 47, 4); R(g, P.wood.f, 172, 68, 47, 1);
+        g.fillStyle = 'rgba(255,255,255,.04)'; g.fillRect(172, 100, 47, 2);
+        shadow(g, 196, 104, 10, 0.25);
+        [[188, 98], [195, 101], [201, 97]].forEach(function (c) { R(g, P.gold.f, c[0], c[1], 5, 3); R(g, P.gold.hi, c[0], c[1], 5, 1); R(g, P.gold.d, c[0], c[1] + 2, 5, 1); });
+        R(g, '#d8b078', 205, 103, 3, 2); R(g, '#5a3a1e', 205, 105, 3, 1);                        // 木くず
+      },
+      anim: function (g, t) { sparkle(g, 190, 94, t, 0, '#fff6c0'); sparkle(g, 202, 93, t, 0.7, '#fff6c0'); }
+    }
+  };
+
+  // 氷の祠
+  SCENES2.shrine.after = {
+    // 素手で氷を割る：氷がくだけて破片が散り、祠が出て光る
+    '0': {
+      stat: function (g) {
+        var P = TP();
+        patchBg(g, 84, 40, 72, 72, function (c) { sky2(c, 'snow'); ground2(c, 'snow'); });   // 氷のかたまりを消す
+        shadow(g, 120, 103, 20, 0.2);
+        DA.box(g, 120, 96, 26, 10, 16, P.wood); R(g, '#2a1a0e', 115, 84, 10, 9);
+        G.TowerArt.roof(g, 120, 76, 16, 9, { l: '#a8382c', s: '#7a2a20', hi: '#c85040', d: '#4a1810' });
+        [[84, 100, 8, 5], [96, 104, 6, 4], [144, 102, 9, 6], [151, 97, 6, 4], [108, 107, 5, 3], [132, 107, 6, 3], [74, 105, 5, 3], [160, 105, 5, 3], [88, 94, 4, 3]].forEach(function (s) { shard(g, s[0], s[1], s[2], s[3]); });   // 地面の氷のかけら
+      },
+      anim: function (g, t) {
+        var gl = 0.5 + 0.5 * Math.sin(t * 4), i;
+        glow(g, 120, 86, 30, 22, 'rgba(120,220,255,' + (0.1 + gl * 0.08).toFixed(2) + ')'); glow(g, 120, 88, 12, 8, 'rgba(160,240,255,' + (0.2 + gl * 0.2).toFixed(2) + ')');
+        R(g, '#ffffff', 118, 86, 4, 4); R(g, '#bff0ff', 117, 87, 1, 2); R(g, '#bff0ff', 122, 87, 1, 2);   // 強く光る玉
+        for (i = 0; i < 9; i++) {   // 飛び散る氷の破片
+          var p = (t * 0.7 + i / 9) % 1, dir = i % 2 ? 1 : -1;
+          R(g, i % 3 ? '#e8f8ff' : '#9fd4f0', 120 + dir * (6 + hash(i) * 36) * p, 80 - Math.sin(p * 3.14) * (14 + hash(i + 2) * 14) + p * 22, 2, 2);
+        }
+        sparkle(g, 100, 70, t, 0); sparkle(g, 142, 74, t, 1.1); sparkle(g, 120, 60, t, 0.5);
+        snowfall(g, t);
+      }
+    },
+    // 祈るだけにする：氷のまえでひざまずく。祠のまわりにやわらかい青い光
+    '1': {
+      keepAnim: true,
+      stat: function (g) { kneel(g, 76, 106, '#b8c4d8', '#3a2416'); R(g, '#f1c6a0', 82, 94, 2, 2); R(g, '#f1c6a0', 80, 93, 2, 2); },   // いのる手
+      anim: function (g, t) {
+        var gl = 0.5 + 0.5 * Math.sin(t * 2), i;
+        glow(g, 120, 80, 46, 36, 'rgba(120,200,255,' + (0.07 + gl * 0.06).toFixed(2) + ')'); glow(g, 120, 88, 22, 16, 'rgba(160,230,255,' + (0.1 + gl * 0.08).toFixed(2) + ')');
+        for (i = 0; i < 8; i++) { var q = (t * 0.3 + i / 8) % 1; R(g, i % 2 ? '#bff0ff' : '#ffffff', 96 + hash(i) * 48, 100 - q * 60, 1, 1); }   // のぼる青い光の粒
+      }
+    }
+  };
+
+  // 雪にうもれた旅人
+  SCENES2.stranded.after = {
+    // 食料を分ける：雪から出て立ち上がり、パンを持って笑う
+    '0': {
+      stat: function (g) {
+        patchBg(g, 78, 44, 86, 66, function (c) { sky2(c, 'snow'); ground2(c, 'snow'); });   // うまっていた旅人と雪のかたまりを消す
+        var A = art(); put(g, A.rock.snow, 180, 100);
+        shadow(g, 122, 98, 14, 0.2);
+        DA.ell(g, 122, 98, 15, 4, '#c4d0e0'); DA.ell(g, 121, 97, 13, 3, '#f6f9fc');          // 雪のくぼみ
+        DA.ell(g, 100, 99, 7, 3, '#e8eef6'); DA.ell(g, 146, 99, 8, 3, '#e8eef6'); R(g, '#ffffff', 97, 97, 6, 1);       // ほり出した雪
+        R(g, '#7a5230', 158, 62, 3, 40); R(g, '#9a6a3a', 158, 62, 1, 40); R(g, '#4a3018', 160, 62, 1, 40); DA.ell(g, 159, 62, 3, 2, '#9a6a3a'); R(g, '#ffffff', 155, 100, 9, 2);   // 杖
+      },
+      anim: function (g, t) {
+        var b = (t * 0.6) % 1, up = Math.floor(t * 2) % 2;
+        person2(g, 122, 96, { body: '#8a3a2a', hair: '#3a2416', hat: '#c84a3a' });
+        R(g, '#f4f0e6', 118, 84, 9, 2);                                                            // マフラー
+        R(g, '#b05848', 121, 78, 4, 1); R(g, '#b05848', 120, 77, 1, 1); R(g, '#b05848', 125, 77, 1, 1);   // 笑った口
+        R(g, '#f09080', 119, 79, 1, 1); R(g, '#f09080', 125, 79, 1, 1);
+        R(g, '#8a3a2a', 127, 84 - up, 5, 3); R(g, '#f1c6a0', 131, 83 - up, 3, 3);              // パンを持つ手
+        DA.ell(g, 137, 81 - up, 5, 3, '#a8742a'); DA.ell(g, 136, 80 - up, 4, 2, '#d8a050'); R(g, '#f0d090', 134, 79 - up, 2, 1); R(g, '#a8742a', 138, 79 - up, 1, 2);   // パン
+        DA.ell(g, 130 + b * 10, 76 - b * 5, 2 + (b > 0.5 ? 1 : 0), 1, 'rgba(236,244,255,' + (0.7 - b * 0.6).toFixed(2) + ')');
+        sparkle(g, 142, 74, t, 0, '#fff6c0'); sparkle(g, 110, 70, t, 0.8, '#ffffff');
+        snowfall(g, t);
+      }
+    }
+  };
+
+  // 火の泉
+  SCENES2.firespring.after = {
+    // 泉を浴びる：溶岩の泉につかった人のまわりに金色の光がのぼる
+    '0': {
+      keepAnim: true,
+      anim: function (g, t) {
+        var i, gl = 0.5 + 0.5 * Math.sin(t * 3);
+        glow(g, 120, 70, 24, 30, 'rgba(255,210,80,' + (0.1 + gl * 0.08).toFixed(2) + ')');
+        R(g, '#f1c6a0', 116, 70, 8, 8); R(g, '#c89870', 123, 70, 1, 8); R(g, '#3a2416', 116, 69, 8, 3); R(g, '#1b1b22', 118, 74, 2, 1); R(g, '#1b1b22', 121, 74, 1, 1);   // 頭
+        R(g, '#f1c6a0', 113, 79, 14, 3); R(g, '#f1c6a0', 112, 70, 2, 9); R(g, '#f1c6a0', 126, 70, 2, 9);        // かたと上げた両うで
+        R(g, '#f1c6a0', 115, 82, 10, 3);
+        DA.ell(g, 120, 87, 18, 4, '#d84418'); DA.ell(g, 119, 86, 15, 3, '#ff7a24'); DA.ell(g, 118, 86, 8, 1, '#ffb030');   // 体を泉にしずめる
+        g.globalCompositeOperation = 'lighter';
+        for (i = 0; i < 7; i++) { var w = 5 + (i % 3) * 2; g.fillStyle = 'rgba(255,215,90,' + (0.2 + gl * 0.12).toFixed(2) + ')'; g.fillRect(100 + i * 6 + Math.sin(t * 2 + i) * 2, 84 - (i % 4) * 4 - 24, w >> 1, 32 + (i % 4) * 8); }   // 立ちのぼる金の光
+        g.globalCompositeOperation = 'source-over';
+        for (i = 0; i < 12; i++) { var q = (t * 0.55 + i / 12) % 1; R(g, i % 2 ? '#ffe98a' : '#ffffff', 98 + hash(i) * 44 + Math.sin(t * 3 + i) * 3, 84 - q * 70, 1, 1); }
+        sparkle(g, 104, 58, t, 0, '#fff6c0'); sparkle(g, 138, 50, t, 0.7, '#fff6c0');
+      }
+    }
+  };
+
+  // 溶岩の宝
+  SCENES2.lavatreasure.after = {
+    // 手を伸ばす：金貨をつかむがやけどをする。金貨の山は少し小さくなる
+    '0': {
+      stat: function (g) {
+        var tmp = DA.mk(W2, H2); SCENES2.lavatreasure.stat(tmp.c, 3, 0.78);
+        g.drawImage(tmp.cv, 140, 40, 72, 32, 140, 40, 72, 32);
+      },
+      anim: function (g, t) {
+        var P = TP(), i, f = Math.floor(t * 8) % 2;
+        person2(g, 150, 104, { body: '#4a6a3a', hair: '#3a2416' });
+        R(g, '#4a6a3a', 154, 90, 4, 3); R(g, '#4a6a3a', 157, 86, 3, 5);                        // のばした腕
+        R(g, '#e07050', 159, 82, 4, 4); R(g, '#ff9a80', 159, 82, 2, 1);                       // 赤くやけどした手
+        R(g, P.gold.f, 160, 79, 4, 3); R(g, P.gold.hi, 160, 79, 4, 1);                        // つかんだ金貨
+        for (i = 0; i < 4; i++) { var q = (t * 0.7 + i / 4) % 1; DA.ell(g, 161 + Math.sin(t * 3 + i) * 3, 78 - q * 24, 2 + Math.round(q * 3), 1 + Math.round(q * 2), 'rgba(90,80,80,' + (0.55 * (1 - q)).toFixed(2) + ')'); }   // やけどの煙
+        if (f) R(g, '#ff8a2a', 162, 78, 1, 2);
+        R(g, '#7fc8ff', 146, 80 + Math.floor(t * 4) % 3, 1, 2);                                // あせ
+        for (i = 0; i < 5; i++) sparkle(g, 160 + i * 9, 48 + (i % 3) * 5, t, i * 0.5, '#fff6c0');
+        DA.ell(g, 176, 62, 40, 14, 'rgba(255,200,80,' + (0.05 + 0.03 * Math.sin(t * 3)).toFixed(2) + ')');
+        var off = Math.floor(t * 12);
+        for (i = 0; i < 14; i++) { var sx = ((hash(i) * 260 - off * (3 + hash(i + 1) * 2)) % 260 + 260) % 260 - 10, sy = 68 + Math.floor(hash(i + 7) * 20); R(g, i % 3 ? '#ffb347' : '#ffe98a', sx, sy, 6 + (i % 4) * 2, 1); }
+        embers(g, t);
+      }
+    }
+  };
+
   // ---- 終わりの画面（2026-10-22）：クリア＝朝日の砦と花火、敗北＝燃える砦と煙 ----
   SCENES2.victory = {
     stat: function (g) {
@@ -537,9 +953,65 @@
   };
 
 
+  // ======================================================================
+  // たき火マスの背景（2026-10-22）：縦長の夜の野営地。選択肢の下（いちばん下の層）に敷く
+  //   G.restArt(act) → <canvas>（180×320ドット）。上は暗い夜空（文字が読みやすいように）、下にたき火・テント・切り株
+  // ======================================================================
+  var RW = 180, RH = 320, RG = 196;   // RG：地面の上のふち
+  function restStat(g, act) {
+    var k = kindOf(act), A = art(), P = TP(), y, x, i;
+    var SK = k === 'volcano' ? ['#120608', '#1e0a0e', '#2e1214', '#46181a'] : k === 'snow' ? ['#070b16', '#0c1424', '#142036', '#1e2c48'] : ['#060a14', '#0a1222', '#101c30', '#18283e'];
+    for (y = 0; y < RG; y++) { var t = y / RG * 3.999, a = Math.floor(t); R(g, SK[a], 0, y, RW, 1); if (t - a > 0.7) for (x = (y & 1); x < RW; x += 2) R(g, SK[Math.min(3, a + 1)], x, y); }
+    for (i = 0; i < 70; i++) R(g, i % 7 ? '#c8d4ec' : '#ffffff', hash(i + 0.3) * RW, hash(i + 9.1) * RG * 0.85);   // 星
+    DA.disc(g, 140, 40, 9, '#e8e4cc'); DA.disc(g, 137, 38, 8, '#f6f2dc'); DA.disc(g, 143, 42, 2, '#d6d0b4');      // 月
+    // 遠くの木（黒い影）
+    for (x = 0; x < RW; x++) { var h = 18 + Math.round(Math.abs(Math.sin(x * 0.21) * 10) + Math.sin(x * 0.07) * 6); R(g, k === 'volcano' ? '#1a0c0c' : '#08100e', x, RG - h, 1, h); }
+    // 地面（たき火から遠いほど暗い）
+    var GC = k === 'snow' ? ['#5a6478', '#4e586c', '#666f84'] : k === 'volcano' ? ['#2a2022', '#221a1c', '#33282a'] : ['#1e3220', '#192a1b', '#243a26'];
+    for (y = RG; y < RH; y++) for (x = 0; x < RW; x++) { var hv = hash(x * 0.37 + y * 13.1); R(g, GC[hv < 0.6 ? 0 : hv < 0.85 ? 1 : 2], x, y); }
+    // 木（左右）・テント・切り株
+    var tr = k === 'snow' ? A.pine : k === 'volcano' ? A.spire : A.tree;
+    put(g, tr[0], 14, RG + 18); put(g, tr[1], 168, RG + 22); put(g, tr[1], 36, RG + 8);
+    // テント（左）：三角の布。左は明るく右は影、入口は暗い
+    var tx = 50, ty = RG + 56;
+    for (i = 0; i < 26; i++) { var hw = Math.round(i * 0.9); R(g, '#8a6a3a', tx - hw, ty - 26 + i, hw, 1); R(g, '#5e4626', tx, ty - 26 + i, hw + 1, 1); }
+    R(g, '#2a1c10', tx - 4, ty - 12, 8, 12); R(g, '#3a2a16', tx - 24, ty - 1, 48, 1); R(g, P.wood.d, tx, ty - 29, 1, 4);
+    shadow(g, 120, RG + 72, 10); DA.cyl(g, 120, RG + 70, 7, 5, P.wood);   // 切り株（右）
+    // たき火のまわりの石と薪
+    var fx = 90, fy = RG + 74;
+    for (i = 0; i < 10; i++) { var an = i / 10 * 6.283; DA.ell(g, fx + Math.cos(an) * 14, fy + Math.sin(an) * 5, 3, 2, i % 2 ? '#6a6460' : '#7c7670'); R(g, '#a8a29a', Math.round(fx + Math.cos(an) * 14) - 1, Math.round(fy + Math.sin(an) * 5) - 2, 2, 1); }
+    R(g, P.wood.f, fx - 9, fy - 3, 18, 3); R(g, P.wood.hi, fx - 9, fy - 3, 18, 1); R(g, P.wood.s, fx - 3, fy - 6, 6, 3);
+    // 夜の色をかぶせる（昼の色の木・テント・地面を暗くする。たき火の明かりは動く部分で上から足す）
+    g.globalCompositeOperation = 'source-atop'; g.fillStyle = 'rgba(8,12,40,.5)'; g.fillRect(0, RG - 40, RW, RH - RG + 40); g.globalCompositeOperation = 'source-over';
+  }
+  function restAnim(g, t) {
+    var fx = 90, fy = RG + 74, fl = 0.85 + 0.15 * Math.sin(t * 11) + 0.08 * Math.sin(t * 23);
+    // 火の明かり（地面を照らす輪）
+    g.globalCompositeOperation = 'lighter';
+    [[80, 0.08], [52, 0.09], [30, 0.12]].forEach(function (q) { DA.ell(g, fx, fy - 2, Math.round(q[0] * fl), Math.round(q[0] * 0.42 * fl), 'rgba(255,140,50,' + q[1] + ')'); });
+    g.globalCompositeOperation = 'source-over';
+    fire2(g, fx, fy - 4, t, 2.0);
+    for (var i = 0; i < 12; i++) { var p = (t * 0.6 + i / 12) % 1; R(g, p < 0.5 ? '#ffd84a' : '#ff8a2a', fx + Math.sin(t * 3 + i * 2) * (4 + p * 10), fy - 20 - p * 90, 1, 1); }   // 火の粉
+    for (i = 0; i < 4; i++) { var q2 = (t * 0.15 + i / 4) % 1; DA.ell(g, fx + Math.sin(t + i) * 6 + q2 * 12, fy - 40 - q2 * 110, 3 + Math.round(q2 * 5), 2 + Math.round(q2 * 3), 'rgba(120,110,110,' + (0.18 * (1 - q2)).toFixed(2) + ')'); }   // 煙
+  }
+  G.restArt = function (act) {
+    var cv = document.createElement('canvas'); cv.width = RW; cv.height = RH; cv.className = 'panel-bg rest-bg'; cv.setAttribute('aria-hidden', 'true');
+    var g = cv.getContext('2d'), st = DA.mk(RW, RH), t0 = performance.now(); restStat(st.c, act || 1);
+    function paint() { g.clearRect(0, 0, RW, RH); g.drawImage(st.cv, 0, 0); restAnim(g, (performance.now() - t0) / 1000); }
+    paint();
+    var id = setInterval(function () { if (!cv.isConnected) { clearInterval(id); return; } paint(); }, 100);
+    return cv;
+  };
+
   var alive = [];
-  G.eventArt = function (id, act) {
-    var f2 = SCENES2[id]; if (!f2) return null;
+  // key：選んだ後の結果の絵（選択肢の番号。賭けは '0win' / '0lose'）。SCENES2[id].after[key] があればそれを使う
+  //   after[key].stat：元の動かない絵の上に描き足す（元の絵を塗りかえてもよい）
+  //   after[key].anim：動く部分（あれば元の anim の代わりに使う。keepAnim: true なら元の anim のあとに足す）
+  G.eventArt = function (id, act, key) {
+    var base = SCENES2[id]; if (!base) return null;
+    var v = key != null && base.after && base.after[key], f2 = base;
+    if (v) f2 = { stat: function (g, a) { base.stat(g, a); if (v.stat) v.stat(g, a); },
+                  anim: function (g, t, a) { if (!v.anim || v.keepAnim) base.anim(g, t, a); if (v.anim) v.anim(g, t, a); } };
     var cv = document.createElement('canvas'); cv.width = W2; cv.height = H2; cv.className = 'event-art'; cv.setAttribute('aria-hidden', 'true');
     var g = cv.getContext('2d'), t0 = performance.now(), st = null; g.imageSmoothingEnabled = false;
     st = DA.mk(W2, H2); f2.stat(st.c, act || 1);
