@@ -1,10 +1,11 @@
-// 描画：小さなドット画面（176×198）に描いてから拡大表示する
+// 描画：小さなドット画面（264×324）に描いてから拡大表示する。1マス＝24×18ドット（疑似3D、見る角度48°）
 'use strict';
 var G = window.G = window.G || {};
 
 (function () {
-  var TW = 16, TH = 12, OY = 14;
-  var W = G.MAP.cols * TW, H = G.MAP.rowsN * TH + OY + 4;
+  var TW = 24, TH = 18, OY = 46, SLAB = 8;   // OY：地面の上の余白（背の高い絵がはみ出す所）、SLAB：地面の下の厚み
+  var W = G.MAP.cols * TW, H = G.MAP.rowsN * TH + OY + SLAB;
+  var DA = G.DotArt, ART = DA.build();   // DA：ドット絵の道具、ART：作り置きした背景の絵
   var buf = document.createElement('canvas'); buf.width = W; buf.height = H;
   var b = buf.getContext('2d');
   var bgCache = {}, M = G.MAPS.field;   // M：今描いているマップ
@@ -43,89 +44,155 @@ var G = window.G = window.G || {};
     }
   }
 
-  // ---- 地面（草・道・台座・入口）を作り置き ----
+  // ---- 地域ごとの色（草原の色は試作「ドット疑似3D」と同じ。雪山・火山は同じ作りで色だけ変えた） ----
+  // g/gB：地面（明るい・暗い・中くらい・ふつう の4色。市松でgとgBを交互に）／road：道／verge：道ぎわの土まじりの地面
+  var THEMES = {
+    grass: {
+      g: ['#5a9846', '#356430', '#468338', '#417a37'], gB: ['#528f40', '#2f5d2a', '#3f7a34', '#3a6f31'],
+      road: { hi: '#b08a5c', dark: '#94724a', base: '#a07e52', rimUp: ['#6f5436', '#5e4a2e'], rimDn: ['#cfa874', '#c09a66'], inner: '#8a6a42' },
+      verge: ['#7a8a44', '#6a7c3a', '#4f8a3e'], pebHi: '#d8c39a', pebLo: '#6b5235', blade: '#3f7a34', tuft: '#2c5a28', fl: ['#f4e36a', '#f0f0f0'],
+      slab: ['#9a7a50', '#5a4028', '#7a5a3a', '#624630', '#3e2c1c'], lake: null
+    },
+    snow: {
+      g: ['#ffffff', '#c8d4e2', '#dfe8f2', '#e9f0f7'], gB: ['#f6fafd', '#c0ccdc', '#d8e2ee', '#e2ebf4'],
+      road: { hi: '#aab4c2', dark: '#7c8796', base: '#8c97a6', rimUp: ['#5c6676', '#4a5262'], rimDn: ['#c8d2de', '#b8c2d0'], inner: '#7a8594' },
+      verge: ['#c0ccda', '#b0bece', '#d4deea'], pebHi: '#e8eef5', pebLo: '#5c6676', blade: '#f4f8fc', tuft: '#aab8c8', fl: ['#b8d8f0', '#ffffff'],
+      slab: ['#8a98a8', '#566272', '#6e7c8c', '#5a6676', '#3a4452'],
+      lake: { c: ['#ffffff', '#9fd0f0', '#7fb8e0'], t: [0.1, 0.4], rim: ['#dfe8f2', '#c8d4e2'] }
+    },
+    volcano: {
+      g: ['#5a4440', '#2a201e', '#46363a', '#3a2e2c'], gB: ['#533e3a', '#261c1a', '#3f3034', '#352928'],
+      road: { hi: '#8a6a44', dark: '#5a4028', base: '#6a4c30', rimUp: ['#2a1a10', '#1e120a'], rimDn: ['#9a7448', '#8a6840'], inner: '#4a3420' },
+      verge: ['#5a4838', '#4e3e32', '#3a2a28'], pebHi: '#9a7a50', pebLo: '#2a1a10', blade: '#4a3a38', tuft: '#1e1614', fl: ['#ff8a2a', '#ffd84a'],
+      slab: ['#5a463e', '#2a1e1a', '#46352e', '#352620', '#1e1410'],
+      lake: { c: ['#ffd84a', '#ff6a2a', '#e04a1a'], t: [0.15, 0.5], rim: ['#2a1a10', '#1e120a'] }
+    }
+  };
+  var STN = ['#9a958a', '#74706a', '#85807a', '#8c877f'];   // 城の敷地の石畳
+
+  // ---- 地面（草・道・湖・城の敷地）と、木・岩・洞穴の一覧を作り置き ----
+  // 道と湖は「なめらかな地図」で形を決める：マスの角を丸め、ふちを少しゆらして、草となじませる
   function buildBg() {
     var cv = document.createElement('canvas'); cv.width = W; cv.height = H;
-    var g = cv.getContext('2d'), S = G.SPR;
-    // 地域ごとの色：[地面の4色], [道の4色], 道のふち
-    var TH_ = {
-      grass:   { g: ['#4f8a3d', '#264d24', '#3c7232', '#33642d'], p: ['#a3804f', '#7e6038', '#6b5235', '#94744a'], e: ['#5e4a2e', '#4a3a22'], fl: ['#f4e36a', '#f0f0f0'] },
-      snow:    { g: ['#ffffff', '#c8d4e2', '#dfe8f2', '#e9f0f7'], p: ['#9aa6b4', '#7c8796', '#6b7584', '#8c97a6'], e: ['#5c6676', '#4a5262'], fl: ['#b8d8f0', '#ffffff'] },
-      volcano: { g: ['#5a4440', '#2a201e', '#46363a', '#3a2e2c'], p: ['#7a5a3a', '#5a4028', '#4a3420', '#6a4c30'], e: ['#2a1a10', '#1e120a'], fl: ['#ff8a2a', '#ffd84a'] }
-    }[M.theme || 'grass'];
-    g.fillStyle = TH_.g[3]; g.fillRect(0, 0, W, H);
-    function charAt(tx, ty) { return (ty < 0 || ty >= M.rowsN || tx < 0 || tx >= M.cols) ? null : M.rows[ty][tx]; }
+    var g = cv.getContext('2d'), th = THEMES[M.theme || 'grass'], rd = th.road, tx, ty, px, py, i, j, k;
+    g.fillStyle = '#0d120e'; g.fillRect(0, 0, W, H);
+    var MW = M.cols * TW, MH = M.rowsN * TH;
+    function charAt(x, y) { return (y < 0 || y >= M.rowsN || x < 0 || x >= M.cols) ? null : M.rows[y][x]; }
     function isGate(c) { return c === 'A' || c === 'B' || c === 'C'; }
-    function isPath(tx, ty) {
-      var c = charAt(tx, ty);
-      return c === '#' || c === 'G' || isGate(c) || (c === null && ty < 0 && isGate(charAt(tx, 0)));
+    function isRoadCh(c) { return c === '#' || c === 'G' || isGate(c); }
+    function vn(x, y) {
+      var x0 = Math.floor(x), y0 = Math.floor(y), fx = x - x0, fy = y - y0; fx = fx * fx * (3 - 2 * fx); fy = fy * fy * (3 - 2 * fy);
+      var a = hash(x0, y0 + 31), b2 = hash(x0 + 1, y0 + 31), c2 = hash(x0, y0 + 32), d = hash(x0 + 1, y0 + 32);
+      return (a + (b2 - a) * fx) * (1 - fy) + (c2 + (d - c2) * fx) * fy;
     }
-    for (var ty = -1; ty < M.rowsN; ty++) for (var tx = 0; tx < M.cols; tx++) {
-      var x0 = tx * TW, y0 = sy(ty), path = isPath(tx, ty);
-      for (var py = 0; py < TH; py++) for (var px = 0; px < TW; px++) {
-        var h = hash(tx * TW + px, ty * TH + py + 99), col;
-        var cc = charAt(tx, ty);
-        if (cc === 'L') col = M.theme === 'volcano' ? (h < 0.15 ? '#ffd84a' : h < 0.5 ? '#ff6a2a' : '#e04a1a') : (h < 0.1 ? '#ffffff' : h < 0.4 ? '#9fd0f0' : '#7fb8e0');
-        else if (path) col = h < 0.1 ? TH_.p[0] : h < 0.2 ? TH_.p[1] : h < 0.24 ? TH_.p[2] : TH_.p[3];
-        else col = h < 0.07 ? TH_.g[0] : h < 0.16 ? TH_.g[1] : h < 0.2 ? TH_.g[2] : TH_.g[3];
-        g.fillStyle = col; g.fillRect(x0 + px, y0 + py, 1, 1);
+    // 0以上＝その地形（道・湖）。まわり半径0.78マスの平均で角を丸め、ノイズでふちをゆらす
+    function smooth(isMine) {
+      var mask = [], F = new Float32Array(MW * MH), RAD = 0.78, offs = [-1, -0.67, -0.33, 0, 0.33, 0.67, 1], oa, ob, smp = [];
+      for (oa = 0; oa < 7; oa++) for (ob = 0; ob < 7; ob++) if (offs[oa] * offs[oa] + offs[ob] * offs[ob] <= 1.02) smp.push(offs[oa] * RAD, offs[ob] * RAD);   // 見る点（円の中の37か所）を先に出しておく
+      var nS = smp.length / 2, rowsN = M.rowsN, cols = M.cols;
+      for (j = -1; j <= rowsN; j++) { var mr = []; for (i = -1; i <= cols; i++) mr.push(isMine(M.rows[j < 0 ? 0 : j >= rowsN ? rowsN - 1 : j][i < 0 ? 0 : i >= cols ? cols - 1 : i]) ? 1 : 0); mask.push(mr); }   // ふちは外側を同じ値でのばす
+      for (py = 0; py < MH; py++) for (px = 0; px < MW; px++) {
+        var u = (px + 0.5) / TW, v = (py + 0.5) / TH, sum = 0, q;
+        for (q = 0; q < nS; q++) sum += mask[((v + smp[q * 2 + 1]) | 0) + (v + smp[q * 2 + 1] < 0 ? -1 : 0) + 1][((u + smp[q * 2]) | 0) + (u + smp[q * 2] < 0 ? -1 : 0) + 1];
+        var n = vn(px / 8, py / 7) * 0.6 + vn(px / 3 + 40, py / 2.6) * 0.4;
+        F[py * MW + px] = sum / nS - 0.5 - (n - 0.5) * 0.34;
       }
-      if (!path && charAt(tx, ty) !== 'L' && hash(tx, ty) < 0.3) { // 小さな花
-        var fx = x0 + 3 + Math.floor(hash(ty, tx) * 10), fy = y0 + 2 + Math.floor(hash(tx + 7, ty) * 8);
-        g.fillStyle = hash(tx, ty + 3) < 0.5 ? TH_.fl[0] : TH_.fl[1]; g.fillRect(fx, fy, 1, 1);
-      }
+      return function (x, y) { x = x < 0 ? 0 : x >= MW ? MW - 1 : x; y = y < 0 ? 0 : y >= MH ? MH - 1 : y; return F[y * MW + x]; };
     }
-    // 道のふち（草とのさかい目を暗く）
+    var hasLake = M.rows.join('').indexOf('L') >= 0;
+    var fr = smooth(isRoadCh), fl = hasLake ? smooth(function (c) { return c === 'L'; }) : function () { return -1; };
+    function plazaAt(x, y) { var c = charAt(Math.floor(x / TW), Math.floor(y / TH)); return c === 'X' || c === 'G'; }
     for (ty = 0; ty < M.rowsN; ty++) for (tx = 0; tx < M.cols; tx++) {
-      if (!isPath(tx, ty)) continue;
-      x0 = tx * TW; y0 = sy(ty);
-      g.fillStyle = TH_.e[0];
-      if (!isPath(tx - 1, ty)) g.fillRect(x0, y0, 1, TH);
-      if (!isPath(tx + 1, ty)) g.fillRect(x0 + TW - 1, y0, 1, TH);
-      if (!isPath(tx, ty - 1) && ty > 0) g.fillRect(x0, y0, TW, 1);
-      if (!isPath(tx, ty + 1) && ty < M.rowsN - 1) { g.fillStyle = TH_.e[1]; g.fillRect(x0, y0 + TH - 1, TW, 1); }
+      var ch = M.rows[ty][tx], plaza = ch === 'X' || ch === 'G', x0 = tx * TW, y0 = sy(ty), pal = (tx + ty) & 1 ? th.g : th.gB;
+      for (py = 0; py < TH; py++) for (px = 0; px < TW; px++) {
+        var mx = x0 + px, my = ty * TH + py, gr = fr(mx, my), h = hash(mx, my + 99), col;
+        if (plaza) col = h < 0.1 ? STN[0] : h < 0.2 ? STN[1] : h < 0.26 ? STN[2] : STN[3];
+        else if (gr >= 0) {
+          col = h < 0.11 ? rd.hi : (h >= 0.15 && h < 0.19) ? rd.dark : rd.base;
+          if (gr < 0.07) {
+            var up = fr(mx, my - 1) < 0 || fr(mx - 1, my) < 0, dn = fr(mx, my + 1) < 0 || fr(mx + 1, my) < 0;
+            col = up ? (h < 0.5 ? rd.rimUp[0] : rd.rimUp[1]) : dn ? (h < 0.5 ? rd.rimDn[0] : rd.rimDn[1]) : rd.base;
+          } else if (gr < 0.12 && h < 0.4) col = rd.inner;
+        } else if (hasLake && fl(mx, my) >= 0) {
+          var lk = th.lake, lg = fl(mx, my);
+          if (lg < 0.07) col = h < 0.5 ? lk.rim[0] : lk.rim[1];
+          else col = h < lk.t[0] ? lk.c[0] : h < lk.t[1] ? lk.c[1] : lk.c[2];
+        } else {
+          col = h < 0.1 ? pal[0] : h < 0.2 ? pal[1] : h < 0.26 ? pal[2] : pal[3];
+          if (gr > -0.09) col = h < 0.45 ? th.verge[0] : h < 0.7 ? th.verge[1] : col;            // 道ぎわは土まじりの地面
+          else if (gr > -0.17 && h < 0.3) col = th.verge[2];
+        }
+        g.fillStyle = col; g.fillRect(mx, OY + my, 1, 1);
+      }
+      if (plaza) { g.fillStyle = '#6a665e'; g.fillRect(x0, y0 + (TH >> 1), TW, 1); g.fillRect(x0 + (TW >> 1), y0, 1, TH >> 1); }
+      else if (!isRoadCh(ch) && ch !== 'L') {
+        var gx, gy, fx, fy;
+        if (hash(tx, ty) < 0.55) {   // 草のはっぱ
+          gx = x0 + 3 + Math.floor(hash(ty, tx) * 16); gy = y0 + 3 + Math.floor(hash(tx + 7, ty) * (TH - 6));
+          if (fr(gx, gy - OY) < -0.2 && fl(gx, gy - OY) < 0) { g.fillStyle = th.tuft; g.fillRect(gx, gy, 1, 2); g.fillRect(gx + 1, gy + 1, 1, 1); g.fillRect(gx - 1, gy + 1, 1, 1); }
+        }
+        if (hash(tx, ty + 3) < 0.28) {   // 小さな花
+          fx = x0 + 3 + Math.floor(hash(ty + 5, tx) * 17); fy = y0 + 2 + Math.floor(hash(tx + 9, ty) * (TH - 4));
+          if (fr(fx, fy - OY) < -0.2 && fl(fx, fy - OY) < 0) { g.fillStyle = hash(tx, ty + 8) < 0.5 ? th.fl[0] : th.fl[1]; g.fillRect(fx, fy, 1, 1); }
+        }
+      }
+    }
+    // 道の上の小石と、ふちの草のはみ出し
+    for (py = 2; py < MH - 2; py++) for (px = 2; px < MW - 2; px++) {
+      var gg = fr(px, py), hh2 = hash(px * 3 + 1, py * 5 + 7);
+      if (hh2 >= 0.05 || plazaAt(px, py) || (hasLake && fl(px, py) >= -0.1)) continue;
+      if (gg > 0.18 && hh2 < 0.012) { g.fillStyle = th.pebHi; g.fillRect(px, OY + py, 2, 1); g.fillStyle = th.pebLo; g.fillRect(px, OY + py + 1, 2, 1); }
+      else if (gg < 0 && gg > -0.1) { g.fillStyle = th.blade; g.fillRect(px, OY + py - 1, 1, 2); }
+    }
+    // 地面の下の厚み
+    var yb = OY + M.rowsN * TH;
+    for (j = 0; j < SLAB; j++) for (px = 0; px < W; px++) {
+      var hs2 = hash(px >> 1, j + 400);
+      g.fillStyle = j === 0 ? th.slab[0] : hs2 < 0.15 ? th.slab[1] : j < 3 ? th.slab[2] : j < 6 ? th.slab[3] : th.slab[4];
+      g.fillRect(px, yb + j, 1, 1);
     }
     // 橋：道が十字に交わるマス。先に通る道が橋の上、あとから通る道が橋の下をくぐる
     (M.bridges || []).forEach(function (br) { drawBridge(g, br); });
-    // 台座・木・岩・入口・城（上の行から順に描いて重なりを正しくする）
+    // 木・岩・入口：敵やタワーと重なりを正しくするため、絵の一覧にして描く時に並べ替える
+    var statics = [], tree = M.theme === 'snow' ? ART.pine : M.theme === 'volcano' ? ART.spire : ART.tree;
     for (ty = 0; ty < M.rowsN; ty++) for (tx = 0; tx < M.cols; tx++) {
-      var c = M.rows[ty][tx], cx = tx * TW + TW / 2, by = sy(ty + 1);
-      if (c === 'T') g.drawImage((M.theme === 'snow' ? S.pine : M.theme === 'volcano' ? S.spire : S.tree)[(tx + ty) % 2], cx - 8, by - 20);
-      if (c === 'R') g.drawImage(S.rock, cx - 7, by - 10);
-      if (isGate(c)) g.drawImage(S.gate, cx - 10, sy(0) - 6);
+      var c = M.rows[ty][tx];
+      if (c === 'T') statics.push({ spr: tree[hash(tx, ty) < 0.5 ? 0 : 1], x: tx + 0.5, y: ty + 0.62, sh: 9 });
+      else if (c === 'R') statics.push({ spr: ART.rock, x: tx + 0.5, y: ty + 0.6, sh: 8 });
+      else if (isGate(c)) statics.push({ spr: ART.gate, x: tx + 0.5, y: ty + 0.55, sh: 12 });
     }
-    return cv;
+    return { cv: cv, statics: statics };
   }
 
-  // 橋を1つ描く（地面の作り置きに描く）
+  // 橋を1つ描く（地面の作り置きに描く）。1マス24×18ドット用
   function drawBridge(g, br) {
     var x0 = br.x * TW, y0 = sy(br.y), stone = M.theme === 'volcano';
     var deck = stone ? '#7a7068' : '#a4743f', seam = stone ? '#58504a' : '#74502a', rail = stone ? '#4a4440' : '#5a3a1e',
         hi = stone ? '#a89c90' : '#d09a5a', face = stone ? '#2e2a28' : '#3e2814', shade = 'rgba(0,0,0,0.38)', i;
     if (br.axis === 'h') {
       // くぐる道（縦）の、橋の下側に影
-      g.fillStyle = shade; g.fillRect(x0, y0 + TH, TW, 3);
-      g.fillStyle = 'rgba(0,0,0,0.18)'; g.fillRect(x0, y0 + TH + 3, TW, 2);
+      g.fillStyle = shade; g.fillRect(x0, y0 + TH, TW, 4);
+      g.fillStyle = 'rgba(0,0,0,0.18)'; g.fillRect(x0, y0 + TH + 4, TW, 3);
       // 床板（横に進むので、板のつなぎ目は縦線）
-      g.fillStyle = deck; g.fillRect(x0 - 1, y0 + 1, TW + 2, TH - 2);
-      g.fillStyle = seam; for (i = 1; i < TW; i += 3) g.fillRect(x0 + i, y0 + 2, 1, TH - 4);
+      g.fillStyle = deck; g.fillRect(x0 - 1, y0 + 2, TW + 2, TH - 4);
+      g.fillStyle = seam; for (i = 2; i < TW; i += 4) g.fillRect(x0 + i, y0 + 3, 1, TH - 6);
       // 手すり（上と下）と柱
       g.fillStyle = hi; g.fillRect(x0 - 1, y0 - 1, TW + 2, 1);
-      g.fillStyle = rail; g.fillRect(x0 - 1, y0, TW + 2, 1); g.fillRect(x0 - 1, y0 + TH - 2, TW + 2, 1);
-      for (i = 0; i <= TW; i += 5) { g.fillStyle = rail; g.fillRect(x0 - 1 + i, y0 - 2, 2, 3); g.fillRect(x0 - 1 + i, y0 + TH - 3, 2, 2); g.fillStyle = hi; g.fillRect(x0 - 1 + i, y0 - 2, 1, 1); }
+      g.fillStyle = rail; g.fillRect(x0 - 1, y0, TW + 2, 1); g.fillRect(x0 - 1, y0 + TH - 3, TW + 2, 1);
+      for (i = 0; i <= TW; i += 7) { g.fillStyle = rail; g.fillRect(x0 - 1 + i, y0 - 3, 2, 4); g.fillRect(x0 - 1 + i, y0 + TH - 4, 2, 3); g.fillStyle = hi; g.fillRect(x0 - 1 + i, y0 - 3, 1, 1); }
       // 橋の前の面（厚み）
-      g.fillStyle = face; g.fillRect(x0 - 1, y0 + TH - 1, TW + 2, 2);
+      g.fillStyle = face; g.fillRect(x0 - 1, y0 + TH - 2, TW + 2, 3);
       // 橋のたもとの石
-      g.fillStyle = '#8d8a84'; g.fillRect(x0 - 2, y0 - 1, 1, TH + 2); g.fillRect(x0 + TW + 1, y0 - 1, 1, TH + 2);
+      g.fillStyle = '#8d8a84'; g.fillRect(x0 - 3, y0 - 1, 2, TH + 2); g.fillRect(x0 + TW + 1, y0 - 1, 2, TH + 2);
     } else {
       // くぐる道（横）の、橋の左右に影
-      g.fillStyle = shade; g.fillRect(x0 + TW, y0, 3, TH); g.fillRect(x0 - 2, y0, 2, TH);
+      g.fillStyle = shade; g.fillRect(x0 + TW, y0, 4, TH); g.fillRect(x0 - 3, y0, 3, TH);
       // 床板（縦に進むので、板のつなぎ目は横線）
-      g.fillStyle = deck; g.fillRect(x0 + 1, y0 - 1, TW - 2, TH + 2);
-      g.fillStyle = seam; for (i = 1; i < TH + 1; i += 3) g.fillRect(x0 + 2, y0 + i, TW - 4, 1);
-      g.fillStyle = rail; g.fillRect(x0, y0 - 1, 2, TH + 2); g.fillRect(x0 + TW - 2, y0 - 1, 2, TH + 2);
-      g.fillStyle = hi; g.fillRect(x0, y0 - 1, 1, TH + 2); g.fillRect(x0 + TW - 2, y0 - 1, 1, TH + 2);
-      for (i = -1; i <= TH; i += 4) { g.fillStyle = face; g.fillRect(x0 - 1, y0 + i, 1, 2); g.fillRect(x0 + TW, y0 + i, 1, 2); }
+      g.fillStyle = deck; g.fillRect(x0 + 2, y0 - 1, TW - 4, TH + 2);
+      g.fillStyle = seam; for (i = 2; i < TH + 1; i += 4) g.fillRect(x0 + 3, y0 + i, TW - 6, 1);
+      g.fillStyle = rail; g.fillRect(x0, y0 - 1, 3, TH + 2); g.fillRect(x0 + TW - 3, y0 - 1, 3, TH + 2);
+      g.fillStyle = hi; g.fillRect(x0, y0 - 1, 1, TH + 2); g.fillRect(x0 + TW - 3, y0 - 1, 1, TH + 2);
+      for (i = -1; i <= TH; i += 5) { g.fillStyle = face; g.fillRect(x0 - 1, y0 + i, 1, 3); g.fillRect(x0 + TW, y0 + i, 1, 3); }
     }
   }
   // 敵が橋の下をくぐっている途中か（そのマスにいて、橋と違う向きに歩いている）
@@ -287,7 +354,8 @@ var G = window.G = window.G || {};
     M = s.map;
     stepFx(dt);
     if (!bgCache[M.id]) bgCache[M.id] = buildBg();
-    b.drawImage(bgCache[M.id], 0, 0);
+    var BG = bgCache[M.id];
+    b.drawImage(BG.cv, 0, 0);
 
     // 置ける場所の表示（カード選択中）
     if (ui.selType && !ui.pending && (s.phase === 'prep' || s.phase === 'attack')) {
@@ -297,8 +365,9 @@ var G = window.G = window.G || {};
       for (var ty = 0; ty < M.rowsN; ty++) for (var tx = 0; tx < M.cols; tx++) {
         if (!G.Battle.canPlaceAt(s, tx, ty, ui.selType)) continue;
         b.fillStyle = onPath ? '#ffffff' : '#fff3b0';
-        b.fillRect(tx * TW + 1, sy(ty) + 1, 2, 1); b.fillRect(tx * TW + TW - 3, sy(ty) + 1, 2, 1);
-        b.fillRect(tx * TW + 1, sy(ty) + TH - 2, 2, 1); b.fillRect(tx * TW + TW - 3, sy(ty) + TH - 2, 2, 1);
+        var hx = tx * TW, hy = sy(ty), HL = 3;   // マスの四すみの印（長さ3ドット）
+        b.fillRect(hx + 1, hy + 1, HL, 1); b.fillRect(hx + TW - 1 - HL, hy + 1, HL, 1);
+        b.fillRect(hx + 1, hy + TH - 2, HL, 1); b.fillRect(hx + TW - 1 - HL, hy + TH - 2, HL, 1);
       }
       b.globalAlpha = 1;
     }
@@ -316,16 +385,17 @@ var G = window.G = window.G || {};
     // 次の攻撃で使われる入口に「！」（タップすると次の敵が見える）
     if (s.phase === 'prep') {
       gatesNext(s).forEach(function (k) {
-        var p = M.paths[k][0], gx = Math.round(sx(p[0])), gy = sy(0) - 3 + Math.round(Math.sin(t * 5) * 1.5);
+        var p = M.paths[k][0], gx = Math.round(sx(p[0])), gy = sy(0) - 14 + Math.round(Math.sin(t * 5) * 2);   // 洞穴の上にういて見える
         var open = ui.gateOpen === k;
-        b.fillStyle = '#16120f'; b.fillRect(gx - 4, gy - 13, 9, 12);
-        b.fillStyle = open ? '#ffe14d' : '#ff4d3a'; b.fillRect(gx - 3, gy - 12, 7, 10);
-        b.fillStyle = '#ffffff'; b.fillRect(gx - 1, gy - 11, 3, 5); b.fillRect(gx - 1, gy - 5, 3, 2);
+        b.fillStyle = '#16120f'; b.fillRect(gx - 7, gy - 19, 14, 18);
+        b.fillStyle = open ? '#ffe14d' : '#ff4d3a'; b.fillRect(gx - 5, gy - 17, 10, 14);
+        b.fillStyle = '#ffffff'; b.fillRect(gx - 2, gy - 16, 4, 8); b.fillRect(gx - 2, gy - 7, 4, 3);
       });
     }
 
     // 奥（画面の上）から順に並べて重なりを正しく
     var list = [];
+    BG.statics.forEach(function (st) { list.push({ y: st.y, k: 'static', o: st }); });   // 木・岩・洞穴
     s.towers.forEach(function (tw) { list.push({ y: tw.y + (G.TOWERS[tw.type].trap ? -0.45 : 0.2), k: 'tower', o: tw }); });
     s.soldiers.forEach(function (u) { if (u.dead <= 0) list.push({ y: u.y + 0.05, k: 'soldier', o: u }); });
     // 橋の下をくぐる敵は橋より先に描いて、橋で隠す
@@ -339,13 +409,21 @@ var G = window.G = window.G || {};
     for (var i = 0; i < list.length; i++) {
       var it = list[i], o = it.o;
       if (it.k === 'bridge') {
-        var bx = o.x * TW - 2, byy = sy(o.y) - 2;
-        b.drawImage(bgCache[M.id], bx, byy, TW + 4, TH + 5, bx, byy, TW + 4, TH + 5);
+        var bx = o.x * TW - 4, byy = sy(o.y) - 4;
+        b.drawImage(BG.cv, bx, byy, TW + 8, TH + 12, bx, byy, TW + 8, TH + 12);
+        continue;
+      }
+      if (it.k === 'static') {
+        var stx = Math.round(sx(o.x)), sty = Math.round(sy(o.y));
+        DA.ell(b, stx + 3, sty, o.sh, Math.max(2, Math.round(o.sh * TH / TW * 0.8)), 'rgba(0,0,0,.28)');
+        b.drawImage(o.spr.cv, stx - o.spr.ax, sty - o.spr.ay);
         continue;
       }
       if (it.k === 'castle') {
-        blitB(S.castle, sx(castleAt.x), sy(castleAt.y + 1) + 4);
-        if (fx.castleHit > 0) { b.globalCompositeOperation = 'lighter'; b.globalAlpha = fx.castleHit * 2; b.filter = 'none'; blitB(S.castle, sx(castleAt.x), sy(castleAt.y + 1) + 4); b.globalAlpha = 1; b.globalCompositeOperation = 'source-over'; }
+        var cpx = Math.round(sx(castleAt.x)), cpy = Math.round(sy(castleAt.y + 1)), cs = ART.castle;
+        DA.ell(b, cpx + 4, cpy - 2, 40, Math.max(3, Math.round(40 * TH / TW * 0.4)), 'rgba(0,0,0,.25)');
+        b.drawImage(cs.cv, cpx - cs.ax, cpy - cs.ay);
+        if (fx.castleHit > 0) { b.globalCompositeOperation = 'lighter'; b.globalAlpha = fx.castleHit * 2; b.drawImage(cs.cv, cpx - cs.ax, cpy - cs.ay); b.globalAlpha = 1; b.globalCompositeOperation = 'source-over'; }
         continue;
       }
       if (it.k === 'soldier') {
@@ -503,10 +581,11 @@ var G = window.G = window.G || {};
       var ps = G.towerImg(ui.selType, 0, false);
       b.globalAlpha = ui.pending ? 0.75 : 0.6; blitB(ps, sx(pv.tx + 0.5), sy(pv.ty + 0.5) + 5); b.globalAlpha = 1;
       if (ui.pending && ok) { // 仮置き中：マスのかどを点滅させて「もう一度タップ」を示す
-        var on = Math.floor(t * 4) % 2 === 0, x0 = pv.tx * TW, y0 = sy(pv.ty);
+        var on = Math.floor(t * 4) % 2 === 0, x0 = pv.tx * TW, y0 = sy(pv.ty), CL = 4;   // かどの印（長さ4ドット）
         b.fillStyle = on ? '#ffffff' : '#ffe14d';
-        [[0, 0, 1, 1], [TW - 3, 0, -1, 1], [0, TH - 1, 1, -1], [TW - 3, TH - 1, -1, -1]].forEach(function (c) {
-          b.fillRect(x0 + c[0], y0 + c[1], 3, 1); b.fillRect(x0 + (c[2] > 0 ? c[0] : c[0] + 2), y0 + c[1] + (c[3] > 0 ? 0 : -2), 1, 3);
+        [[0, 0], [1, 0], [0, 1], [1, 1]].forEach(function (c) {
+          b.fillRect(x0 + (c[0] ? TW - CL : 0), y0 + (c[1] ? TH - 1 : 0), CL, 1);
+          b.fillRect(x0 + (c[0] ? TW - 1 : 0), y0 + (c[1] ? TH - CL : 0), 1, CL);
         });
       }
     }
@@ -546,7 +625,7 @@ var G = window.G = window.G || {};
     var x = px / cssW * W, y = py / cssH * H, hit = null;
     gatesNext(s).forEach(function (k) {
       var p = s.map.paths[k][0];
-      if (Math.abs(x - sx(p[0])) <= 13 && y >= 0 && y <= sy(1) + 2) hit = k;
+      if (Math.abs(x - sx(p[0])) <= 20 && y >= 0 && y <= sy(1) + 2) hit = k;
     });
     return hit;
   }
@@ -554,7 +633,7 @@ var G = window.G = window.G || {};
   function drawNums(ctx, scale) {
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
     nums.forEach(function (n) {
-      var a = Math.min(1, n.life / n.ml * 2.5), fs = Math.round(15 * n.size * scale / 2.1);
+      var a = Math.min(1, n.life / n.ml * 2.5), fs = Math.round(15 * n.size * scale / 1.4);   // 1.4＝2.1（旧：1ドット約2.2px）×176÷264。画面上の文字の大きさを前と同じに保つ
       ctx.globalAlpha = a;
       ctx.font = fs + 'px "DotGothic16", ui-monospace, monospace';
       ctx.lineWidth = Math.max(2, fs * 0.28); ctx.strokeStyle = '#120d08';

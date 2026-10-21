@@ -513,40 +513,7 @@ var G = window.G = window.G || {};
   }
 
   // ---- 地形の飾り（地域ごと） ----
-  function pine(v) {   // 雪の針葉樹
-    var g = new Grid(16, 22);
-    g.rect(7, 16, 2, 5, '#5a3a22');
-    for (var r = 0; r < 14; r++) { var w = Math.min(13, 3 + Math.floor(r * 0.8)); g.rect(8 - Math.floor(w / 2), 2 + r, w, 1, r % 4 === 0 ? '#e8f0f8' : (v ? '#2a5a4a' : '#24524a')); }
-    g.px(8, 1, '#e8f0f8');
-    return g.outline('#14262a').bake();
-  }
-  function spire(v) {  // 火山の黒い岩の柱
-    var g = new Grid(16, 22);
-    for (var r = 0; r < 18; r++) { var w = 2 + Math.floor(r / 3); g.rect(8 - Math.floor(w / 2) + (v && r < 6 ? 1 : 0), 3 + r, w, 1, r % 5 === 2 ? '#5a3a34' : '#3a2a28'); }
-    g.px(7, 12, '#ff6a2a'); g.px(9, 17, '#ff6a2a');
-    return g.outline('#120a08').bake();
-  }
 
-  // ---- 地形の飾り ----
-  function tree(v) {
-    var g = new Grid(16, 22), d = v ? '#2d6b34' : '#2a5e40', m = v ? '#3f8a45' : '#3b7a55', l = v ? '#62b061' : '#5aa27a';
-    g.rect(7, 15, 3, 6, '#6b4a2b');
-    g.ell(8, 10, 7, 6, d); g.ell(8, 8, 6, 5, m); g.ell(6.5, 5.5, 3.5, 3, l);
-    g.ell(8, 13, 6, 2, d);
-    return g.outline('#122218').bake();
-  }
-  function rock() {
-    var g = new Grid(14, 10);
-    g.ell(7, 6, 6, 3.5, '#7b8086'); g.ell(6, 5, 4, 2.4, '#9ca1a7'); g.px(5, 4, '#c3c7cc');
-    return g.outline('#2a2d30').bake();
-  }
-  function gate() { // 入口（洞穴）
-    var g = new Grid(20, 14);
-    g.ell(10, 9, 10, 6, '#5a5048'); g.ell(10, 8, 9, 5.5, '#7a6e62');
-    g.ell(10, 10, 5.5, 4.5, '#0e0a08'); g.rect(4, 12, 12, 2, '#0e0a08');
-    g.px(4, 5, '#9a8e80'); g.px(15, 6, '#9a8e80');
-    return g.bake();
-  }
   // ---- 道に置く物と兵舎 ----
   function spikesTower(lv) {        // トゲの罠：地面の板から金属のトゲ
     var g = new Grid(14, 8);
@@ -666,16 +633,6 @@ var G = window.G = window.G || {};
     g.px(7, 8, '#6d7177'); g.px(9, 10, '#6d7177');
     return both(g.outline(OUT));
   }
-  function castle() {
-    var g = new Grid(28, 26);
-    stoneBase(g, 3, 10, 22, 15);
-    for (var i = 3; i < 25; i += 4) g.rect(i, 8, 2, 2, '#8b8f94');
-    stoneBase(g, 1, 4, 6, 21); stoneBase(g, 21, 4, 6, 21);
-    g.rect(1, 2, 2, 2, '#8b8f94'); g.rect(5, 2, 2, 2, '#8b8f94'); g.rect(21, 2, 2, 2, '#8b8f94'); g.rect(25, 2, 2, 2, '#8b8f94');
-    g.rect(11, 16, 6, 9, '#3b2a1a'); g.ell(14, 16, 3, 2.5, '#3b2a1a');
-    g.rect(13, 0, 1, 9, '#5b4632'); g.rect(14, 0, 5, 3, '#3a7bd9');
-    return g.outline(OUT).bake();
-  }
   function heart() {
     var g = new Grid(7, 6);
     g.rect(0, 1, 7, 2, '#ff5a5a'); g.rect(1, 0, 2, 1, '#ff5a5a'); g.rect(4, 0, 2, 1, '#ff5a5a');
@@ -701,7 +658,6 @@ var G = window.G = window.G || {};
               orc(1, { skin: '#c8402a', dark: '#7a2016', armor: ['#3a2a2a', '#5a4040', '#1e1414'], trim: '#ff8a2a' })],
       dragon: [dragon(0), dragon(1)], skeleton: [skeleton(0), skeleton(1)], kingslime: [kingslime(0), kingslime(1)],
       yeti: [yeti(0), yeti(1)], salamander: [salamander(0), salamander(1)],
-      pine: [pine(0), pine(1)], spire: [spire(0), spire(1)],
       ogre: [ogre(0), ogre(1)], soldier: [soldier(0), soldier(1)], golemUnit: [golemUnit(0), golemUnit(1)],
       shaman: [shaman(0), shaman(1)], harpy: [harpy(0), harpy(1)], wyvern: [wyvern(0), wyvern(1)],
       goblinlord: [ogre(0, { skin: '#7aa83a', dark: '#4e7a22', belly: '#a8c870' }), ogre(1, { skin: '#7aa83a', dark: '#4e7a22', belly: '#a8c870' })],
@@ -710,7 +666,7 @@ var G = window.G = window.G || {};
       slimeking: [slimeking(0), slimeking(1)], wolfking: [wolfking(0), wolfking(1)], harpyqueen: [harpyqueen(0), harpyqueen(1)],
       icecommander: [icecommander(0), icecommander(1)], blizzardwitch: [blizzardwitch(0), blizzardwitch(1)], flamegeneral: [flamegeneral(0), flamegeneral(1)],
       icon: {}, node: {}, relic: {},
-      tree: [tree(0), tree(1)], rock: rock(), gate: gate(), castle: castle(), heart: heart()
+      heart: heart()
     };
     var makers = { archer: archerTower, mage: mageTower, cannon: cannonTower, bowman: bowmanTower, sling: slingTower,
                    watch: watchTower, poison: poisonTower, frost: frostTower, ballista: ballistaTower,
