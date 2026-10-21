@@ -317,6 +317,13 @@ G.TOWERS = {
     text: '近くの道に兵士2人を出す。兵士は敵1体ずつを止めて戦う。倒れても8秒で戻る。ボスは止められない。',
     up: [{ cost: 30, soldiers: { n: 2, hp: 120, dmg: 12, rate: 1.0, respawn: 7 } }, { cost: 60, soldiers: { n: 3, hp: 160, dmg: 16, rate: 0.9, respawn: 6 } }]
   },
+  // 新兵の詰所：初期デッキ用の弱い兵舎（2026-10-22）。兵士の数は 2→2→3
+  recruit: {
+    name: '新兵の詰所', muzzle: 0, cost: 2, range: 2.0, dmg: 0, rate: 1, dmgType: 'none', noAttack: true,
+    soldiers: { n: 2, hp: 55, dmg: 5, rate: 1.1, respawn: 10, unit: 'recruitUnit' },
+    text: '近くの道に新兵2人を出す。新兵は敵1体ずつを止めて戦う（兵舎の兵士より弱い）。倒れても10秒で戻る。ボスは止められない。',
+    up: [{ cost: 25, soldiers: { n: 2, hp: 80, dmg: 8, rate: 1.0, respawn: 9 } }, { cost: 50, soldiers: { n: 3, hp: 100, dmg: 10, rate: 1.0, respawn: 8 } }]
+  },
   // ---- 追加のタワー（2026-10-19 夜） ----
   dart: {
     name: '吹き矢小屋', muzzle: 0.7, cost: 1, range: 2.2, dmg: 3, rate: 0.55, dmgType: 'physical', shot: 'arrow', speed: 12,
@@ -374,6 +381,7 @@ G.TOWERS = {
 G.CARDS = {
   bowman:   { kind: 'tower', tower: 'bowman', rarity: 'starter' },
   sling:    { kind: 'tower', tower: 'sling', rarity: 'starter' },
+  recruit:  { kind: 'tower', tower: 'recruit', rarity: 'starter' },   // 初期デッキ用（報酬・商人には出ない）
   aim:      { kind: 'skill', name: '狙い撃ち', cost: 0, target: 'tower', rarity: 'starter', icon: 'eye', mult: 1.5,
               text: 'タワー1つの攻撃力をこのターンだけ1.5倍。' },
 
@@ -473,7 +481,7 @@ Object.keys(G.CARDS).forEach(function (id) {
 });
 
 // 初期デッキ（8枚・3種類）：見習い弓兵×4、投石小屋×3、狙い撃ち×1
-G.START_DECK = ['bowman', 'bowman', 'bowman', 'bowman', 'sling', 'sling', 'sling', 'aim'];
+G.START_DECK = ['bowman', 'bowman', 'bowman', 'sling', 'sling', 'warcry', 'barricade', 'recruit'];   // 隊長と同じ（指揮官を選ばない時の予備）
 
 // ---- 指揮官（ランの最初に1人選ぶ）。初期デッキ・最大ライフ・固有の能力が違う ----
 // ============================================================
@@ -504,13 +512,13 @@ G.ascMods = function (a) {
   });
   return m;
 };
-G.COMMANDERS = {
-  captain:  { name: '隊長', icon: 'bowman', life: 40, deck: G.START_DECK, relic: 'cmd_captain',
-              text: '戦闘に勝つたびにお金+8。', sub: 'バランス型。弓と投石で戦う' },
-  witch:    { name: '魔女', icon: 'mage', life: 38, relic: 'cmd_witch', deck: ['bowman', 'bowman', 'bowman', 'poison', 'poison', 'frost', 'sling', 'aim'],
-              text: '魔法のタワーの攻撃力+25%。毒とやけどが1秒長く続く。', sub: '毒と氷から始まる。ライフは少なめ' },
-  engineer: { name: '工兵', icon: 'barracks', life: 44, relic: 'cmd_engineer', deck: ['bowman', 'bowman', 'bowman', 'sling', 'sling', 'spikes', 'spikes', 'barricade'],
-              text: 'タワーの強化の値段が20%安い。', sub: '罠とバリケードから始まる。ライフは多め' }
+G.COMMANDERS = {   // 2026-10-22 初期デッキ・ライフを変更（オーナー指定）
+  captain:  { name: '隊長', icon: 'bowman', life: 40, relic: 'cmd_captain', deck: ['bowman', 'bowman', 'bowman', 'sling', 'sling', 'warcry', 'barricade', 'recruit'],
+              text: 'スキルのコストが1下がる。', sub: 'バランス型。弓・投石・号令で戦う。ライフは多め' },
+  witch:    { name: '魔女', icon: 'mage', life: 34, relic: 'cmd_witch', deck: ['bowman', 'bowman', 'poison', 'poison', 'thunder', 'sling', 'aim', 'recruit'],
+              text: '魔法のタワーの攻撃力+25%。毒とやけどが1秒長く続く。', sub: '毒と雷から始まる。ライフは少なめ' },
+  engineer: { name: '工兵', icon: 'barracks', life: 36, relic: 'cmd_engineer', deck: ['bowman', 'bowman', 'bowman', 'sling', 'sling', 'recruit', 'barricade', 'whet', 'barrel'],
+              text: 'タワーの強化の値段が20%安い。', sub: 'バリケード・爆弾樽・研ぎ石から始まる' }
 };
 
 // ============================================================
@@ -736,7 +744,7 @@ G.RELICS = {
   crown:     { name: '小さな王冠', kind: 'number', rarity: 'rare',     unlock: true, text: '毎ターン引くカード+1枚。' },
   phoenix:   { name: '不死鳥の羽', kind: 'change', rarity: 'rare',     unlock: true, text: 'ライフが0になった時、1回だけライフ10で立ち直る（使うと消える）。' },
   // ---- 指揮官のレリック（最初から1つだけ持っている。報酬・商人・イベントでは出ない） ----
-  cmd_captain:  { name: '隊長の勲章',   kind: 'commander', rarity: 'starter', text: '戦闘に勝つたびにお金+8。' },
+  cmd_captain:  { name: '隊長の勲章',   kind: 'commander', rarity: 'starter', text: 'スキルのコストが1下がる。' },   // 2026-10-22 変更（前：勝つたびにお金+8）。0より下にはならない（説明には書かない）
   cmd_witch:    { name: '魔女の杖',     kind: 'commander', rarity: 'starter', text: '魔法のタワーの攻撃力+25%。毒とやけどが1秒長く続く。' },
   cmd_engineer: { name: '工兵の工具箱', kind: 'commander', rarity: 'starter', text: 'タワーの強化の値段が20%安い。' }
 };
@@ -792,7 +800,6 @@ G.RULES = {
   bossHp: 0.7,        // ボスの体力の倍率（階が進む分の倍率はボスにはかけず、層の倍率×これ）
   easyBattles: 3,     // 各層の最初の3回の通常戦闘は、その層で弱い方の攻撃のひな形から選ぶ
   easyPool: 3,        // 弱い順に何個のひな形から選ぶか
-  captainGold: 8,     // 隊長：戦闘に勝つたびのお金
   shop: { price: { common: 35, uncommon: 55, rare: 80 }, remove: 50, heal: 30, healAmount: 10,
           relicPrice: { common: 90, uncommon: 120, rare: 160 } }
 };

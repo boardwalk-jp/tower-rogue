@@ -107,6 +107,7 @@ var G = window.G = window.G || {};
   function cardCost(card, s) {
     var c = card.cost !== undefined ? card.cost : cardDef(card).cost;
     if (s && s.freeTowers > 0 && cardDef(card).kind === 'tower') return 0;   // 設計の天才：タワーのカードが0
+    if (s && cardDef(card).kind === 'skill' && has(s, 'cmd_captain')) c = Math.max(0, c - has(s, 'cmd_captain'));   // 隊長の勲章：スキルのコスト-1（0より下にはならない）
     return c;
   }
 

@@ -252,7 +252,6 @@ var G = window.G = window.G || {};
     run.phoenixUsed = (run.phoenixUsed || 0) + (s.phoenixUsed || 0);
     if (count(run.relics, 'spring')) run.life = Math.min(run.maxLife, run.life + 3 * count(run.relics, 'spring'));
     run.gold += Math.round((G.RULES.battleGold[n.type] || 0) * G.ascMods(run.asc).gold);
-    run.gold += G.RULES.captainGold * count(run.relics, 'cmd_captain');   // 隊長の勲章
   }
 
   // ---- カードを選ぶ（報酬・商人・イベント） ----

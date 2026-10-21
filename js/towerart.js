@@ -698,6 +698,28 @@ var G = window.G = window.G || {};
     return trim(s);
   }
 
+  // ================= 新兵の詰所（recruit）：布のテントと、わらの練習人形（2026-10-22）。段階で土台・旗・人形が増える =================
+  function recruitPost(lv, fire) {
+    var s = sheet(), c = s.c, cx = 12, i, Pb = lv === 0 ? P.wood : P.stone;
+    var cy = base(c, cx, lv === 0 ? 18 : 20, ds(9), hs(lv === 0 ? 3 : 4), Pb);                  // 土台（段階0は木の床、段階1から石）
+    if (lv === 0) planks(c, cx, BY, 18, hs(3), P.wood, 2); else masonry(c, cx, BY, 20, hs(4), P.stone);
+    if (lv === 2) R(c, cx - 10, BY - hs(4), 20, 1, GOLD);
+    var ty = cy + 3, th = [14, 16, 17][lv], hw = 9;                                                 // テント：三角の布。左は明るく右は影
+    var cloth = lv === 2 ? { l: '#d8cfa8', s: '#a89a70', d: '#7a6e48' } : { l: '#c8b88a', s: '#97865a', d: '#6a5c38' };
+    for (var j = 0; j < th; j++) { var w = Math.round(hw * (j + 1) / th); R(c, cx - 2 - w, ty - th + j, w + 1, 1, cloth.l); R(c, cx - 1, ty - th + j, w, 1, cloth.s); }
+    R(c, cx - 2 - hw, ty - 1, hw * 2, 1, cloth.d);
+    R(c, cx - 4, ty - 7, 4, 6, '#2a1c10'); R(c, cx - 3, ty - 6, 1, 5, '#4a3420');                   // 入口
+    R(c, cx - 2, ty - th - 2, 1, 3, P.wood.d);                                                       // 柱の先
+    if (lv >= 1) { R(c, cx - 2 - hw, ty - 4, hw * 2, 1, '#7a6040'); }                                // ロープ
+    // わらの練習人形（右）：木の柱・わらの体・腕木。攻撃しないので fire の時も同じ
+    var dx = cx + 8, dy = cy + 2;
+    R(c, dx, dy - 12, 1, 12, P.wood.d); R(c, dx - 2, dy - 11, 5, 5, '#d8b860'); R(c, dx - 2, dy - 11, 1, 5, '#f0d480'); R(c, dx + 2, dy - 11, 1, 5, '#a88a3a');
+    R(c, dx - 4, dy - 10, 9, 1, P.wood.f); DA.disc(c, dx, dy - 14, 2, '#e0c070'); R(c, dx - 1, dy - 15, 1, 1, '#f6e0a0');
+    if (lv === 2) { R(c, dx - 2, dy - 8, 5, 1, '#c8341a'); }                                        // 段階2：赤い帯
+    flag(c, cx - 2, ty - th - 1, 6 + lv * 2, lv);
+    return trim(s);
+  }
+
   // ================= 兵舎（barracks）：木の小屋と旗。赤い屋根、戸口、明かりの窓 =================
   function barracks(lv, fire) {
     var s = sheet(), c = s.c, cx = 12, bh = [3, 4, 4][lv], bw = 20, wh = [10, 11, 12][lv], i;
@@ -935,6 +957,7 @@ var G = window.G = window.G || {};
     ballista: function (lv, fire) { var r = ballistaR(lv, fire); return { r: r, l: flip(r) }; },
     blizzard: blizzard,
     barracks: barracks,
+    recruit: recruitPost,
     golem: golem,
     mine: mine,
     spikes: spikes,

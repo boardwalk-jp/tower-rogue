@@ -809,6 +809,18 @@ var G = window.G = window.G || {};
     else { for (i = 0; i < 3; i++) R(c, X + 4 + i, Y - 10 + i, 1, 1, i < 1 ? '#ffffff' : '#e8ecf0'); R(c, X + 4, Y - 11, 1, 3, '#8a6a2a'); }
   }
 
+  // ================= 新兵（新兵の詰所が出す味方。2026-10-22）：兵士の形のまま、革の帽子・緑の上着・木の剣・小さな木の盾 =================
+  function recruit(c, f, X, Y) {
+    soldier(c, f, X, Y);
+    c.clearRect(X - 3, Y - 18, 7, 4);                                                                     // かぶとを消して
+    R(c, X - 3, Y - 16, 6, 2, '#8a5a2a'); R(c, X - 3, Y - 16, 1, 2, '#a87440'); R(c, X + 2, Y - 16, 1, 2, '#5e3a18'); R(c, X - 2, Y - 17, 4, 1, '#a87440');   // 革の帽子
+    R(c, X - 2, Y - 14, 4, 1, '#5a3a20');                                                                 // 前髪
+    R(c, X - 3, Y - 11, 6, 4, '#5e8a3a'); R(c, X - 3, Y - 11, 1, 4, '#7aa852'); R(c, X + 2, Y - 11, 1, 4, '#3e6224');   // 緑の上着
+    R(c, X - 5, Y - 10, 2, 4, '#8a6034'); R(c, X - 5, Y - 10, 1, 4, '#a87a48');                          // 木の盾
+    if (!f) { R(c, X + 4, Y - 15, 1, 6, '#b08850'); R(c, X + 4, Y - 15, 1, 1, '#d0a870'); }              // 木の剣（上）
+    else { c.clearRect(X + 4, Y - 10, 3, 3); R(c, X + 4, Y - 10, 1, 1, '#d0a870'); R(c, X + 5, Y - 9, 1, 1, '#b08850'); R(c, X + 6, Y - 8, 1, 1, '#b08850'); }   // 木の剣（ふり下ろす）
+  }
+
   // ================= 味方の石の巨人（灰色の石のかたまり・光る目） =================
   function golemUnit(c, f, X, Y) {
     var S = '#9fa3a8', hi = '#c3c7cc', sh = '#6d7177', dk = '#43464b', seam = '#7d8186', eye = '#5fd8ff', gl = '#d8faff';
@@ -887,6 +899,7 @@ var G = window.G = window.G || {};
     flamegeneral: { sr: 13, draw: flamegeneral },
     dragon: { sr: 16, draw: dragon },
     soldier: { sr: 6, draw: soldier },
+    recruitUnit: { sr: 6, draw: recruit },   // 名前はタワーの recruit と分ける
     golemUnit: { sr: 9, draw: golemUnit }
   };
 
