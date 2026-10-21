@@ -588,6 +588,175 @@ var G = window.G = window.G || {};
     return trim(s);
   }
 
+  // ================= 臼砲（mortar）：低い石の台と、上を向いた太い黒い鉄の砲 =================
+  function mortar(lv, fire) {
+    var s = sheet(), c = s.c, cx = 12, bh = [4, 5, 6][lv], bw = lv === 2 ? 21 : 20, Pb = lv === 0 ? P.stone : P.rock, i;
+    var cy = base(c, cx, bw, ds(10), hs(bh), Pb);
+    masonry(c, cx, BY, bw, hs(bh), Pb, 3);
+    if (lv >= 1) { R(c, cx - (bw >> 1), BY - hs(bh), 2, hs(bh) - 1, P.iron.f); R(c, cx + (bw >> 1) - 2, BY - hs(bh), 2, hs(bh) - 1, P.iron.s); }   // 角の鉄の補強
+    if (lv === 2) band(c, cx, BY - hs(bh), bw, GOLD, GOLD_HI);
+    // 砲の下の木の受け台
+    var wy = cy + 3;                                                           // 受け台の手前の下の線
+    R(c, cx - 7, wy - 3, 14, 3, P.wood.f); R(c, cx - 7, wy - 3, 14, 1, P.wood.t); R(c, cx + 3, wy - 3, 4, 3, P.wood.s); R(c, cx - 7, wy - 1, 14, 1, P.wood.d);
+    // 太い鉄の砲（上を向く筒）。下が広く、上は少しすぼまる。左は明るく右は影
+    var th = [8, 9, 10][lv], ty = wy - 3 - th, hw0 = 6, hw1 = 5;
+    for (var j = 0; j < th; j++) {
+      var hw = j < th * 0.5 ? hw1 : hw0, y = ty + j;
+      for (i = -hw; i <= hw; i++) {
+        var k = i / hw, col = k < -0.55 ? P.iron.hi : k < 0.1 ? P.iron.t : k < 0.55 ? P.iron.f : P.iron.s;
+        R(c, cx + i, y, 1, 1, col);
+      }
+    }
+    R(c, cx - hw0, wy - 4, hw0 * 2 + 1, 1, P.iron.d);
+    // 補強の帯（段階1＝鉄、段階2＝金）
+    if (lv >= 1) { band(c, cx, ty + 4, 11, lv === 2 ? GOLD : P.iron.hi, lv === 2 ? GOLD_HI : null); band(c, cx, ty + th - 2, 13, lv === 2 ? GOLD : P.iron.hi); }
+    // 砲口（上のふち）：太いふちと、暗い穴。攻撃中は穴が光って炎が出る
+    ell(c, cx, ty, 6, 3, lv === 2 ? GOLD : P.iron.t);
+    ell(c, cx, ty, 5, 2, P.iron.hi); ell(c, cx, ty + 1, 4, 2, fire ? '#ff8a2a' : '#0c0a0e');
+    R(c, cx - 5, ty, 1, 1, lv === 2 ? GOLD_HI : '#8a8ea0');
+    if (fire) { ell(c, cx, ty + 1, 2, 1, '#ffe27a'); R(c, cx - 1, ty - 3, 3, 2, '#ff9a2a'); R(c, cx, ty - 5, 1, 2, '#ffd84a'); R(c, cx - 4, ty - 2, 1, 1, '#ffb347'); R(c, cx + 4, ty - 2, 1, 1, '#ffb347'); }
+    // 砲弾の山（手前）と旗
+    ell(c, cx + 8, cy + 3, 1, 1, P.iron.f); R(c, cx + 8, cy + 2, 1, 1, P.iron.hi); ell(c, cx - 8, cy + 3, 1, 1, P.iron.f);
+    flag(c, cx - (bw >> 1) + 2, cy - 1, lv === 0 ? 9 : 11, lv, true);
+    return trim(s);
+  }
+
+  // ================= 大型弩砲（ballista）：石台の上の大きな弓（右向きを描き、左は反転） =================
+  function ballistaR(lv, fire) {
+    var s = sheet(), c = s.c, cx = 12, bh = [7, 8, 9][lv], bw = lv === 2 ? 21 : 20, Pb = lv === 0 ? P.stone : P.rock, i;
+    var cy = base(c, cx, bw, ds(10), hs(bh), Pb);
+    masonry(c, cx, BY, bw, hs(bh), Pb);
+    if (lv >= 1) { R(c, cx - (bw >> 1), BY - hs(bh), 2, hs(bh) - 1, P.iron.f); R(c, cx + (bw >> 1) - 2, BY - hs(bh), 2, hs(bh) - 1, P.iron.s); }
+    if (lv === 2) band(c, cx, BY - hs(bh), bw, GOLD, GOLD_HI);
+    // 木の台（台の上に太い梁）
+    var wy = cy + 3;
+    R(c, cx - 8, wy - 4, 16, 4, P.wood.f); R(c, cx - 8, wy - 4, 16, 1, P.wood.t); R(c, cx + 4, wy - 4, 4, 4, P.wood.s); R(c, cx - 8, wy - 1, 16, 1, P.wood.d);
+    if (lv >= 1) { band(c, cx, wy - 3, 16, P.iron.f, P.iron.hi); }
+    if (lv === 2) rivets(c, cx, wy - 2, 16, 4);
+    // 台の柱（弓を支える）
+    var by = wy - 5, bowX = cx + 5, hh = [18, 20, 22][lv], top = by - hh;
+    R(c, cx - 2, by - 3, 3, 3, P.wood.f);
+    // 弓の本体：まんなかが前（右）に出て、先は後ろにそる。左は明るく右は影
+    for (i = 0; i < hh; i++) {
+      var t = (i / (hh - 1)) * 2 - 1, bend = Math.round(3 * t * t), x = bowX - bend;
+      R(c, x, top + i, 2, 1, (i & 3) === 3 ? P.wood.d : P.wood.f); R(c, x, top + i, 1, 1, P.wood.hi); R(c, x + 1, top + i, 1, 1, P.wood.s);
+      if (lv >= 1 && (i === 4 || i === hh - 5)) R(c, x - 1, top + i, 3, 1, lv === 2 ? GOLD : P.iron.f);
+    }
+    R(c, bowX - 3, top, 2, 1, P.wood.s); R(c, bowX - 3, by - 1, 2, 1, P.wood.s);
+    var mid = top + (hh >> 1);
+    // 弦：ふだんは後ろに引かれた形。攻撃中は前にもどっている
+    var sx = fire ? bowX - 1 : cx - 4;
+    for (i = 0; i < 3; i++) { R(c, bowX - 3 + Math.round((sx - (bowX - 3)) * 0) , top, 1, 1, '#e8e0c0'); }
+    for (i = 0; i <= (hh >> 1); i++) {
+      var xx = (bowX - 3) + Math.round((sx - (bowX - 3)) * i / (hh >> 1));
+      R(c, xx, top + i, 1, 1, '#e8e0c0'); R(c, xx, by - 1 - i, 1, 1, '#e8e0c0');
+    }
+    // 太い矢：ふだんは弦にのせて前をむく。攻撃中は前へ進み、先が光る
+    var ax = fire ? cx - 2 : cx - 5, ay = mid;
+    R(c, ax, ay, 14, 1, '#d8d8d8'); R(c, ax, ay + 1, 14, 1, '#9a9aa8');
+    R(c, ax + 14, ay, 1, 2, '#ffffff'); R(c, ax + 12, ay - 1, 2, 1, '#cfd6e0'); R(c, ax + 12, ay + 2, 2, 1, '#cfd6e0');
+    R(c, ax, ay - 1, 1, 1, '#d94a3a'); R(c, ax, ay + 2, 1, 1, '#d94a3a');
+    if (fire) { R(c, ax + 15, ay, 2, 1, '#ffffff'); R(c, ax - 3, ay, 2, 1, 'rgba(255,255,255,.6)'); }
+    // 旗（左のすみ）
+    flag(c, cx - (bw >> 1) + 2, cy - 1, lv === 0 ? 10 : 12, lv, true);
+    return trim(s);
+  }
+
+  // ================= 吹雪の塔（blizzard）：氷の柱と、まわる雪 =================
+  function blizzard(lv, fire) {
+    var s = sheet(), c = s.c, cx = 12, bh = [6, 7, 8][lv], bw = 18, i;
+    var cy = base(c, cx, bw, ds(9), hs(bh), P.bluest);
+    masonry(c, cx, BY, bw, hs(bh), P.bluest);
+    R(c, cx - (bw >> 1), BY - hs(bh), bw, 1, '#e8f6ff');
+    for (i = 0; i < bw; i += 4) R(c, cx - (bw >> 1) + i, BY - hs(bh) + 1, 1, 2, '#cfeaff');                 // つらら
+    if (lv === 2) { band(c, cx, BY - 2, bw, GOLD, GOLD_HI); rivets(c, cx, BY - hs(bh) + 3, bw, 5); }
+    var y = cy;
+    if (lv >= 1) { y = slab(c, cx, cy, 12, ds(6), hs(lv === 2 ? 3 : 2), P.metal); if (lv === 2) band(c, cx, y + 3, 12, GOLD); }
+    // 太い氷の柱（1本）：下の部分は四角、上はとがる
+    var h = [23, 26, 29][lv], pw = 9, x0 = cx - 4, by = y + 3, topY = by - h;
+    for (i = 0; i < pw; i++) {
+      var k = i / (pw - 1), col = k < 0.25 ? '#e0f4ff' : k < 0.6 ? '#a8d8f0' : k < 0.85 ? '#7ab8e0' : '#4f93c4';
+      R(c, x0 + i, topY + 7, 1, h - 7, col);
+    }
+    for (i = 0; i < 7; i++) { var half = Math.round(4 * (i + 1) / 7); R(c, cx - half, topY + i, half, 1, '#e0f4ff'); R(c, cx, topY + i, half + 1, 1, '#9ccbe8'); }
+    R(c, cx, topY - 1, 1, 1, '#ffffff');
+    R(c, x0 + 2, topY + 9, 1, h - 12, '#ffffff');                                                   // すじのハイライト
+    R(c, x0 + 1, by - 1, pw - 1, 1, '#3f86b8');
+    if (lv >= 1) { band(c, cx, by - 7, pw + 2, P.metal.f, P.metal.hi); }
+    if (lv === 2) { band(c, cx, topY + 12, pw + 2, GOLD, GOLD_HI); R(c, cx - 1, topY - 4, 3, 2, fire ? '#ffffff' : '#bff0ff'); R(c, cx, topY - 3, 1, 1, GOLD); }
+    if (fire) { R(c, cx - 1, topY + 1, 1, 3, '#ffffff'); R(c, x0 + 2, topY + 9, 1, h - 12, '#ffffff'); }
+    // 回る雪：柱をぐるっと囲む（前を通る雪は明るく、後ろは暗い）
+    var my = topY + (h >> 1) + 1, n = fire ? 12 : 8, a;
+    for (i = 0; i < n; i++) {
+      a = (i / n) * Math.PI * 2 + 0.4;
+      var sx = Math.round(cx + Math.cos(a) * 9), sy = Math.round(my + Math.sin(a) * 3.5 + Math.cos(a * 2) * 1.5);
+      R(c, sx, sy, 1, 1, Math.sin(a) > 0 ? '#ffffff' : (fire ? '#d8f0ff' : '#9ccbe8'));
+    }
+    if (fire) { R(c, cx - 11, my - 5, 1, 1, '#ffffff'); R(c, cx + 10, my + 4, 1, 1, '#ffffff'); }
+    else { R(c, cx - 10, my - 5, 1, 1, '#bfe8ff'); R(c, cx + 9, my + 4, 1, 1, '#bfe8ff'); }
+    flag(c, cx + 8, cy - 2, lv === 2 ? 10 : lv ? 9 : 8, lv);
+    return trim(s);
+  }
+
+  // ================= 兵舎（barracks）：木の小屋と旗。赤い屋根、戸口、明かりの窓 =================
+  function barracks(lv, fire) {
+    var s = sheet(), c = s.c, cx = 12, bh = [3, 4, 4][lv], bw = 20, wh = [10, 11, 12][lv], i;
+    var Pr = { l: '#c8503a', s: '#8e3424', hi: '#e8806a', d: '#4a1a12' };
+    var cy = base(c, cx, bw, ds(10), hs(bh), P.stone);
+    masonry(c, cx, BY, bw, hs(bh), P.stone, 2);
+    if (lv === 2) band(c, cx, BY - hs(bh), bw, GOLD, GOLD_HI);
+    // 木の小屋
+    var ww = 16, wby = cy + 3, y = slab(c, cx, cy, ww, ds(8), hs(wh), P.wood);
+    planks(c, cx, wby, ww, hs(wh), P.wood, 3);
+    R(c, cx - 2, wby - 7, 5, 6, '#3b2a1a'); R(c, cx - 2, wby - 7, 1, 6, '#24180e'); R(c, cx - 1, wby - 8, 3, 1, '#3b2a1a');   // 戸口
+    R(c, cx + 4, wby - 8, 3, 3, '#2a1a0e'); R(c, cx + 5, wby - 7, 1, 1, fire ? '#fff0b0' : '#ffd070'); R(c, cx + 4, wby - 8, 1, 1, '#ffe9a0'); // 明かりの窓
+    if (fire) R(c, cx + 4, wby - 6, 3, 1, '#ffe9a0');
+    if (lv >= 1) { band(c, cx, wby - 2, ww, P.iron.f, P.iron.hi); band(c, cx, wby - hs(wh) + 1, ww, P.iron.f, P.iron.hi); R(c, cx - (ww >> 1), wby - hs(wh) + 1, 1, hs(wh) - 2, P.iron.f); }
+    if (lv === 2) { rivets(c, cx, wby - 2, ww, 3); banner(c, cx - 6, wby - hs(wh) + 3, 3, 5, '#b8382a', GOLD); }
+    // 屋根（のきが出る）
+    var tip = roof(c, cx, y + 1, 11, [8, 9, 10][lv], Pr);
+    if (lv >= 1) band(c, cx, y - 1, 15, P.iron.f);
+    if (lv === 2) { band(c, cx, y, 23, GOLD); R(c, cx, tip - 2, 1, 2, GOLD); R(c, cx - 1, tip - 3, 3, 1, GOLD_HI); flag(c, cx + 1, tip - 2, 5, 2); }
+    else flag(c, cx, tip, lv ? 6 : 5, lv);
+    return trim(s);
+  }
+
+  // ================= 石像の工房（golem）：石の門と台座。暗い戸口に光る目 =================
+  function golem(lv, fire) {
+    var s = sheet(), c = s.c, cx = 12, bh = [4, 5, 5][lv], bw = 20, gh = [14, 16, 17][lv], i;
+    var cy = base(c, cx, bw, ds(10), hs(bh), P.stone);
+    masonry(c, cx, BY, bw, hs(bh), P.stone, 2);
+    if (lv === 2) band(c, cx, BY - hs(bh), bw, GOLD, GOLD_HI);
+    // 石の門（門の壁）
+    var gw = 16, wby = cy + 3, y = slab(c, cx, cy, gw, ds(8), hs(gh), P.rock);
+    masonry(c, cx, wby, gw, hs(gh), P.rock);
+    // 戸口（アーチ）と光る目
+    var dy = wby - 9;
+    R(c, cx - 3, dy + 2, 7, 8, '#14110e'); R(c, cx - 2, dy + 1, 5, 1, '#14110e'); R(c, cx - 1, dy, 3, 1, '#14110e');
+    R(c, cx - 3, dy + 2, 1, 8, '#0a0806');
+    var eye = fire ? '#ffffff' : '#ffd84a';
+    R(c, cx - 2, dy + 4, 2, 2, eye); R(c, cx + 1, dy + 4, 2, 2, eye);
+    if (fire) { R(c, cx - 3, dy + 4, 1, 2, '#ffd84a'); R(c, cx + 3, dy + 4, 1, 2, '#ffd84a'); }
+    if (lv >= 1) { band(c, cx, wby - 2, gw, P.iron.f, P.iron.hi); band(c, cx, wby - hs(gh) + 1, gw, P.iron.f, P.iron.hi); }
+    if (lv === 2) { rivets(c, cx, wby - 2, gw, 3); R(c, cx - 4, dy - 1, 9, 1, GOLD); }
+    // 上の台座：段階0は二つの石の塊、段階1は平らな石の上の台座、段階2は金の飾りと石像の頭
+    if (lv === 0) {
+      R(c, cx - 7, y - 1, 5, 4, P.rock.f); R(c, cx - 7, y - 1, 5, 1, P.rock.t); R(c, cx - 4, y, 2, 3, P.rock.s);
+      R(c, cx + 2, y - 2, 5, 5, P.rock.f); R(c, cx + 2, y - 2, 5, 1, P.rock.t); R(c, cx + 5, y - 1, 2, 4, P.rock.s);
+      flag(c, cx + 8, cy - 2, 9, 0);
+    } else {
+      var y2 = slab(c, cx, y, 12, ds(6), hs(2), P.stone);
+      band(c, cx, y2 + 5, 12, lv === 2 ? GOLD : P.iron.f);
+      var hy = y2 + 1;                                                          // 石像の頭（台座の上）
+      R(c, cx - 3, hy - 6, 7, 6, P.stone.f); R(c, cx + 1, hy - 6, 3, 6, P.stone.s); R(c, cx - 3, hy - 6, 7, 1, P.stone.t); R(c, cx - 3, hy - 6, 1, 6, P.stone.hi);
+      R(c, cx - 2, hy - 4, 2, 1, fire ? '#ffffff' : '#5fd8ff'); R(c, cx + 1, hy - 4, 2, 1, fire ? '#ffffff' : '#5fd8ff');
+      R(c, cx - 3, hy - 1, 7, 1, P.stone.d);
+      if (lv === 2) { R(c, cx - 3, hy - 7, 7, 1, GOLD); R(c, cx - 2, hy - 8, 1, 1, GOLD_HI); R(c, cx + 2, hy - 8, 1, 1, GOLD); R(c, cx, hy - 9, 1, 1, GOLD_HI); flag(c, cx + 8, cy - 2, 13, 2); }
+      else flag(c, cx + 8, cy - 2, 10, 1);
+    }
+    return trim(s);
+  }
+
   // ---------- 種類ごとの作り方（ここに描き足していく） ----------
   var MAKERS = {
     archer: archer,
@@ -602,7 +771,12 @@ var G = window.G = window.G || {};
     thunder: thunder,
     poison: poison,
     mage: mage,
-    storm: storm
+    storm: storm,
+    mortar: mortar,
+    ballista: function (lv, fire) { var r = ballistaR(lv, fire); return { r: r, l: flip(r) }; },
+    blizzard: blizzard,
+    barracks: barracks,
+    golem: golem
   };
 
   G.TowerArt = {
