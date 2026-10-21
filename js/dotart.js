@@ -124,22 +124,8 @@ var G = window.G = window.G || {};
     return done(s, 12, 15, 0);
   }
 
-  // ---------- 砦（ゴール）。見た目の候補を3つ作って比べられるようにしてある ----------
-  var P_STONE = { t: '#b4b8c0', f: '#8c909a', s: '#6a6e7a', hi: '#cdd1d9', d: '#363944' };
-  var P_WOOD = { t: '#b88c54', f: '#8d6034', s: '#62411f', hi: '#d09f66', d: '#2c1a0c' };
+  // ---------- 砦（ゴール） ----------
 
-  function bricks(c, x, y, w, h, col) {   // 石のレンガ目（横線と、段ごとにずらした縦線）
-    for (var r = 0; r < h; r += 4) {
-      R(c, x, y + r, w, 1, col);
-      for (var q = ((r >> 2) & 1) * 3; q < w; q += 6) R(c, x + q, y + r + 1, 1, 3, col);
-    }
-  }
-  function merlons(c, x, y, w, P) {   // 城壁の上のぎざぎざ（手前の面の上に出る）
-    for (var i = 0; i < w; i += 6) { R(c, x + i, y - 3, 4, 3, P.f); R(c, x + i, y - 4, 4, 1, P.t); R(c, x + i + 3, y - 3, 1, 3, P.s); }
-  }
-  function flag(c, x, y, h, col, col2) {  // 旗ざお（地面側が (x, y)）
-    R(c, x, y - h, 1, h, '#5a3a1e'); R(c, x + 1, y - h, 7, 5, col); R(c, x + 1, y - h + 4, 5, 1, col2); R(c, x + 1, y - h + 5, 3, 1, col);
-  }
   function banner(c, x, y, w, h, col, trim) {   // 垂れ幕（上のまん中が x、下は切れこみ、まん中に金のしるし）
     var x0 = x - (w >> 1);
     R(c, x0, y, w, h, col); R(c, x0, y, w, 1, trim);
@@ -149,137 +135,94 @@ var G = window.G = window.G || {};
   }
   function torch(c, x, y) { R(c, x, y, 1, 4, '#4a2e16'); R(c, x - 1, y - 2, 3, 2, '#ff8a2a'); R(c, x, y - 3, 1, 1, '#ffd84a'); }
 
-  // 案A：木の砦。丸太の柵、四すみの見はりやぐら、丸太の門
-  function fortWood() {
-    var s = mk(104, 92), c = s.c, cx = 52, by = 86, P = P_WOOD, i, j;
-    // 影
-    ell(c, cx + 2, by - 1, 48, 5, 'rgba(0,0,0,.22)');
-    // 柵（とがった丸太がならぶ）。奥の列→手前の列
-    for (i = 0; i < 2; i++) {
-      var yb = by - 3 - (1 - i) * 3;
-      for (var x = 6 + i * 2; x < 98; x += 4) {
-        var hh = 20 + ((x * 7 + i * 3) % 5), top = yb - hh;
-        R(c, x, top + 2, 3, hh - 2, P.f); R(c, x, top + 2, 1, hh - 2, P.hi); R(c, x + 2, top + 2, 1, hh - 2, P.s);
-        R(c, x + 1, top, 1, 2, P.f); R(c, x + 1, top, 1, 1, P.hi);
-        R(c, x, yb - 1, 3, 1, P.d);
+  // 石の要塞（ゴール）。地域ごとに少し変える（草原＝土台にこけ、雪山＝屋上に雪とつらら、火山＝黒っぽい石とすす）
+  function hsh(x, y) { var h = Math.imul(x, 374761393) + Math.imul(y, 668265263) | 0; h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; }
+  var FORT_P = {
+    grass:   { t: '#bcbfc6', f: ['#959aa4', '#8b909a', '#a0a5ae'], m: '#6e737e', s: 'rgba(24,28,40,.34)', hi: '#d6d9df', d: '#30333c', cap: '#cdd0d6', ban: '#b02c34', glow: '#ffd27a' },
+    snow:    { t: '#f4f8fc', f: ['#9aa0ac', '#8f95a2', '#a6abb6'], m: '#737a88', s: 'rgba(24,30,48,.34)', hi: '#dfe3ea', d: '#30343e', cap: '#ffffff', ban: '#a82a36', glow: '#ffd27a' },
+    volcano: { t: '#8a8488', f: ['#6e696e', '#646064', '#78737a'], m: '#4c484e', s: 'rgba(10,6,8,.38)', hi: '#a29ca2', d: '#1e1b1e', cap: '#9a9498', ban: '#7e1a22', glow: '#ffb040' }
+  };
+  function buildFort(theme) {
+    var P = FORT_P[theme], snow = theme === 'snow', volc = theme === 'volcano';
+    var s = mk(112, 106), c = s.c, cx = 56, by = 100, i;
+    // 石を積んだ手前の面：段ごとにずらした石、石ごとに少し色を変える、右の端は影
+    function masonry(x, y, w, h, seed) {
+      for (var r = 0; r < h; r += 4) {
+        var off = ((r >> 2) & 1) ? 4 : 0;
+        for (var bx = -off; bx < w; bx += 8) {
+          var x0 = Math.max(0, bx), x1 = Math.min(w, bx + 8), hv = hsh(seed + bx, r);
+          R(c, x + x0, y + r, x1 - x0, Math.min(4, h - r), P.f[hv < 0.55 ? 0 : hv < 0.8 ? 1 : 2]);
+          if (bx > 0) R(c, x + bx, y + r, 1, Math.min(3, h - r), P.m);
+        }
+        if (r + 3 < h) R(c, x, y + r + 3, w, 1, P.m);
       }
+      var sw = Math.max(2, w >> 2); c.fillStyle = P.s; c.fillRect(x + w - sw, y, sw, h);
+      R(c, x, y, 1, h, P.hi);
     }
-    for (j = 0; j < 2; j++) R(c, 6, by - 12 - j * 7, 92, 1, '#d4c08a');   // なわの帯
-    // 見はりやぐら（左右）
-    [-34, 34].forEach(function (dx) {
-      var tx = cx + dx, ty = by - 4;
-      for (var k = -1; k <= 1; k += 2) { R(c, tx + k * 7 - 1, ty - 40, 3, 40, P.f); R(c, tx + k * 7 - 1, ty - 40, 1, 40, P.hi); R(c, tx + k * 7 + 1, ty - 40, 1, 40, P.s); }
-      for (k = 0; k < 14; k++) { R(c, tx - 6 + k, ty - 8 - Math.round(k * 22 / 14), 1, 1, P.s); R(c, tx + 6 - k, ty - 8 - Math.round(k * 22 / 14), 1, 1, P.d); }   // ななめの補強材
-      box(c, tx, ty - 36, 22, 8, 4, P);                                  // 見はり台
-      R(c, tx - 11, ty - 36 - 4 - 8, 1, 8, P.d); R(c, tx + 10, ty - 36 - 4 - 8, 1, 8, P.d);
-      R(c, tx - 11, ty - 36 - 5, 22, 1, P.d); R(c, tx - 11, ty - 36 - 8, 22, 1, P.hi);           // 手すり
-      R(c, tx - 9, ty - 36 - 4, 18, 4, P.f); R(c, tx - 9, ty - 36 - 4, 18, 1, P.hi);               // 台の前の板
-      R(c, tx - 4, ty - 36 - 3, 2, 2, '#14100a'); R(c, tx + 3, ty - 36 - 3, 2, 2, '#14100a');
-      // 屋根（板ぶき）
-      for (j = 0; j < 12; j++) { var half = 3 + j; R(c, tx - half - 1, ty - 36 - 8 - 12 + j, half + 1, 1, j % 3 === 2 ? '#8a3a2a' : '#a8483a'); R(c, tx, ty - 36 - 8 - 12 + j, half + 1, 1, j % 3 === 2 ? '#5a2a20' : '#74342a'); }
-      R(c, tx, ty - 36 - 8 - 14, 1, 2, P.d);
-    });
-    flag(c, cx - 34, by - 4 - 36 - 8 - 12 - 2, 8, '#d04030', '#f0c040');
-    // 門：太い柱と横木、ひらいた扉
-    R(c, cx - 14, by - 36, 5, 36, P.f); R(c, cx - 14, by - 36, 1, 36, P.hi); R(c, cx - 11, by - 36, 2, 36, P.s);
-    R(c, cx + 9, by - 36, 5, 36, P.f); R(c, cx + 9, by - 36, 1, 36, P.hi); R(c, cx + 12, by - 36, 2, 36, P.s);
-    R(c, cx - 10, by - 18, 20, 18, '#140c06');
-    ell(c, cx, by - 18, 10, 3, '#140c06');
-    R(c, cx - 10, by - 17, 3, 17, P.f); R(c, cx - 10, by - 17, 1, 17, P.hi); R(c, cx - 8, by - 17, 1, 17, P.s);   // ひらいた扉（左）
-    R(c, cx + 7, by - 17, 3, 17, P.f); R(c, cx + 9, by - 17, 1, 17, P.s);                                       // （右）
-    box(c, cx, by - 36, 32, 6, 5, P);                                    // 門の上の横木
-    banner(c, cx, by - 36 - 6 - 2, 10, 12, '#c23a30', '#f0c040');
-    torch(c, cx - 17, by - 20); torch(c, cx + 17, by - 20);
-    // 手前のくいの罠（交差した丸太）
-    [-24, 24].forEach(function (dx) {
-      for (var k = 0; k < 9; k++) { R(c, cx + dx - 5 + k, by - 2 - k, 2, 1, P.f); R(c, cx + dx + 4 - k, by - 2 - k, 2, 1, P.s); }
-      R(c, cx + dx - 5, by - 3, 1, 1, P.hi);
-    });
-    return done(s, cx, by, 0);
-  }
+    // 屋上のぎざぎざ（奥の列→手前の列）と、手前の面の上の出っぱり（石の受け）
+    function parapet(x, yTop, w, dp) {
+      var q;
+      for (q = 1; q < w - 2; q += 6) { R(c, x + q, yTop - dp - 3, 4, 3, P.f[1]); R(c, x + q, yTop - dp - 3, 4, 1, P.cap); }
+      R(c, x, yTop - dp, 2, dp, P.f[1]); R(c, x + w - 2, yTop - dp, 2, dp, P.f[1]);
+      for (q = 1; q < w - 2; q += 6) {
+        R(c, x + q, yTop - 4, 4, 4, P.f[0]); R(c, x + q, yTop - 4, 1, 4, P.hi); R(c, x + q + 3, yTop - 4, 1, 4, P.m);
+        R(c, x + q, yTop - 5, 4, 1, P.cap);
+      }
+      R(c, x - 1, yTop, w + 2, 2, P.f[2]); R(c, x - 1, yTop, w + 2, 1, P.hi);           // 出っぱりの帯
+      for (q = 1; q < w; q += 3) R(c, x + q, yTop + 2, 1, 1, P.d);                        // 帯の下の影（石の受け）
+    }
+    // 1つの塔（または壁）：屋上の床、石の面、下の太い土台、屋上のぎざぎざ
+    function block(bcx, bby, w, dp, hh, seed) {
+      var x0 = bcx - (w >> 1), q, sw = Math.max(2, w >> 2);
+      R(c, x0, bby - hh - dp, w, dp, P.t);
+      if (snow) for (q = 0; q < w; q += 2) R(c, x0 + q, bby - hh - dp + (hsh(seed, q) < 0.5 ? 1 : 2), 1, 1, '#dfe8f2');
+      masonry(x0, bby - hh, w, hh, seed);
+      R(c, x0 - 1, bby - 5, w + 2, 5, P.f[1]); R(c, x0 - 1, bby - 5, w + 2, 1, P.hi); R(c, x0 - 1, bby - 1, w + 2, 1, P.d);
+      c.fillStyle = P.s; c.fillRect(x0 + w - sw, bby - 5, sw + 1, 5);
+      parapet(x0, bby - hh, w, dp);
+      if (snow) { R(c, x0 - 1, bby - hh - 1, w + 2, 1, '#ffffff'); for (q = 2; q < w; q += 5) if (hsh(seed + 3, q) < 0.6) R(c, x0 + q, bby - hh + 2, 1, 1 + ((q * 7) % 3), '#cfe6f6'); }
+      if (volc) { c.fillStyle = 'rgba(0,0,0,.25)'; c.fillRect(x0 - 1, bby - 10, w + 2, 5); }
+      if (theme === 'grass') for (q = 0; q < w; q += 3) if (hsh(seed + 9, q) < 0.45) R(c, x0 + q, bby - 2 - ((q * 5) % 3), 1, 2, '#4f7a3a');
+      return x0;
+    }
+    function slit(x, y) { R(c, x, y, 2, 7, P.d); R(c, x - 1, y + 2, 4, 2, P.d); R(c, x, y + 1, 1, 5, '#000000'); }
+    function win(x, y) { R(c, x - 1, y - 1, 6, 8, P.hi); R(c, x, y, 4, 6, '#1c1410'); R(c, x + 1, y + 2, 2, 3, P.glow); R(c, x - 1, y + 6, 6, 1, P.m); }
+    function flagPole(x, y, h, col) { R(c, x, y - h, 1, h, '#4a3220'); R(c, x, y - h - 1, 1, 1, '#d8b040'); R(c, x + 1, y - h, 7, 4, col); R(c, x + 1, y - h + 4, 4, 1, col); R(c, x + 1, y - h, 7, 1, 'rgba(255,255,255,.25)'); }
 
-  // 案B：石の要塞。厚い石の壁、四角い角の塔、まん中の門の塔とはね橋
-  function fortStone() {
-    var s = mk(104, 96), c = s.c, cx = 52, by = 90, P = P_STONE, i;
-    ell(c, cx + 2, by - 1, 49, 5, 'rgba(0,0,0,.22)');
-    // 壁（左右）
-    box(c, cx, by - 2, 94, 8, 17, P); bricks(c, cx - 47, by - 2 - 17 + 1, 94, 16, P.s);
-    R(c, cx - 47, by - 2 - 17 - 8, 94, 1, P.hi); merlons(c, cx - 46, by - 2 - 17 - 8 + 8, 92, P);
-    // 角の塔（四角）
-    [-35, 35].forEach(function (dx) {
+    ell(c, cx + 3, by, 50, 5, 'rgba(0,0,0,.24)');                                                // 地面の影
+    block(cx, by - 4, 84, 8, 22, 11);                                                            // 奥の壁（塔と門のあいだ）
+    [-38, 38].forEach(function (dx, k) {                                                         // 左右の角の塔
       var tx = cx + dx;
-      box(c, tx, by, 22, 10, 34, P); bricks(c, tx - 11, by - 33, 22, 33, P.s);
-      R(c, tx - 11, by - 34, 22, 1, P.hi);
-      merlons(c, tx - 10, by - 34 - 10 + 10, 20, P);
-      R(c, tx - 1, by - 24, 2, 7, P.d); R(c, tx - 1, by - 14, 2, 5, P.d);        // 矢の穴
-      R(c, tx - 11, by - 34 - 10 - 1, 1, 1, P.hi);
+      block(tx, by, 22, 12, 38, 30 + k * 17);
+      slit(tx - 1, by - 31); slit(tx - 1, by - 18);
+      flagPole(tx + (dx < 0 ? -7 : 5), by - 38 - 12 - 2, 10, P.ban);
     });
-    // 門の塔（まん中）
-    box(c, cx, by + 1, 32, 12, 44, P); bricks(c, cx - 16, by + 1 - 43, 32, 43, P.s);
-    R(c, cx - 16, by + 1 - 44, 32, 1, P.hi);
-    merlons(c, cx - 15, by + 1 - 44 - 12 + 12, 30, P);
-    // 門（アーチ＋鉄格子）
-    R(c, cx - 8, by - 18, 16, 19, '#141418'); ell(c, cx, by - 18, 8, 5, '#141418');
-    for (i = -6; i <= 6; i += 3) R(c, cx + i, by - 21, 1, 22, '#6a6c76');
-    R(c, cx - 7, by - 14, 14, 1, '#6a6c76'); R(c, cx - 7, by - 8, 14, 1, '#6a6c76');
-    R(c, cx - 10, by - 20, 1, 21, P.hi); R(c, cx + 9, by - 20, 1, 21, P.d);
-    // 垂れ幕と旗、たいまつ
-    banner(c, cx - 11, by - 40, 7, 16, '#b02c34', '#e8c040'); banner(c, cx + 11, by - 40, 7, 16, '#b02c34', '#e8c040');
-    R(c, cx - 3, by - 34, 6, 7, '#141418'); R(c, cx - 3, by - 34, 6, 1, P.hi);   // 窓
-    flag(c, cx, by + 1 - 44 - 12 - 1, 14, '#d03a30', '#f0c040');
-    torch(c, cx - 12, by - 14); torch(c, cx + 12, by - 14);
+    block(cx, by + 1, 34, 14, 48, 77);                                                           // まん中の門の塔
+    // 門：石のアーチ（明るい石のふち・まん中にかなめ石）、半分上げた鉄格子、開いた木の扉
+    var gw = 16, gh = 22, gxa = cx - (gw >> 1), gyTop = by + 1 - gh;
+    for (i = 0; i <= 8; i++) { var a = Math.PI * i / 8, ax = Math.round(cx - Math.cos(a) * 10), ay = Math.round(gyTop - Math.sin(a) * 6); R(c, ax - 1, ay - 1, 3, 3, i === 4 ? P.hi : P.f[2]); R(c, ax - 1, ay + 1, 3, 1, P.m); }
+    R(c, gxa - 2, gyTop, 2, gh, P.f[2]); R(c, gxa + gw, gyTop, 2, gh, P.f[2]); R(c, gxa - 2, gyTop, 1, gh, P.hi);
+    R(c, gxa, gyTop, gw, gh, '#120e0c'); ell(c, cx, gyTop, 8, 5, '#120e0c');
+    R(c, gxa, gyTop + 4, 3, gh - 4, '#5a3a20'); R(c, gxa + gw - 3, gyTop + 4, 3, gh - 4, '#4a2e18');
+    for (i = gxa + 1; i < gxa + gw; i += 3) { R(c, i, gyTop - 3, 1, 13, '#5c5f6a'); R(c, i, gyTop + 10, 1, 2, '#8a8e9a'); }
+    R(c, gxa, gyTop + 1, gw, 1, '#5c5f6a'); R(c, gxa, gyTop + 6, gw, 1, '#5c5f6a');
+    R(c, gxa - 1, by, gw + 2, 1, P.hi);
+    // 門の上の窓・垂れ幕・旗・たいまつ
+    win(cx - 2, by + 1 - 38);
+    banner(c, cx - 12, by + 1 - 46, 7, 17, P.ban, '#e8c040'); banner(c, cx + 12, by + 1 - 46, 7, 17, P.ban, '#e8c040');
+    flagPole(cx, by + 1 - 48 - 14 - 2, 14, '#d03a30');
+    [-13, 13].forEach(function (dx) { var tx = cx + dx; c.fillStyle = 'rgba(255,170,60,.22)'; c.fillRect(tx - 3, by - 20, 7, 7); torch(c, tx, by - 15); });
     return done(s, cx, by, 0);
   }
 
-  // 案C：見はり塔の関門。低い石の壁と丸太の柵、まん中に木のやぐらをのせた高い塔
-  function fortTower() {
-    var s = mk(104, 104), c = s.c, cx = 52, by = 98, i, j, P = P_STONE, W = P_WOOD;
-    ell(c, cx + 2, by - 1, 49, 5, 'rgba(0,0,0,.22)');
-    // 低い石の壁の上に丸太の柵
-    box(c, cx, by - 1, 94, 7, 10, P); bricks(c, cx - 47, by - 10, 94, 9, P.s);
-    for (var x = cx - 46; x < cx + 46; x += 4) {
-      var top = by - 10 - 10 - ((x * 5) % 3);
-      R(c, x, top + 2, 3, 12, W.f); R(c, x, top + 2, 1, 12, W.hi); R(c, x + 2, top + 2, 1, 12, W.s); R(c, x + 1, top, 1, 2, W.f);
-    }
-    // 角の低い丸い塔
-    [-40, 40].forEach(function (dx) {
-      var tx = cx + dx, bc = by - 6;
-      cyl(c, tx, bc, 9, 22, P); R(c, tx - 9, bc - 22 - 2, 19, 2, P.d);
-      for (i = -8; i <= 8; i += 6) { R(c, tx + i, bc - 22 - 6, 4, 4, P.f); R(c, tx + i, bc - 22 - 7, 4, 1, P.t); }
-      R(c, tx - 1, bc - 14, 2, 5, P.d);
-    });
-    // まん中の高い塔：石の土台＋木の見はり台＋屋根
-    box(c, cx, by, 30, 12, 38, P); bricks(c, cx - 15, by - 37, 30, 37, P.s); R(c, cx - 15, by - 38, 30, 1, P.hi);
-    R(c, cx - 7, by - 17, 14, 17, '#141418'); ell(c, cx, by - 17, 7, 4, '#141418');          // 門
-    for (i = -5; i <= 5; i += 2) R(c, cx + i, by - 19, 1, 19, '#4a3220');
-    R(c, cx - 8, by - 19, 1, 19, P.hi); R(c, cx + 8, by - 19, 1, 19, P.d);
-    // 見はり台（石の塔より少しはり出す）
-    box(c, cx, by - 38 - 12, 38, 10, 14, W);
-    R(c, cx - 19, by - 38 - 12 - 14, 38, 1, W.hi);
-    for (i = -15; i <= 15; i += 6) R(c, cx + i - 1, by - 38 - 12 - 12, 3, 8, '#14100a');      // まど
-    for (i = -18; i <= 18; i += 4) R(c, cx + i, by - 38 - 12 - 14 - 3, 1, 3, W.d);              // 手すりのくい
-    // 屋根（青ぐろい瓦）
-    for (j = 0; j < 14; j++) { var half = 6 + Math.round(j * 1.4); R(c, cx - half, by - 38 - 12 - 14 - 14 + j, half, 1, j % 3 === 2 ? '#3a4c70' : '#4a608c'); R(c, cx, by - 38 - 12 - 14 - 14 + j, half + 1, 1, j % 3 === 2 ? '#222f4a' : '#2e3e60'); }
-    R(c, cx - 1, by - 38 - 12 - 14 - 14 - 3, 2, 4, '#d0a040');
-    flag(c, cx + 1, by - 38 - 12 - 14 - 14 - 3, 12, '#d03a30', '#f0c040');
-    banner(c, cx - 22, by - 38 - 6, 7, 14, '#b02c34', '#e8c040'); banner(c, cx + 22, by - 38 - 6, 7, 14, '#b02c34', '#e8c040');
-    torch(c, cx - 12, by - 12); torch(c, cx + 12, by - 12);
-    return done(s, cx, by, 0);
-  }
-
-  var FORTS = { A: fortWood, B: fortStone, C: fortTower };
-  function pickFort() {   // 比べるための仮の切り替え：アドレスの最後に ?fort=A（木）/ B（石）/ C（塔）をつける
-    var m = /[?&]fort=([ABC])/.exec(window.location.search || '');
-    return m ? m[1] : 'B';
-  }
   var built = null;
   G.DotArt = {
     TW: TW, TD: TD,
-    mk: mk, R: R, ell: ell, disc: disc, box: box, cyl: cyl, forts: FORTS,
+    mk: mk, R: R, ell: ell, disc: disc, box: box, cyl: cyl, fort: buildFort,
     build: function () {
       if (built) return built;
       built = { tree: [buildTree(0), buildTree(1)], pine: [buildPine(0), buildPine(1)], spire: [buildSpire(0), buildSpire(1)],
-                rock: { grass: buildRock('grass'), snow: buildRock('snow'), volcano: buildRock('volcano') }, castle: FORTS[pickFort()]() };
+                rock: { grass: buildRock('grass'), snow: buildRock('snow'), volcano: buildRock('volcano') }, castle: { grass: buildFort('grass'), snow: buildFort('snow'), volcano: buildFort('volcano') } };
       return built;
     }
   };
