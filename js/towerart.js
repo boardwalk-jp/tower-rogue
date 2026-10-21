@@ -26,7 +26,11 @@ var G = window.G = window.G || {};
     copper: { t: '#e6a757', f: '#bb7636', s: '#8a5526', hi: '#f6c783', d: '#5a3517', m: '#a0662e' },
     wood:   { t: '#c4915a', f: '#946a3c', s: '#704c2a', hi: '#d8a870', d: '#4a331b', m: '#7c5630' },
     wood2:  { t: '#d0a068', f: '#a67a48', s: '#7c5a32', hi: '#e2b884', d: '#523a20', m: '#8a6438' },
-    gold:   { t: '#f6dc7a', f: '#e8c040', s: '#b8902a', hi: '#fff0b0', d: '#7a5a14', m: '#d0a838' }
+    gold:   { t: '#f6dc7a', f: '#e8c040', s: '#b8902a', hi: '#fff0b0', d: '#7a5a14', m: '#d0a838' },
+    char:   { t: '#664139', f: '#45302b', s: '#2f201d', hi: '#85574c', d: '#170d0b', m: '#38241f' },   // 焦げたレンガ（炎の塔）
+    ironw:  { t: '#2a2326', f: '#4d4348', s: '#322b2f', hi: '#74686f', d: '#17121a', m: '#3a3135' },   // 暖かみのある鉄（炎の塔の皿・毒の大釜）
+    violet: { t: '#8f80ae', f: '#6c5d8e', s: '#4c4070', hi: '#aa9bc9', d: '#2a2145', m: '#5a4c7c' },   // 紫の石（魔導士の塔）
+    black:  { t: '#4f5160', f: '#32343f', s: '#22242d', hi: '#666a7c', d: '#101118', m: '#3e404c' }    // 黒い石（嵐の塔）
   };
   var FLAG = ['#d94a3a', '#3a7bd9', '#e8c040'];
   var GOLD = '#e8c040', GOLD_HI = '#fff0b0', GOLD_D = '#a87e20';
@@ -412,6 +416,178 @@ var G = window.G = window.G || {};
     return trim(s);
   }
 
+  // ================= ここから：炎・雷・毒・魔導士・嵐 =================
+  // 炎：下から上へ、赤→オレンジ→黄→白の順に重ねて、先をとがらせる。wd＝根もとの半分の幅、h＝高さ
+  function flame(c, cx, by, h, wd) {
+    for (var j = 0; j < h; j++) {
+      var k = j / h, half = Math.round(wd * Math.pow(1 - k, 0.7)), x = cx + (j > h * 0.6 ? 1 : 0), y = by - j;
+      if (j === h - 1) half = 0;
+      R(c, x - half, y, half * 2 + 1, 1, '#e0481a');
+      if (half >= 2) R(c, x - half + 1, y, half * 2 - 1, 1, '#ff8a2a');
+      if (half >= 3 && k < 0.7) R(c, x - half + 2, y, half * 2 - 3, 1, '#ffd84a');
+      if (half >= 2 && k < 0.45) R(c, x - 1, y, 2, 1, '#fff6c0');
+    }
+  }
+
+  // ================= 炎の塔（fire）：赤レンガの土台・焦げた炉・鉄の皿に炎 =================
+  function fire_(lv, fire) {
+    var s = sheet(), c = s.c, cx = 12, bh = [7, 8, 9][lv], bw = lv === 2 ? 21 : 20, fh = [12, 13, 14][lv];
+    var cy = base(c, cx, bw, ds(9), hs(bh), P.redst);
+    masonry(c, cx, BY, bw, hs(bh), P.redst);
+    if (lv === 2) band(c, cx, BY - hs(bh), bw, GOLD, GOLD_HI);
+    // 焦げた炉（まん中に2本の火のすき間）
+    var wby = cy + 3, y = slab(c, cx, cy, 12, ds(7), hs(fh), P.char);
+    R(c, cx - 4, wby - fh + 3, 2, fh - 6, '#ff6a1a'); R(c, cx - 4, wby - fh + 4, 1, Math.max(1, fh - 8), '#ffd84a');
+    R(c, cx + 2, wby - fh + 3, 2, fh - 6, '#ff6a1a'); R(c, cx + 2, wby - fh + 4, 1, Math.max(1, fh - 8), '#ffd84a');
+    if (lv >= 1) { band(c, cx, wby - 2, 12, P.iron.f, P.iron.hi); band(c, cx, wby - fh + 1, 12, lv === 2 ? GOLD : P.iron.f, lv === 2 ? GOLD_HI : P.iron.hi); }
+    // 鉄の皿と炭
+    var ry = cyl(c, cx, y, 8, hs(3), P.ironw);
+    y -= hs(3);
+    if (lv === 2) ell(c, cx, y, 8, ry, GOLD);
+    ell(c, cx, y, 6, Math.max(2, ry - 1), '#3a1008'); ell(c, cx, y, 4, Math.max(1, ry - 2), '#c8421a'); ell(c, cx, y, 2, 1, '#ff8a2a');
+    if (lv >= 1) { R(c, cx - 8, y - 3, 1, 3, P.iron.hi); R(c, cx + 8, y - 3, 1, 3, P.iron.s); }   // 皿のふちの鉄の角
+    // 炎：攻撃中は大きく明るくなり、火の粉が飛ぶ
+    var fhh = [10, 13, 16][lv] + (fire ? 3 : 0), wd = [4, 4, 5][lv] + (fire ? 1 : 0);
+    flame(c, cx, y, fhh, wd);
+    if (fire) { R(c, cx - 6, y - fhh + 3, 1, 1, '#ffd84a'); R(c, cx + 6, y - fhh + 5, 1, 1, '#ffb040'); R(c, cx + 2, y - fhh - 2, 1, 1, '#fff6c0'); }
+    // 旗（皿の右がわの柱）
+    if (lv === 2) { flag(c, cx + 7, cy - 2, fh + bh - 2, 2); }
+    else flag(c, cx + 7, cy - 2, [fh + bh - 4, fh + bh - 2][lv], lv);
+    return trim(s);
+  }
+
+  // ================= 雷の塔（thunder）：青い石台・金属と銅の円柱を積み、上に雷の玉 =================
+  function thunder(lv, fire) {
+    var s = sheet(), c = s.c, cx = 12, bh = [5, 6, 6][lv];
+    var cy = base(c, cx, 20, ds(9), hs(bh), P.bluest);
+    masonry(c, cx, BY, 20, hs(bh), P.bluest);
+    if (lv >= 1) { R(c, cx - 10, BY - hs(bh), 2, hs(bh) - 1, P.iron.f); R(c, cx + 8, BY - hs(bh), 2, hs(bh) - 1, P.iron.s); }   // 角の鉄の補強
+    if (lv === 2) band(c, cx, BY - hs(bh), 20, GOLD, GOLD_HI);
+    var y = cy, k = lv === 2 ? GOLD : 0;
+    function ring(rx, hh, Pl) { cyl(c, cx, y, rx, hs(hh), Pl); y -= hs(hh); }
+    var Pc = lv === 2 ? P.gold : P.copper;
+    ring(6, [7, 8, 8][lv], P.metal);
+    ring(7, 2, lv >= 1 ? (lv === 2 ? P.gold : P.iron) : P.copper);
+    ring(5, [6, 7, 7][lv], P.metal);
+    ring(6, 2, Pc);
+    if (lv === 2) { ring(4, 3, P.metal); ring(5, 2, P.gold); }
+    ring(3, 4, P.metal);
+    ring(4, 2, Pc);
+    // 雷の玉：ふだんは青く、攻撃中は白く強く光って火花が出る
+    var oy = y - 3;
+    if (fire) { DA.disc(c, cx, oy, 5, '#5aa8e8'); }
+    DA.disc(c, cx, oy, 3, fire ? '#ffffff' : '#4a8ae0');
+    if (!fire) { R(c, cx + 1, oy, 2, 3, '#2a5ab0'); R(c, cx - 2, oy - 2, 2, 2, '#bfe0ff'); R(c, cx - 1, oy - 1, 1, 1, '#ffffff'); }
+    else { R(c, cx - 2, oy - 2, 2, 2, '#e8f6ff'); R(c, cx - 7, oy - 4, 1, 3, '#ffffff'); R(c, cx + 6, oy - 5, 1, 3, '#ffe14d'); R(c, cx + 5, oy + 2, 1, 2, '#ffffff'); }
+    if (lv >= 1) { R(c, cx - 4, oy + 2, 1, 2, lv === 2 ? GOLD : P.copper.f); R(c, cx + 4, oy + 2, 1, 2, lv === 2 ? GOLD : P.copper.f); }   // 玉をささえる金具
+    // 旗
+    flag(c, cx + 9, cy - 2, lv === 0 ? 15 : lv === 1 ? 18 : 21, lv, true);
+    return trim(s);
+  }
+
+  // ================= 毒の塔（poison）：石の台の上の黒い大釜。緑の毒がぐつぐつ =================
+  function bubble(c, x, y, r, col, hi) { DA.disc(c, x, y, r, col); R(c, x - 1, y - 1, 1, 1, hi); }
+  function poison(lv, fire) {
+    var s = sheet(), c = s.c, cx = 12, bh = [7, 8, 8][lv], bw = lv === 2 ? 21 : 20, Pb = lv === 0 ? P.stone : P.rock;
+    var cy = base(c, cx, bw, ds(9), hs(bh), Pb);
+    masonry(c, cx, BY, bw, hs(bh), Pb);
+    if (lv >= 1) { R(c, cx - (bw >> 1), BY - hs(bh), 2, hs(bh) - 1, P.iron.f); R(c, cx + (bw >> 1) - 2, BY - hs(bh), 2, hs(bh) - 1, P.iron.s); }
+    if (lv === 2) band(c, cx, BY - hs(bh), bw, GOLD, GOLD_HI);
+    // 台の上の小さな石の台座（大釜をのせる）
+    var pw = 14, ph2 = [3, 4, 5][lv], pby = cy + 4;
+    var cy0 = cy;
+    cy = slab(c, cx, cy, pw, ds(8), hs(ph2), Pb);
+    masonry(c, cx, pby, pw, hs(ph2), Pb, 2);
+    if (lv === 2) band(c, cx, pby - hs(ph2), pw, GOLD, GOLD_HI);
+    // たきぎ（手前に木の丸太）
+    R(c, cx - 5, BY - 2, 4, 2, P.wood.f); R(c, cx - 5, BY - 2, 4, 1, P.wood.t); R(c, cx + 1, BY - 3, 4, 2, P.wood.s);
+    // 大釜：太い胴・ふち・毒の水面
+    var ch = [9, 10, 11][lv], y = cy;
+    R(c, cx - 8, y - 1, 2, 2, P.ironw.d); R(c, cx + 6, y - 1, 2, 2, P.ironw.d);                       // 足
+    var ry = cyl(c, cx, y, 8, hs(ch), P.ironw);
+    y -= hs(ch);
+    if (lv >= 1) { band(c, cx, y + 3, 17, lv === 2 ? GOLD : P.iron.hi, lv === 2 ? GOLD_HI : null); }  // 胴の帯
+    ell(c, cx, y, 8, ry, lv === 2 ? GOLD : P.ironw.hi);                                                // ふち
+    ell(c, cx, y, 7, ry - 1, '#2c4a18');
+    ell(c, cx, y, 6, Math.max(1, ry - 2), fire ? '#d4ff7a' : '#8fd64a');
+    R(c, cx - 4, y - 1, 3, 1, fire ? '#f0ffc0' : '#b8ec78');
+    // あわ：攻撃中は大きく数も増える
+    bubble(c, cx - 3, y - 3, 2, '#a6e85a', '#e8ffc0'); bubble(c, cx + 3, y - 6, 1, '#a6e85a', '#e8ffc0');
+    if (fire) { bubble(c, cx + 1, y - 9, 2, '#c8f59a', '#ffffff'); bubble(c, cx - 5, y - 8, 1, '#c8f59a', '#ffffff'); R(c, cx + 5, y - 3, 1, 1, '#d4ff7a'); }
+    else R(c, cx, y - 9, 1, 1, '#c8f59a');
+    // 横に木のひしゃく、旗
+    if (lv >= 1) { R(c, cx + 8, y - 1, 1, 6, P.wood.f); R(c, cx + 9, y - 1, 2, 1, P.wood.t); }
+    flag(c, cx - 9, cy0 - 2, [14, 18, 22][lv], lv, false);
+    return trim(s);
+  }
+
+  // ================= 魔導士の塔（mage）：紫の石の塔・とんがり屋根・浮かぶ水晶 =================
+  function gem(c, cx, cy, lit, lv) {   // ひし形の水晶：左は明るく右は影
+    var L = lit ? '#ffffff' : lv === 2 ? '#fff0b0' : '#d4f6ff', M = lit ? '#e8f8ff' : lv === 2 ? '#ffd76a' : '#9be7ff', S = lit ? '#9fdcff' : lv === 2 ? '#c8962a' : '#4aa8d8';
+    var w = [0, 1, 2, 3, 3, 2, 1, 0], j;
+    for (j = 0; j < 8; j++) {
+      var yy = cy - 4 + j, h = w[j];
+      R(c, cx - h, yy, h, 1, L); R(c, cx, yy, 1, 1, M); R(c, cx + 1, yy, h, 1, S);
+    }
+    R(c, cx - 1, cy - 1, 1, 2, '#ffffff');
+  }
+  function mage(lv, fire) {
+    var s = sheet(), c = s.c, cx = 12, bh = [6, 7, 7][lv], th = [12, 14, 15][lv];
+    var Pr = { l: '#7a52c8', s: '#52348e', hi: '#a67ee8', d: '#2e1a5c' };
+    var cy = base(c, cx, 20, ds(9), hs(bh), P.stone);
+    masonry(c, cx, BY, 20, hs(bh), P.stone);
+    if (lv === 2) band(c, cx, BY - hs(bh), 20, GOLD, GOLD_HI);
+    var wby = cy + 3, y = slab(c, cx, cy, 12, ds(7), hs(th), P.violet);
+    masonry(c, cx, wby, 12, hs(th), P.violet);
+    R(c, cx - 2, wby - th + 4, 3, 5, '#2a1f45'); R(c, cx - 1, wby - th + 5, 1, 3, '#c79bff'); R(c, cx - 1, wby - th + 5, 1, 1, '#f0dcff');   // 光る窓
+    if (lv >= 1) { band(c, cx, wby - 2, 12, P.iron.f, P.iron.hi); band(c, cx, wby - th + 1, 12, lv === 2 ? GOLD : P.iron.f, lv === 2 ? GOLD_HI : P.iron.hi); }
+    if (lv === 2) rivets(c, cx, wby - 2, 12, 3);
+    // 旗（右の柱）
+    flag(c, cx + 8, cy - 2, lv === 0 ? 14 : lv === 1 ? 17 : 19, lv, true);
+    // 屋根
+    var tip = roof(c, cx, y + 1, [8, 9, 9][lv], [10, 12, 13][lv], Pr);
+    if (lv >= 1) R(c, cx - 9, y + 1, 19, 1, lv === 2 ? GOLD : '#4a2f80');                            // のきの帯
+    if (lv === 2) { R(c, cx - 5, tip + 6, 1, 1, GOLD_HI); R(c, cx + 3, tip + 8, 1, 1, GOLD); }
+    // 水晶：屋根の先の上に浮かぶ。攻撃中は白く光り、きらめきが出る
+    gem(c, cx, tip - 5, fire, lv);
+    if (fire) { R(c, cx - 5, tip - 6, 1, 1, '#ffffff'); R(c, cx + 5, tip - 4, 1, 1, '#c8f0ff'); R(c, cx, tip - 10, 1, 1, '#ffffff'); }
+    return trim(s);
+  }
+
+  // ================= 嵐の塔（storm）：黒い塔と、上に浮かぶ雷雲 =================
+  function cloud(c, cx, cy, rw, lit) {
+    var D = lit ? '#6a6a96' : '#454564', M = lit ? '#8c8cb8' : '#5e5e84', H = lit ? '#d0d0f0' : '#9494b8';
+    ell(c, cx, cy, rw, 3, D); ell(c, cx - rw + 3, cy - 1, 4, 3, M); ell(c, cx + rw - 3, cy - 1, 4, 3, M);
+    ell(c, cx - 2, cy - 3, rw - 4, 3, M); ell(c, cx + 2, cy - 4, 4, 3, M);
+    ell(c, cx - 3, cy - 4, 3, 2, H); R(c, cx - rw + 2, cy - 2, 2, 1, H);
+    R(c, cx - rw + 2, cy + 3, rw * 2 - 3, 1, D);
+  }
+  function storm(lv, fire) {
+    var s = sheet(), c = s.c, cx = 12, bh = [6, 7, 8][lv], th = [10, 12, 13][lv];
+    var cy = base(c, cx, 20, ds(9), hs(bh), P.rock);
+    masonry(c, cx, BY, 20, hs(bh), P.rock);
+    if (lv === 2) band(c, cx, BY - hs(bh), 20, GOLD, GOLD_HI);
+    var wby = cy + 3, y = slab(c, cx, cy, 12, ds(7), hs(th), P.black);
+    masonry(c, cx, wby, 12, hs(th), P.black);
+    R(c, cx - 1, wby - th + 4, 2, 5, '#0a0a10'); R(c, cx - 1, wby - th + 6, 1, 2, '#ffe14d');       // 細い窓（きいろく光る）
+    if (lv >= 1) { band(c, cx, wby - 3, 12, P.iron.f, P.iron.hi); band(c, cx, wby - th + 1, 12, lv === 2 ? GOLD : P.iron.f, lv === 2 ? GOLD_HI : P.iron.hi); }
+    if (lv === 2) rivets(c, cx, wby - 3, 12, 3);
+    // 上の台と避雷針
+    y = slab(c, cx, y, 16, ds(8), hs(2), P.iron);
+    if (lv >= 1) band(c, cx, y + 4, 16, lv === 2 ? GOLD : P.iron.hi);
+    var rod = [4, 5, 5][lv];
+    R(c, cx, y - rod, 1, rod, P.metal.t); R(c, cx - 1, y - 1, 3, 1, P.metal.f);
+    R(c, cx, y - rod - 1, 1, 1, '#ffe14d');
+    // 雷雲：避雷針の上に浮かぶ。攻撃中は明るく光り、稲妻が走る
+    var cyc = y - rod - 6 - lv;
+    cloud(c, cx, cyc, 8, fire);
+    R(c, cx, cyc + 4, 2, 1, '#ffe14d'); R(c, cx - 1, cyc + 5, 2, 1, '#ffe14d'); R(c, cx, y - rod - 2, 1, 1, '#ffe14d');
+    if (fire) { R(c, cx, cyc + 4, 1, 1, '#ffffff'); R(c, cx - 1, cyc + 5, 1, 1, '#ffffff'); R(c, cx, cyc + 6, 1, y - rod - 2 - cyc - 6, '#fff6a0'); R(c, cx - 10, cyc + 1, 1, 3, '#ffffff'); R(c, cx + 9, cyc + 2, 1, 3, '#ffe14d'); }
+    if (lv === 2) { R(c, cx - 4, cyc - 6, 1, 1, GOLD_HI); R(c, cx + 5, cyc - 5, 1, 1, GOLD); }
+    flag(c, cx + 9, cy - 2, [13, 16, 18][lv], lv, true);
+    return trim(s);
+  }
+
   // ---------- 種類ごとの作り方（ここに描き足していく） ----------
   var MAKERS = {
     archer: archer,
@@ -421,7 +597,12 @@ var G = window.G = window.G || {};
     sling: sling,
     watch: watch,
     dart: dart,
-    sniper: function (lv, fire) { var r = sniperR(lv, fire); return { r: r, l: flip(r) }; }
+    sniper: function (lv, fire) { var r = sniperR(lv, fire); return { r: r, l: flip(r) }; },
+    fire: fire_,
+    thunder: thunder,
+    poison: poison,
+    mage: mage,
+    storm: storm
   };
 
   G.TowerArt = {
