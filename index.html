@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap">
-<link rel="stylesheet" href="css/style.css?v=20261023070645">
+<link rel="stylesheet" href="css/style.css?v=20261023081008">
 </head>
 <body>
 
@@ -34,7 +34,7 @@
       <p>上にスワイプしてスタート</p>
       <button type="button" id="pc-start" class="pc-only">クリックでスタート</button>
     </div>
-    <p class="ver" id="ver">版 10/23 07:06</p>
+    <p class="ver" id="ver">版 10/23 08:10</p>
   </div>
 </section>
 
@@ -62,9 +62,9 @@
 <!-- 戦闘画面 -->
 <main id="game" class="screen" data-screen hidden>
   <header class="hud">
-    <span class="hud-stats"><span class="hud-life" title="ライフ">♥ <b id="h-life">20</b></span><span class="hud-gold" title="お金">● <b id="h-gold">20</b></span></span>
-    <span class="hud-turn"><span id="h-floor" class="hud-floor"></span><span class="hud-turn-row"><b id="h-phase">準備</b> <span id="h-turn">1/5</span><span id="h-left" class="hud-left"></span></span></span>
-    <span class="nav-btns"><button type="button" class="nav-btn" data-nav="map">マップ</button><button type="button" class="nav-btn" data-nav="deck">デッキ</button><button type="button" class="nav-btn menu-nav" data-nav="menu" aria-label="メニュー">≡</button></span>
+    <span class="hud-stats"><span class="hud-cmd-row"><b id="h-cmd" class="hud-cmd"></b><span class="hud-asc" id="h-asc-box" title="アセンション"><span class="hico" data-ico="flame"></span><b id="h-asc">0</b></span></span><span class="hud-stats-row"><span class="hud-life" title="ライフ">♥ <b id="h-life">20</b></span><span class="hud-gold" title="お金">● <b id="h-gold">20</b></span></span></span>
+    <span class="hud-turn"><span class="hud-where"><span class="hud-floor" title="層-階"><span class="hico" data-ico="stairs"></span><b id="h-floor"></b></span></span><span class="hud-turn-row"><b id="h-phase">準備</b> <span id="h-turn">1/5</span><span id="h-left" class="hud-left"></span></span></span>
+    <span class="nav-btns"><button type="button" class="nav-btn ico-btn" data-nav="map" aria-label="マップ"><span class="hico" data-ico="map"></span></button><button type="button" class="nav-btn ico-btn" data-nav="deck" aria-label="デッキ"><span class="hico" data-ico="deck"></span></button><button type="button" class="nav-btn ico-btn menu-nav" data-nav="menu" aria-label="設定"><span class="hico" data-ico="gear"></span></button></span>
   </header>
 
   <div class="relic-strip battle-relics scroll-y" id="b-relics"></div>
@@ -83,7 +83,7 @@
 
   <div class="hand-bar">
     <span class="energy" title="エネルギー"><span class="en-label">エネルギー</span><span id="h-energy"></span></span>
-    <span class="piles"><button type="button" class="pile-btn" id="btn-pile-draw" aria-label="山札の内訳"><svg class="pile-ico" viewBox="0 0 16 16" aria-hidden="true"><rect x="5" y="1.5" width="9" height="12" rx="1.5"/><rect x="2" y="3.5" width="9" height="12" rx="1.5"/></svg>山札 <b id="h-draw">0</b></button><button type="button" class="pile-btn disc" id="btn-pile-disc" aria-label="捨て札の内訳"><svg class="pile-ico" viewBox="0 0 16 16" aria-hidden="true"><rect x="5" y="1.5" width="9" height="12" rx="1.5"/><rect x="2" y="3.5" width="9" height="12" rx="1.5"/></svg>捨て札 <b id="h-disc">0</b></button></span>
+    <span class="piles"><button type="button" class="pile-btn" id="btn-pile-draw" aria-label="山札の内訳"><span class="pile-ico-wrap"><span class="hico" data-ico="drawpile"></span><b id="h-draw" class="pile-num">0</b></span>山札</button><button type="button" class="pile-btn disc" id="btn-pile-disc" aria-label="捨て札の内訳"><span class="pile-ico-wrap"><span class="hico" data-ico="discard"></span><b id="h-disc" class="pile-num">0</b></span>捨て札</button></span>
   </div>
   <div class="hand" id="hand"></div>
 
@@ -204,22 +204,23 @@
 <div id="tap-sound" hidden>♪ 画面をタップすると音が出ます</div>
 <div id="rotate"><p>画面を縦にしてください</p></div>
 
-<script src="js/data.js?v=20261023070645"></script>
-<script src="js/battle.js?v=20261023070645"></script>
-<script src="js/run.js?v=20261023070645"></script>
-<script src="js/sprites.js?v=20261023070645"></script>
-<script src="js/relicart.js?v=20261023070645"></script>
-<script src="js/dotart.js?v=20261023070645"></script>
-<script src="js/towerart.js?v=20261023070645"></script>
-<script src="js/enemyart.js?v=20261023070645"></script>
-<script src="js/render.js?v=20261023070645"></script>
-<script src="js/sound.js?v=20261023070645"></script>
-<script src="js/bossbgm.js?v=20261023070645"></script>
-<script src="js/ui.js?v=20261023070645"></script>
-<script src="js/stats.js?v=20261023070645"></script>
-<script src="js/screens.js?v=20261023070645"></script>
-<script src="js/logo.js?v=20261023070645"></script>
-<script src="js/worldbg.js?v=20261023070645"></script>
-<script src="js/eventart.js?v=20261023070645"></script>
+<script src="js/data.js?v=20261023081008"></script>
+<script src="js/battle.js?v=20261023081008"></script>
+<script src="js/run.js?v=20261023081008"></script>
+<script src="js/sprites.js?v=20261023081008"></script>
+<script src="js/relicart.js?v=20261023081008"></script>
+<script src="js/hudicons.js?v=20261023081008"></script>
+<script src="js/dotart.js?v=20261023081008"></script>
+<script src="js/towerart.js?v=20261023081008"></script>
+<script src="js/enemyart.js?v=20261023081008"></script>
+<script src="js/render.js?v=20261023081008"></script>
+<script src="js/sound.js?v=20261023081008"></script>
+<script src="js/bossbgm.js?v=20261023081008"></script>
+<script src="js/ui.js?v=20261023081008"></script>
+<script src="js/stats.js?v=20261023081008"></script>
+<script src="js/screens.js?v=20261023081008"></script>
+<script src="js/logo.js?v=20261023081008"></script>
+<script src="js/worldbg.js?v=20261023081008"></script>
+<script src="js/eventart.js?v=20261023081008"></script>
 </body>
 </html>

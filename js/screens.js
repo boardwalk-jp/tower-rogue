@@ -485,7 +485,8 @@ var G = window.G = window.G || {};
   function startBattle(n) {
     var opts = R.battleOpts(run);
     music(n.type === 'boss' ? 'boss' : 'w' + run.act);   // ふつうの戦闘・エリート：ワールドマップの曲のまま（2026-10-22。前は戦闘の曲）。ボス戦は今までどおり
-    var label = run.act + '層' + (n.type === 'boss' ? 'ボス' : (n.floor + 1) + '階' + (n.type === 'elite' ? 'エリート' : ''));
+    // 上の帯：階段のアイコンの横に「層-階」（ボスは「層-ボス」）、エリートは後ろに「エリート」（2026-10-23 アイコン化。前は「1層3階エリート」）
+    var label = run.act + '-' + (n.type === 'boss' ? 'ボス' : (n.floor + 1)) + (n.type === 'elite' ? ' エリート' : '');
     var t0 = Date.now();
     UI.start(opts, function (s) {
       s.realSec = Math.round((Date.now() - t0) / 1000);   // 統計用：戦闘にかかった時間（秒）
@@ -494,7 +495,7 @@ var G = window.G = window.G || {};
       if (run.over) { clearSave(); return showEnd(); }
       if (run.secondBoss) { run.secondBoss = false; return showSecondBoss(n, first); }   // A10：もう1体の3層ボス
       showReward(n, run.gold - s.gold, s);
-    }, { label: label, title: n.type === 'boss' ? (run.act >= G.RULES.acts ? 'ラスボス戦' : 'ボス戦') : n.type === 'elite' ? 'エリート戦' : '準備ターン' });
+    }, { label: label, cmdName: (G.COMMANDERS[run.cmd] || {}).name || '', asc: run.asc || 0, title: n.type === 'boss' ? (run.act >= G.RULES.acts ? 'ラスボス戦' : 'ボス戦') : n.type === 'elite' ? 'エリート戦' : '準備ターン' });
   }
 
   // ---- A10：3層ボスを倒した後、別の3層ボスが現れる（マップは動かない。タワーは引き継がず、新しい戦闘を最初から） ----

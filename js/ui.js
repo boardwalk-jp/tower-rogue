@@ -154,7 +154,11 @@ var G = window.G = window.G || {};
     last = v;
     $('h-life').textContent = s.life + '/' + s.maxLife;
     $('h-gold').textContent = s.gold;
-    $('h-floor').textContent = info.label || '';
+    var lb = String(info.label || '').split(' ');                 // 「3-8 エリート」→ 後ろは小さい赤い字
+    $('h-floor').innerHTML = lb[0] + (lb[1] ? '<span class="elite">' + lb[1] + '</span>' : '');
+    $('h-cmd').textContent = info.cmdName || '';                  // 指揮官の名前（2026-10-23）
+    $('h-asc').textContent = info.asc || 0;                       // アセンション（炎のアイコンの横）
+    $('h-asc-box').classList.toggle('zero', !info.asc);
     $('h-turn').textContent = Math.min(s.turn + 1, s.totalTurns) + '/' + s.totalTurns;
     $('h-phase').textContent = s.phase === 'attack' ? '攻撃' : s.phase === 'prep' ? '準備' : '終了';
     var max = Math.max(G.RULES.energyPerTurn, s.energy), h = '';

@@ -70,8 +70,27 @@ h1 span{font-size:18px;color:var(--muted)}
 .hud-life{color:#ff7a7a}
 .hud-gold{color:var(--gold)}
 .hud-turn #h-phase{color:var(--accent)}
-.hud-floor{color:var(--muted);font-size:11px;line-height:1.1}
 .hud-stats{display:flex;flex-direction:column;line-height:1.15;font-size:14px;min-width:0}
+/* 2026-10-23 上の帯の作り直し：指揮官の名前・階段（層-階）・炎（アセンション）・アイコンのボタン */
+.hud .hud-cmd{color:var(--accent);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 1px 0 #000}
+.hud-cmd-row{display:flex;align-items:center;gap:6px;min-width:0}
+.hud-cmd-row .hud-asc{font-size:13px;gap:1px}
+.hud-cmd-row .hico-flame{width:20px;height:20px;margin-top:-3px}
+.hud-stats-row{display:flex;gap:8px;white-space:nowrap}
+.hud-where{display:flex;align-items:center;gap:8px;white-space:nowrap}
+.hud-floor .elite{font-size:11px;color:#ff8a6a;margin-left:2px}
+.hud-floor,.hud-asc{display:inline-flex;align-items:center;gap:3px;font-size:14px}
+.hud-floor b{color:#f2e6c8}
+.hud-asc b{color:#ff9a4a}
+.hud-asc.zero{opacity:.45}
+.hico{display:inline-flex;line-height:0}
+.hico-c{image-rendering:pixelated;image-rendering:crisp-edges}
+.hico-stairs,.hico-flame{width:20px;height:20px}
+.hico-map,.hico-deck,.hico-gear{width:28px;height:28px}
+.hico-drawpile,.hico-discard{width:32px;height:32px}
+.hud{gap:6px}
+.hud .nav-btns{gap:3px}
+.nav-btn.ico-btn{min-width:36px;min-height:38px;padding:0 4px;display:inline-flex;align-items:center;justify-content:center}
 .hud-turn{display:flex;flex-direction:column;align-items:center;line-height:1.15;font-size:14px;min-width:0;flex:1 1 auto}
 .hud-turn-row{white-space:nowrap}
 .nav-btns{display:flex;gap:4px;flex:0 0 auto}
@@ -114,8 +133,11 @@ h1 span{font-size:18px;color:var(--muted)}
 .piles{display:flex;gap:6px;font-variant-numeric:tabular-nums}
 .pile-btn{display:inline-flex;align-items:center;gap:5px;min-height:38px;padding:0 9px;font-size:13px;color:var(--muted);background:var(--panel)}
 .pile-btn b{font-weight:400;color:var(--fg)}
-.pile-ico{width:16px;height:16px;fill:var(--panel2);stroke:var(--accent);stroke-width:1.2}
-.pile-btn.disc .pile-ico{stroke:var(--muted)}
+.pile-ico-wrap{position:relative;display:inline-flex}
+.pile-btn .pile-num{position:absolute;right:-6px;bottom:-4px;min-width:18px;height:18px;padding:0 4px;border-radius:9px;background:#b8302a;color:#fff;
+  font-size:12px;line-height:18px;text-align:center;box-shadow:0 0 0 1px #2a0a08,0 1px 2px rgba(0,0,0,.6)}
+.pile-btn.disc .pile-num{background:#5a4a80;box-shadow:0 0 0 1px #1a1428,0 1px 2px rgba(0,0,0,.6)}
+.pile-btn{gap:9px;padding:0 10px 0 6px;min-height:40px}
 .pile-list{list-style:none;margin:0;padding:0;width:100%;display:flex;flex-direction:column;gap:4px}
 .pile-list li{display:flex;align-items:center;gap:10px;background:var(--panel2);border-radius:8px;padding:4px 12px 4px 6px;font-size:15px}
 .pile-list li canvas{width:24px;height:34px;image-rendering:pixelated}
