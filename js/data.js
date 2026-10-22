@@ -314,14 +314,14 @@ G.TOWERS = {
   barracks: {
     name: '兵舎', muzzle: 0, cost: 2, range: 2.0, dmg: 0, rate: 1, dmgType: 'none', noAttack: true,
     soldiers: { n: 2, hp: 80, dmg: 8, rate: 1.0, respawn: 8 },
-    text: '近くの道に兵士2人を出す。兵士は敵1体ずつを止めて戦う。倒れても8秒で戻る。ボスは止められない。',
+    text: '近くの道に兵士2人を出す。射程に入った敵を兵士が追いかけ、1体ずつ止めて戦う。倒れても8秒で戻る。ボスは止められない。',
     up: [{ cost: 30, soldiers: { n: 2, hp: 120, dmg: 12, rate: 1.0, respawn: 7 } }, { cost: 60, soldiers: { n: 3, hp: 160, dmg: 16, rate: 0.9, respawn: 6 } }]
   },
   // 新兵の詰所：初期デッキ用の弱い兵舎（2026-10-22）。兵士の数は 2→2→3
   recruit: {
     name: '新兵の詰所', muzzle: 0, cost: 2, range: 2.0, dmg: 0, rate: 1, dmgType: 'none', noAttack: true,
     soldiers: { n: 2, hp: 55, dmg: 5, rate: 1.1, respawn: 10, unit: 'recruitUnit' },
-    text: '近くの道に新兵2人を出す。新兵は敵1体ずつを止めて戦う（兵舎の兵士より弱い）。倒れても10秒で戻る。ボスは止められない。',
+    text: '近くの道に新兵2人を出す。射程に入った敵を新兵が追いかけ、1体ずつ止めて戦う（兵舎の兵士より弱い）。倒れても10秒で戻る。ボスは止められない。',
     up: [{ cost: 25, soldiers: { n: 2, hp: 80, dmg: 8, rate: 1.0, respawn: 9 } }, { cost: 50, soldiers: { n: 3, hp: 100, dmg: 10, rate: 1.0, respawn: 8 } }]
   },
   // ---- 追加のタワー（2026-10-19 夜） ----
@@ -350,7 +350,7 @@ G.TOWERS = {
   golem: {
     name: '石像の工房', muzzle: 0, cost: 2, range: 2.0, dmg: 0, rate: 1, dmgType: 'none', noAttack: true,
     soldiers: { n: 1, hp: 420, dmg: 32, rate: 1.0, respawn: 8, stopsBoss: true, unit: 'golemUnit' },
-    text: '近くの道に石の巨人を1体出す。ボスも止められる（体力420）。倒れても8秒で戻る。',
+    text: '近くの道に石の巨人を1体出す。射程に入った敵を追いかけて止める。ボスが来たらボスを先に止める（体力420）。倒れても8秒で戻る。',
     up: [{ cost: 40, soldiers: { n: 1, hp: 620, dmg: 44, rate: 1.0, respawn: 7, stopsBoss: true, unit: 'golemUnit' } }, { cost: 80, soldiers: { n: 1, hp: 860, dmg: 60, rate: 0.9, respawn: 6, stopsBoss: true, unit: 'golemUnit' } }]
   },
   // ---- レア（ボスの報酬に出る） ----

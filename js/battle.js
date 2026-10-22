@@ -480,22 +480,30 @@ var G = window.G = window.G || {};
       if (u.flash > 0) u.flash -= dt;
       if (u.swing > 0) u.swing -= dt;
       if (u.dead > 0) { u.dead -= dt; if (u.dead <= 0) { u.hp = u.max; u.x = owner.x; u.y = owner.y; } continue; }
+      // 2026-10-22 変更（オーナー指定）：前は「持ち場のすぐ近く（0.9マス）に来た敵」だけと戦っていた。
+      // 今は、兵舎の射程（ふつう2マス）の中に入った敵を見つけたら、兵士が自分から追いかけて止める
+      var R = towerStats(owner, s).range + 0.3;   // 0.3：射程のふちで行ったり来たりしないためのゆとり
       var tgt = null;
       if (u.eng) { for (j = 0; j < s.enemies.length; j++) if (s.enemies[j].id === u.eng) tgt = s.enemies[j]; }
-      if (tgt && (tgt.hp <= 0 || Math.hypot(tgt.x - u.hx, tgt.y - u.hy) > 1.1)) tgt = null;
+      if (tgt && (tgt.hp <= 0 || tgt.fly || Math.hypot(tgt.x - owner.x, tgt.y - owner.y) > R)) tgt = null;   // 倒した・射程の外へ出た
+      if (tgt && ss.stopsBoss && !G.ENEMIES[tgt.type].boss) {   // 石の巨人：射程にボスが入ったら、手下をはなれてボスへ向かう
+        for (j = 0; j < s.enemies.length; j++) { e = s.enemies[j]; if (e.hp > 0 && !e.fly && G.ENEMIES[e.type].boss && Math.hypot(e.x - owner.x, e.y - owner.y) <= R - 0.3) { tgt = null; break; } }
+      }
       if (!tgt) {
         u.eng = null;
-        var bd = 0.9;
-        for (j = 0; j < s.enemies.length; j++) {
-          e = s.enemies[j]; if (e.hp <= 0 || e.y < 1 || e.fly) continue;
-          var d = Math.hypot(e.x - u.hx, e.y - u.hy);
-          if (d < bd && !engaged[e.id]) { bd = d; tgt = e; }
+        var bd = 1e9;
+        for (j = 0; j < s.enemies.length; j++) {   // 射程の中で、まだだれも戦っていない敵のうち、自分にいちばん近い敵
+          e = s.enemies[j]; var isBoss = G.ENEMIES[e.type].boss;
+          if (e.hp <= 0 || e.y < 1 || e.fly || (engaged[e.id] && !(ss.stopsBoss && isBoss))) continue;
+          if (Math.hypot(e.x - owner.x, e.y - owner.y) > R - 0.3) continue;
+          var d = Math.hypot(e.x - u.x, e.y - u.y) - (ss.stopsBoss && isBoss ? 100 : 0);   // 石の巨人はボスをいちばん先に選ぶ
+          if (d < bd) { bd = d; tgt = e; }
         }
         if (tgt) { u.eng = tgt.id; engaged[tgt.id] = 1; }
       }
       // 動く：戦っている敵の横へ、いなければ持ち場へ
       var gx = tgt ? tgt.x - 0.25 * (tgt.face || 1) : u.hx, gy = tgt ? tgt.y : u.hy;
-      var dx = gx - u.x, dy = gy - u.y, dd = Math.hypot(dx, dy), step = 2.2 * dt;
+      var dx = gx - u.x, dy = gy - u.y, dd = Math.hypot(dx, dy), step = (tgt ? 2.6 : 2.2) * dt;   // 追いかける時は少し速く（いちばん速い狼 2.1 に追いつけるように）
       if (dd > step) { u.x += dx / dd * step; u.y += dy / dd * step; } else { u.x = gx; u.y = gy; }
       if (Math.abs(dx) > 0.02) u.face = dx > 0 ? 1 : -1;
       if (tgt && dd < 0.35) {
