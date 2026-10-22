@@ -79,7 +79,7 @@ var G = window.G = window.G || {};
       kind: opts.kind || 'battle',
       map: map, paths: pathsOf(map), fly: flyPathsOf(map), cmd: opts.cmd || null,
       waves: opts.waves || [[{ gate: Object.keys(map.paths)[0], type: 'slime', n: 5, gap: 1.2, delay: 0 }]],
-      hpMult: opts.hpMult || 1, bossMult: opts.bossMult || opts.hpMult || 1, enemySpeed: opts.enemySpeed || 1, bossHitAdd: opts.bossHitAdd || 0, ascGold: opts.ascGold || 1,
+      hpMult: opts.hpMult || 1, bossMult: opts.bossMult || opts.hpMult || 1, enemySpeed: opts.enemySpeed || 1, bossHitAdd: opts.bossHitAdd || 0, leakS: opts.leakS || 0, leakM: opts.leakM || 0, ascGold: opts.ascGold || 1,
       phase: 'prep', turn: 0,
       life: opts.life !== undefined ? opts.life : R.maxLife, maxLife: opts.maxLife || R.maxLife,
       energy: 0, gold: opts.gold !== undefined ? opts.gold : R.startGold,
@@ -612,7 +612,11 @@ var G = window.G = window.G || {};
       if (e.d >= pathOf(s, e.gate).len) {
         e.hp = 0; e.leaked = true; s.stats.leaked++;
         if (s.wallUsed < has(s, 'wall') && !E.boss) { s.wallUsed++; ev(s, { k: 'relic', id: 'wall', x: e.x, y: e.y }); }
-        else { s.life = Math.max(0, s.life - E.life); ev(s, { k: 'leak', x: e.x, y: e.y, life: E.life, type: e.type }); }
+        else {
+          // アセンション8：ボス以外は、小型（ライフ1）+1・中型（ライフ2以上）+2 だけ、城に着いた時のダメージが増える
+          var lk = E.life + (E.boss ? 0 : E.life >= 2 ? (s.leakM || 0) : (s.leakS || 0));
+          s.life = Math.max(0, s.life - lk); ev(s, { k: 'leak', x: e.x, y: e.y, life: lk, type: e.type });
+        }
       }
     }
 

@@ -39,10 +39,12 @@ var G = window.G = window.G || {};
   var CW = 24, CH = 72, BY = CH;          // 足もとの線は canvas のいちばん下の行（BY-1）
   function sheet() { return DA.mk(CW, CH); }
   // 上の透明な行を切り落として、下のふち＝足もとのまま返す
-  function trim(s) {
+  // fxp（省略できる）：雷の塔・嵐の塔の「電気が出る点」[x, y, x2, y2]（下書き canvas の中の位置）。切り落としたあとの位置に直して cv.fx に入れる（render.js が常時ビリビリを描く）
+  function trim(s, fxp) {
     var d = s.c.getImageData(0, 0, CW, CH).data, top = CH - 1, x, y;
     for (y = 0; y < CH; y++) { for (x = 0; x < CW; x++) if (d[(y * CW + x) * 4 + 3]) break; if (x < CW) { top = y; break; } }
     var o = DA.mk(CW, CH - top); o.c.drawImage(s.cv, 0, -top); o.cv.nu = true;   // nu：新しい24×18の絵のしるし（render.js が足もとの位置を変える）
+    if (fxp) o.cv.fx = { x: fxp[0], y: fxp[1] - top, x2: fxp[2], y2: fxp[3] === undefined ? undefined : fxp[3] - top };
     return o.cv;
   }
   function flip(cv) {   // 左右反転（左向きを作る）
@@ -473,16 +475,14 @@ var G = window.G = window.G || {};
     if (lv === 2) { ring(4, 3, P.metal); ring(5, 2, P.gold); }
     ring(3, 4, P.metal);
     ring(4, 2, Pc);
-    // 雷の玉：ふだんは青く、攻撃中は白く強く光って火花が出る
-    var oy = y - 3;
-    if (fire) { DA.disc(c, cx, oy, 5, '#5aa8e8'); }
-    DA.disc(c, cx, oy, 3, fire ? '#ffffff' : '#4a8ae0');
-    if (!fire) { R(c, cx + 1, oy, 2, 3, '#2a5ab0'); R(c, cx - 2, oy - 2, 2, 2, '#bfe0ff'); R(c, cx - 1, oy - 1, 1, 1, '#ffffff'); }
-    else { R(c, cx - 2, oy - 2, 2, 2, '#e8f6ff'); R(c, cx - 7, oy - 4, 1, 3, '#ffffff'); R(c, cx + 6, oy - 5, 1, 3, '#ffe14d'); R(c, cx + 5, oy + 2, 1, 2, '#ffffff'); }
-    if (lv >= 1) { R(c, cx - 4, oy + 2, 1, 2, lv === 2 ? GOLD : P.copper.f); R(c, cx + 4, oy + 2, 1, 2, lv === 2 ? GOLD : P.copper.f); }   // 玉をささえる金具
+    // 雷の玉：試作「疑似3D 比較台」と同じ色と大きさ（外が濃い青・中が水色・芯が白）。ゲーム画面では、この上に render.js が
+    // 光のかさ・脈うつ芯・まわりに走る電気（常時ビリビリ）を重ねる。ここで描くのは、カードなど動かない絵のための玉
+    var oy = y - 4;
+    DA.disc(c, cx, oy, 4, '#2aa8ee'); DA.disc(c, cx, oy, 3, '#6fd8ff'); DA.disc(c, cx, oy, 2, '#bff0ff'); R(c, cx - 1, oy - 1, 2, 2, '#ffffff');
+    R(c, cx - 5, oy + 1, 1, 3, lv === 2 ? GOLD : P.copper.f); R(c, cx + 5, oy + 1, 1, 3, lv === 2 ? GOLD : P.copper.s);   // 玉をささえる金具
     // 旗
     flag(c, cx + 9, cy - 2, lv === 0 ? 15 : lv === 1 ? 18 : 21, lv, true);
-    return trim(s);
+    return trim(s, [cx, oy]);
   }
 
   // ================= 毒の塔（poison）：石の台の上の黒い大釜。緑の毒がぐつぐつ =================
@@ -555,12 +555,20 @@ var G = window.G = window.G || {};
   }
 
   // ================= 嵐の塔（storm）：黒い塔と、上に浮かぶ雷雲 =================
-  function cloud(c, cx, cy, rw, lit) {
-    var D = lit ? '#6a6a96' : '#454564', M = lit ? '#8c8cb8' : '#5e5e84', H = lit ? '#d0d0f0' : '#9494b8';
-    ell(c, cx, cy, rw, 3, D); ell(c, cx - rw + 3, cy - 1, 4, 3, M); ell(c, cx + rw - 3, cy - 1, 4, 3, M);
-    ell(c, cx - 2, cy - 3, rw - 4, 3, M); ell(c, cx + 2, cy - 4, 4, 3, M);
-    ell(c, cx - 3, cy - 4, 3, 2, H); R(c, cx - rw + 2, cy - 2, 2, 1, H);
-    R(c, cx - rw + 2, cy + 3, rw * 2 - 3, 1, D);
+  // 2026-10-22 雷雲を描き直し：試作「疑似3D 比較台」の雷の塔と同じ雰囲気（光は左上・暗い下側・青白い電気）に合わせた
+  //   ・雲そのものは、ふくらんだ4つのかたまり（左上は明るく、右下は暗く、底は黒に近い）
+  //   ・雲の中のぼうっとした光・避雷針との間の電気・雲のふちから走る電気は、ゲーム画面で render.js が毎回描く（常時ビリビリ）。ここで描くのは、カードなど動かない絵のための雲
+  function cloud(c, cx, cy, lit, lv) {
+    var K = '#1e1e38', D = lit ? '#4a4a7c' : '#33335a', M = lit ? '#6c6ca4' : '#4c4c78', L = lit ? '#8e8ec8' : '#6a6a98', H = lit ? '#e2e2ff' : '#b0b0dc';
+    ell(c, cx, cy + 2, 9, 3, D);                                      // 底（暗い）
+    ell(c, cx, cy, 8, 4, M);                                          // 胴
+    ell(c, cx - 6, cy - 2, 3, 3, M); ell(c, cx - 1, cy - 4, 5, 3, M); ell(c, cx + 5, cy - 3, 3, 3, M);   // 上の3つのふくらみ（まん中がいちばん大きい）
+    ell(c, cx - 2, cy - 5, 4, 2, L); ell(c, cx - 7, cy - 3, 2, 2, L); ell(c, cx + 4, cy - 4, 2, 2, L);  // 明るい面（左上）
+    ell(c, cx + 5, cy + 2, 5, 2, D); R(c, cx + 6, cy - 1, 3, 3, D);   // 右下は影
+    ell(c, cx - 3, cy - 6, 2, 1, H); R(c, cx - 8, cy - 4, 1, 1, H); R(c, cx + 3, cy - 5, 1, 1, H); R(c, cx - 9, cy, 1, 1, L);   // 左上のつや
+    R(c, cx - 7, cy + 4, 15, 1, K);                                   // いちばん下の線
+    R(c, cx - 5, cy + 5, 2, 1, K); R(c, cx + 1, cy + 5, 3, 1, K); R(c, cx + 6, cy + 5, 1, 1, K);   // 底のぎざぎざ（雲の下がちぎれている）
+    if (lv === 2) { R(c, cx - 5, cy - 8, 1, 1, GOLD_HI); R(c, cx + 5, cy - 7, 1, 1, GOLD); R(c, cx + 9, cy - 4, 1, 1, GOLD_HI); }   // 段階2：金のきらめき
   }
   function storm(lv, fire) {
     var s = sheet(), c = s.c, cx = 12, bh = [6, 7, 8][lv], th = [10, 12, 13][lv];
@@ -575,17 +583,14 @@ var G = window.G = window.G || {};
     // 上の台と避雷針
     y = slab(c, cx, y, 16, ds(8), hs(2), P.iron);
     if (lv >= 1) band(c, cx, y + 4, 16, lv === 2 ? GOLD : P.iron.hi);
-    var rod = [4, 5, 5][lv];
+    var rod = [4, 5, 5][lv], tipY = y - rod - 1;
     R(c, cx, y - rod, 1, rod, P.metal.t); R(c, cx - 1, y - 1, 3, 1, P.metal.f);
-    R(c, cx, y - rod - 1, 1, 1, '#ffe14d');
-    // 雷雲：避雷針の上に浮かぶ。攻撃中は明るく光り、稲妻が走る
-    var cyc = y - rod - 6 - lv;
-    cloud(c, cx, cyc, 8, fire);
-    R(c, cx, cyc + 4, 2, 1, '#ffe14d'); R(c, cx - 1, cyc + 5, 2, 1, '#ffe14d'); R(c, cx, y - rod - 2, 1, 1, '#ffe14d');
-    if (fire) { R(c, cx, cyc + 4, 1, 1, '#ffffff'); R(c, cx - 1, cyc + 5, 1, 1, '#ffffff'); R(c, cx, cyc + 6, 1, y - rod - 2 - cyc - 6, '#fff6a0'); R(c, cx - 10, cyc + 1, 1, 3, '#ffffff'); R(c, cx + 9, cyc + 2, 1, 3, '#ffe14d'); }
-    if (lv === 2) { R(c, cx - 4, cyc - 6, 1, 1, GOLD_HI); R(c, cx + 5, cyc - 5, 1, 1, GOLD); }
+    R(c, cx, tipY, 1, 1, '#ffe14d');
+    // 雷雲：避雷針の上に浮かぶ（底と避雷針の先のあいだは3行あけて、電気が走れるようにする）
+    var cyc = y - rod - 10;
+    cloud(c, cx, cyc, fire, lv);
     flag(c, cx + 9, cy - 2, [13, 16, 18][lv], lv, true);
-    return trim(s);
+    return trim(s, [cx, cyc, cx, tipY]);   // 電気の出る点：雲の中心と、避雷針の先
   }
 
   // ================= 臼砲（mortar）：低い石の台と、上を向いた太い黒い鉄の砲 =================

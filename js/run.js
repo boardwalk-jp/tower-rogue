@@ -238,7 +238,7 @@ var G = window.G = window.G || {};
     });
     var AM = G.ascMods(run.asc);   // アセンションで敵を強く
     return { map: mapId, theme: A.theme, waves: waves, hpMult: scale * AM.hp * (kind === 'elite' ? AM.elite : 1), deck: run.deck.slice(), life: run.life, maxLife: run.maxLife,
-             bossMult: A.hp * G.RULES.bossHp * AM.hp * AM.boss, enemySpeed: AM.speed, bossHitAdd: AM.bossHit, ascGold: AM.gold, gold: run.gold, seed: Math.floor(r() * 1e9), kind: kind, relics: run.relics.slice(), cmd: run.cmd,
+             bossMult: A.hp * G.RULES.bossHp * AM.hp * AM.boss, enemySpeed: AM.speed, bossHitAdd: AM.bossHit, leakS: AM.leakS, leakM: AM.leakM, ascGold: AM.gold, gold: run.gold, seed: Math.floor(r() * 1e9), kind: kind, relics: run.relics.slice(), cmd: run.cmd,
              phoenix: Math.max(0, count(run.relics, 'phoenix') - (run.phoenixUsed || 0)) };
   }
   // 敵の数：道が長いマップほど多く（道の長さに比例）。マップに enemyMult があればその倍率を使う（マップごとの個別の調整）

@@ -373,6 +373,55 @@ var G = window.G = window.G || {};
     var dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0), stx = x0 < x1 ? 1 : -1, sty = y0 < y1 ? 1 : -1, e = dx + dy;
     for (;;) { out.push(x0, y0); if (x0 === x1 && y0 === y1) break; var e2 = 2 * e; if (e2 >= dy) { e += dy; x0 += stx; } if (e2 <= dx) { e += dx; y0 += sty; } }
   }
+  // ---- 電気系のタワー（雷の塔・嵐の塔）：頂点から電気が常時ビリビリ（試作「疑似3D 比較台」の drawTowerFx と同じ作り） ----
+  // 絵（spr.fx）が「電気の出る点」を覚えている。雷の塔＝玉の中心、嵐の塔＝雲の中心(x,y)と避雷針の先(x2,y2)
+  var ELEC = { blue: { glow: 'rgba(45,155,255,0.42)', core: '#eaffff', tip: '#58d4ff' }, purple: { glow: 'rgba(150,100,255,0.42)', core: '#f4eeff', tip: '#a87aff' } };
+  function hash2(a, c) { var v = Math.sin(a * 127.1 + c * 311.7) * 43758.5453; return v - Math.floor(v); }
+  // 点(x0,y0)から ang の向きへ len だけ、segs 回折れ曲がる電気を1本。外に青い光（1ドットの十字）、芯は白い1ドット、先に色つきの点
+  function elecArc(x0, y0, seed, ang, len, segs, col) {
+    var px = [], lx = x0, ly = y0, k, i;
+    for (k = 1; k <= segs; k++) {
+      var nx = x0 + Math.cos(ang) * len * k / segs + (hash2(seed + k, ang) - 0.5) * 5, ny = y0 + Math.sin(ang) * len * k / segs * 0.8 + (hash2(k, seed + ang) - 0.5) * 5;
+      bres(lx, ly, nx, ny, px); lx = nx; ly = ny;
+    }
+    b.fillStyle = col.glow; for (i = 0; i < px.length; i += 2) { b.fillRect(px[i] - 1, px[i + 1], 3, 1); b.fillRect(px[i], px[i + 1] - 1, 1, 3); }
+    b.fillStyle = col.core; for (i = 0; i < px.length; i += 2) b.fillRect(px[i], px[i + 1], 1, 1);
+    b.fillStyle = col.tip; b.fillRect(Math.round(lx), Math.round(ly), 1, 1);
+  }
+  // 2点をジグザグでつなぐ電気（避雷針の先 ↔ 雲の底）
+  function elecLink(x0, y0, x1, y1, seed, col) {
+    var px = [], lx = x0, ly = y0, k, i, n = 3;
+    for (k = 1; k <= n; k++) { var nx = k === n ? x1 : x0 + (x1 - x0) * k / n + (hash2(seed + k, 5) - 0.5) * 4, ny = y0 + (y1 - y0) * k / n; bres(lx, ly, nx, ny, px); lx = nx; ly = ny; }
+    b.fillStyle = col.glow; for (i = 0; i < px.length; i += 2) { b.fillRect(px[i] - 1, px[i + 1], 3, 1); b.fillRect(px[i], px[i + 1] - 1, 1, 3); }
+    b.fillStyle = col.core; for (i = 0; i < px.length; i += 2) b.fillRect(px[i], px[i + 1], 1, 1);
+  }
+  function towerElec(o, spr, fy, t) {
+    var f = spr.fx; if (!f) return;
+    var ox = Math.round(sx(o.x) - spr.width / 2) + f.x, oy = Math.round(fy - spr.height) + f.y;
+    var ga = b.globalAlpha, pulse = 0.5 + 0.5 * Math.sin(t * 8 + o.id), fl = Math.min(1, Math.max(0, o.fire || 0) * 4);   // fl：撃った直後だけ 1 に近い
+    var tick = Math.floor(t * 16) + o.id * 3, i;
+    function glow(x, y, r, col, a) { b.globalCompositeOperation = 'lighter'; b.globalAlpha = ga * a; DA.ell(b, Math.round(x), Math.round(y), r, Math.max(1, Math.round(r * 0.8)), col); b.globalAlpha = ga; b.globalCompositeOperation = 'source-over'; }
+    if (o.type === 'thunder') {
+      DA.disc(b, ox, oy, 8, 'rgba(88,212,255,0.13)'); DA.disc(b, ox, oy, 6, 'rgba(120,225,255,0.2)');                       // 光のかさ
+      DA.disc(b, ox, oy, 4, '#2aa8ee'); DA.disc(b, ox, oy, 3, '#6fd8ff'); DA.disc(b, ox, oy, 2, pulse > 0.5 ? '#eaffff' : '#bff0ff');   // 脈うつ玉
+      b.fillStyle = '#ffffff'; b.fillRect(ox - 1, oy - 1, 2, 2);
+      if (fl > 0) DA.disc(b, ox, oy, 9, 'rgba(220,250,255,' + Math.min(0.7, fl * 0.7).toFixed(2) + ')');                    // 撃った時の閃光
+      var na = 2 + (hash2(tick, o.id) > 0.5 ? 1 : 0);
+      for (i = 0; i < na; i++) elecArc(ox, oy, tick * 7 + i, hash2(tick, i + o.id * 7) * 6.283, 8 + hash2(i, tick) * 9 + fl * 4, 4, ELEC.blue);
+    } else {   // 嵐の塔
+      var x2 = Math.round(sx(o.x) - spr.width / 2) + f.x2, y2 = Math.round(fy - spr.height) + f.y2, k8 = Math.floor(t * 8) + o.id;
+      glow(ox, oy, 9, '#a58cff', 0.1 + 0.1 * pulse + fl * 0.4);                                                              // 雲の中のぼうっとした光
+      glow(ox + Math.round((hash2(k8, 1) - 0.5) * 10), oy + Math.round((hash2(k8, 2) - 0.5) * 4), 4, '#e0d8ff', 0.25 + 0.3 * hash2(k8, 3) + fl * 0.3);   // ぴかっと光る場所は移っていく
+      glow(x2, y2, 3, '#c8b8ff', 0.3 + 0.3 * pulse);                                                                          // 避雷針の先の光
+      if (hash2(tick, 11 + o.id) > 0.2) elecLink(x2, y2, ox + Math.round((hash2(tick, 4) - 0.5) * 6), oy + 4, tick, ELEC.purple);   // 避雷針と雲をつなぐ電気
+      var nb = 2 + (hash2(tick, 21 + o.id) > 0.6 ? 1 : 0);
+      for (i = 0; i < nb; i++) {   // 雲のふちから外へ走る電気
+        var a0 = hash2(tick, i + o.id * 5) * 6.283;
+        elecArc(ox + Math.cos(a0) * 7, oy + Math.sin(a0) * 3, tick * 5 + i, a0 + (hash2(i, tick) - 0.5) * 1.2, 6 + hash2(i + 3, tick) * 7 + fl * 4, 3, ELEC.purple);
+      }
+      if (hash2(tick, 99 + o.id) > 0.85 || fl > 0.5) elecArc(ox + Math.round((hash2(tick, 8) - 0.5) * 8), oy + 4, tick * 3, 1.2 + (hash2(tick, 9) - 0.5) * 1.6, 14, 4, ELEC.purple);   // ときどき長い稲妻
+    }
+  }
   function trail(sh, x, y, n) { var tr = sh._tr || (sh._tr = []); tr.unshift([x, y]); if (tr.length > n) tr.length = n; return tr; }
   function drawShot(sh, t) {
     var x = sx(sh.x), y = sy(sh.y), tier = tierOf(sh.src), k, tr;
@@ -740,6 +789,7 @@ var G = window.G = window.G || {};
         // タワーを置くカードを選んでいる間は、後ろのマスが見えるようにタワーを半透明にする
         if (ui.selType) b.globalAlpha = 0.45;
         blitB(spr, sx(o.x), fy);
+        if (spr.fx) towerElec(o, spr, fy, t);   // 雷の塔・嵐の塔：頂点から電気が常時ビリビリ
         b.globalAlpha = 1;
         // 吹雪の魔女に止められている間：タワーを氷が包む（青い色と氷のかけら）
         if (o.frozenT > 0) {

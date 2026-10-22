@@ -254,7 +254,9 @@ var G = window.G = window.G || {};
           lbl.textContent = 'アセンション ' + ascPick; prev.disabled = ascPick <= 0; next.disabled = ascPick >= maxA;
           note.innerHTML = '';
           if (!ascPick) { note.textContent = 'A0：追加のルールなし。'; return; }
-          G.ASCENSION.filter(function (a) { return a.lv <= ascPick; }).forEach(function (a, i) { if (i) note.appendChild(document.createTextNode('・')); note.appendChild(el('b', '', a.text)); });
+          // 選んだ段の効果だけを出す（前の段の分はのせない）。A1 以外は頭に「さらに、」（2026-10-22 オーナー指定）
+          var cur = G.ASCENSION.filter(function (a) { return a.lv === ascPick; })[0];
+          if (cur) { if (ascPick > 1) note.appendChild(document.createTextNode('さらに、')); note.appendChild(el('b', '', cur.text)); }
           note.appendChild(document.createTextNode('。経験値+' + ascPick * 10 + '%'));
         };
         row.appendChild(prev); row.appendChild(lbl); row.appendChild(next);
