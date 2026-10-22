@@ -25,6 +25,8 @@ export async function onRequestPost({ request, env }) {
   if (!d || d.v !== 1 || CMDS.indexOf(d.cmd) < 0 || RESULTS.indexOf(d.result) < 0) return new Response('bad data', { status: 400 });
   const uid = str(d.uid, 60), pid = str(d.pid, 32);
   if (!uid || !pid) return new Response('bad id', { status: 400 });
+  // 自動対戦の記録は受け取らない（オーナー指定・2026-10-22。自動対戦の結果は手元で tools/sim.js を動かした時だけ見る）
+  if (d.bot || /^bot-/.test(pid) || /^sim-/.test(uid)) return new Response('bot data is not accepted', { status: 400 });
 
   // 同じ記録を2回受け取らない（送り直しの時）
   const dup = await env.DB.prepare('SELECT id FROM runs WHERE uid = ?').bind(uid).first();
@@ -39,7 +41,7 @@ export async function onRequestPost({ request, env }) {
   const DB = env.DB, q = [];
   q.push(DB.prepare(`INSERT INTO runs (uid, ts, pid, ver, bot, cmd, asc, result, act, floor, at, life, max_life, gold, deck_n, relic_n, draws, extra_draws, dur, partial, xp, asc_max, data)
                      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
-    .bind(uid, Date.now(), pid, str(d.ver, 30), d.bot ? 1 : 0, d.cmd, num(d.asc) || 0, d.result, num(d.act), num(d.floor), str(d.at, 12),
+    .bind(uid, Date.now(), pid, str(d.ver, 30), 0, d.cmd, num(d.asc) || 0, d.result, num(d.act), num(d.floor), str(d.at, 12),
           num(d.life), num(d.maxLife), num(d.gold), deck.length, relics.length, draws, extra, num(d.dur), d.partial ? 1 : 0,
           num(meta.xp), num(meta.ascMax), text));
   const RID = '(SELECT id FROM runs WHERE uid = ?)';

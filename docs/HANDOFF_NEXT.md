@@ -36,7 +36,7 @@
   - レリックの絵 23個を新デザインに。
   - 比べる表（タワー・スキル・レリックの数字一覧）を、公開ページ https://claude.ai/artifact/2edLQoimkF2LXwf6TR33ax に作った（計算の元は作業用フォルダにあり、リポジトリには入っていない。数字を変えたら作り直しが必要）。
   - 自動対戦（`node tools/sim.js`）の目安：アセンション0で30戦中15〜20勝、A10は0/60勝。
-- **プレイの統計（2026-10-22 夜に追加。SPEC 13.57）**：ランが終わると記録を Cloudflare のデータベース（D1）に送り、`/stats.html` で表にして見る。送る処理 `js/stats.js`、記録の中身 `run.js` の `run.log`・`report`、サーバー `functions/api/run.js`・`stats.js`、表の作り `db/schema.js`。**Cloudflare 側の設定（D1を作って `DB` という名前でつなぐ）はオーナーの作業**。設定が済むまで、記録は各スマホにたまる（最大30件）。自動対戦の記録も送れる（`STATS_OUT=ファイル名 node tools/sim.js 回数` → `node tools/sendstats.js ファイル名`）。無料の範囲：書き込み1日10万行（1ランで約60〜190行）・読み込み1日500万行。こえるとその日（朝9時まで）は使えない
+- **プレイの統計（2026-10-22 夜に追加。SPEC 13.57）**：ランが終わると記録を Cloudflare のデータベース（D1）に送り、`/stats.html` で表にして見る。送る処理 `js/stats.js`、記録の中身 `run.js` の `run.log`・`report`、サーバー `functions/api/run.js`・`stats.js`、表の作り `db/schema.js`。**Cloudflare 側の設定（D1を作って `DB` という名前でつなぐ）はオーナーの作業**。設定が済むまで、記録は各スマホにたまる（最大30件）。**自動対戦の記録は集計に入れない**（サーバーが受け取らない。結果は手元で `node tools/sim.js` を動かした時だけ見る。オーナー指定）。無料の範囲：書き込み1日10万行（1ランで約60〜190行）・読み込み1日500万行。こえるとその日（朝9時まで）は使えない
 - 指揮官：騎士隊長（隊長の勲章＝スキルのコスト−1）・宮廷魔導師（魔導師の杖）・工兵将校（熟練工兵の工具箱＝強化30%引き）。内部の名前は captain・witch・engineer のまま。
 
 ---
@@ -84,8 +84,6 @@
 | `node tools/sim.js 回数` | 自動対戦（`ASC=10` でアセンション） |
 | `node tools/relicsheet.js 出力.png [種類,種類]` | レリックの絵の一覧（新旧を並べる） |
 | `node tools/mapcheck.js` | 道がくっついて見える所を探す（サーバーはいらない） |
-| `STATS_OUT=ファイル名 node tools/sim.js 回数` | 自動対戦の記録を統計の形で書き出す（bot の印つき） |
-| `node tools/sendstats.js ファイル名 [送り先]` | 書き出した記録を統計のサーバーへ送る（送り先を省くと本番） |
 
 統計のサーバー（functions/）を手元で試す時は、Cloudflare の道具 wrangler を作業用フォルダに入れ、リポジトリを作業用フォルダにコピーして `wrangler.toml`（D1 の `DB`）を足し、`wrangler pages dev .` で動かす。**`wrangler.toml` はリポジトリに入れない**（入れると Cloudflare の管理画面の設定より優先されることがある）
 

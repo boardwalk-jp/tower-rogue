@@ -1,5 +1,6 @@
 // 統計：集計した表を返す（2026-10-22）。集計ページ stats.html が読む
-// しぼりこみ：?cmd=captain&asc=3&ver=10/22 17:09&bot=0|1|all&partial=0&days=7
+// しぼりこみ：?cmd=captain&asc=3&ver=10/22 17:09&partial=0&days=7
+// 自動対戦の記録は入れない（受け取りもしない。念のため bot=1 の行も数えない）
 // 合言葉：Cloudflare の環境変数 STATS_KEY を決めた時だけ、?k=合言葉 が必要になる（決めていなければ、だれでも見られる）
 
 import { ensureSchema } from '../../db/schema.js';
@@ -7,11 +8,11 @@ import { ensureSchema } from '../../db/schema.js';
 function where(u) {
   const w = [], b = [];
   const cmd = u.searchParams.get('cmd'), asc = u.searchParams.get('asc'), ver = u.searchParams.get('ver');
-  const bot = u.searchParams.get('bot') || '0', partial = u.searchParams.get('partial'), days = Number(u.searchParams.get('days'));
+  const partial = u.searchParams.get('partial'), days = Number(u.searchParams.get('days'));
   if (cmd) { w.push('r.cmd = ?'); b.push(cmd); }
   if (asc !== null && asc !== '') { w.push('r.asc = ?'); b.push(Number(asc)); }
   if (ver) { w.push('r.ver = ?'); b.push(ver); }
-  if (bot !== 'all') { w.push('r.bot = ?'); b.push(bot === '1' ? 1 : 0); }
+  w.push('r.bot = 0');
   if (partial === '0') w.push('r.partial = 0');
   if (days > 0) { w.push('r.ts >= ?'); b.push(Date.now() - days * 86400000); }
   return { sql: w.length ? w.join(' AND ') : '1=1', bind: b };
@@ -61,9 +62,9 @@ export async function onRequestGet({ request, env }) {
     // 戦闘以外の選択
     choices: `SELECT x.kind, x.item, x.detail, COUNT(*) n FROM choices x ${J} WHERE ${W.sql} GROUP BY x.kind, x.item, x.detail`,
     // 版の一覧（しぼりこみ用）
-    vers: `SELECT r.ver, COUNT(*) n, MIN(r.ts) first FROM runs r GROUP BY r.ver ORDER BY first DESC`,
+    vers: `SELECT r.ver, COUNT(*) n, MIN(r.ts) first FROM runs r WHERE r.bot = 0 GROUP BY r.ver ORDER BY first DESC`,
     // 最近のラン
-    recent: `SELECT r.id, r.ts, substr(r.pid,1,6) pid, r.ver, r.cmd, r.asc, r.result, r.act, r.at, r.floor, r.life, r.gold, r.deck_n, r.dur, r.bot FROM runs r WHERE ${W.sql} ORDER BY r.id DESC LIMIT 50`
+    recent: `SELECT r.id, r.ts, substr(r.pid,1,6) pid, r.ver, r.cmd, r.asc, r.result, r.act, r.at, r.floor, r.life, r.gold, r.deck_n, r.dur FROM runs r WHERE ${W.sql} ORDER BY r.id DESC LIMIT 50`
   };
   const keys = Object.keys(Q);
   const res = await DB.batch(keys.map(k => DB.prepare(Q[k]).bind(...(k === 'vers' ? [] : W.bind))));

@@ -134,12 +134,6 @@ function playRun(seed, log, cmdId) {
       steps.push(n.floor + 'E');
     }
   }
-  // 統計の形で書き出す（STATS_OUT=ファイル名。1行に1ラン。tools/sendstats.js で送れる。bot＝1 の印つき）
-  if (process.env.STATS_OUT) {
-    var rep = G.Run.report(run, run.won ? 'win' : 'lose');
-    rep.bot = 1; rep.pid = 'bot-' + cmdId; rep.ver = process.env.STATS_VER || 'sim'; rep.uid = 'sim-' + Date.now().toString(36) + '-' + cmdId + '-' + seed + '-' + (+process.env.ASC || 0);
-    require('fs').appendFileSync(process.env.STATS_OUT, JSON.stringify(rep) + '\n');
-  }
   if (log) console.log((run.won ? '勝ち' : '負け') + ' レリック' + run.relics.length + ' ライフ' + run.life + ' お金' + run.gold + ' デッキ' + run.deck.length + '枚 | ' + steps.join(' '));
   return run;
 }

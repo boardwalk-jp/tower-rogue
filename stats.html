@@ -52,7 +52,6 @@
   <label>指揮官<select id="f-cmd"><option value="">すべて</option></select></label>
   <label>アセンション<select id="f-asc"><option value="">すべて</option></select></label>
   <label>版<select id="f-ver"><option value="">すべて</option></select></label>
-  <label>データ<select id="f-bot"><option value="0">人のプレイ</option><option value="1">自動対戦</option><option value="all">両方</option></select></label>
   <label>期間<select id="f-days"><option value="">すべて</option><option value="1">1日</option><option value="7">7日</option><option value="30">30日</option></select></label>
   <label>途中からのラン<select id="f-partial"><option value="">ふくめる</option><option value="0">のぞく</option></select></label>
   <button class="go" id="f-go">集計する</button>
@@ -335,7 +334,7 @@
   var versLoaded = false;
   function load() {
     var q = new URLSearchParams();
-    [['cmd', 'f-cmd'], ['asc', 'f-asc'], ['ver', 'f-ver'], ['bot', 'f-bot'], ['days', 'f-days'], ['partial', 'f-partial']].forEach(function (p) { var v = $(p[1]).value; if (v !== '') q.set(p[0], v); });
+    [['cmd', 'f-cmd'], ['asc', 'f-asc'], ['ver', 'f-ver'], ['days', 'f-days'], ['partial', 'f-partial']].forEach(function (p) { var v = $(p[1]).value; if (v !== '') q.set(p[0], v); });
     if (key()) q.set('k', key());
     $('msg').textContent = '';
     fetch('api/stats?' + q.toString(), { cache: 'no-store' }).then(function (r) {
