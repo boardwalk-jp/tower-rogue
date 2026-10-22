@@ -274,7 +274,8 @@ var G = window.G = window.G || {};
   // ---- カードを選ぶ（報酬・商人・イベント） ----
   var WEIGHT = { battle: { common: 60, uncommon: 32, rare: 8 }, elite: { common: 30, uncommon: 45, rare: 25 },
                  shop: { common: 50, uncommon: 35, rare: 15 }, rare: { common: 0, uncommon: 40, rare: 60 } };
-  function cardPool() { return Object.keys(G.CARDS).filter(function (id) { return G.CARDS[id].rarity !== 'starter' && !G.CARDS[id].plus && unlocked('card', id); }); }
+  // shop：true なら商人だけで出るカード（shopOnly：びっくり箱）も入れる
+  function cardPool(shop) { return Object.keys(G.CARDS).filter(function (id) { var c = G.CARDS[id]; return c.rarity !== 'starter' && !c.plus && unlocked('card', id) && (shop || !c.shopOnly); }); }
   function rollCards(run, n, table) {
     // ボスの報酬：レアのカードだけから選ぶ。足りない時はアンコモンで埋める
     if (table === 'boss') {
@@ -285,7 +286,7 @@ var G = window.G = window.G || {};
       });
       return out0;
     }
-    var w = WEIGHT[table] || WEIGHT.battle, out = [], pool = cardPool(), guard = 0;
+    var w = WEIGHT[table] || WEIGHT.battle, out = [], pool = cardPool(table === 'shop'), guard = 0;
     while (out.length < n && guard++ < 200) {
       var x = run.rand() * (w.common + w.uncommon + w.rare);
       var rar = x < w.common ? 'common' : x < w.common + w.uncommon ? 'uncommon' : 'rare';

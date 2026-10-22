@@ -640,6 +640,7 @@ var G = window.G = window.G || {};
       }
       else if (e.k === 'reshuffle') toast('捨て札を混ぜて山札に戻しました');
       else if (e.k === 'relic') toast('レリック「' + G.RELICS[e.id].name + '」が働いた');
+      else if (e.k === 'surprise') toast('びっくり箱から「' + G.CARDS[e.id].name + '」が出た！');
       else if (e.k === 'win' || e.k === 'lose') finish();
     });
     if (inf) renderInfo();

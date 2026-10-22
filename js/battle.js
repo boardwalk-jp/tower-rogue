@@ -237,6 +237,14 @@ var G = window.G = window.G || {};
         s.enemies.forEach(function (e2) { if (e2.hp > 0) hurt(s, e2, def.dmg, 'magic'); });
         ev(s, { k: 'boom', x: 5.5, y: 7, r: 6 });
         break;
+      case 'surprise': {   // びっくり箱：アンコモンかレアのタワーのカードを1枚、エネルギー0で（この戦闘だけ・使い切り）
+        if (s.hand.length >= G.RULES.handMax) break;
+        var pool = Object.keys(G.CARDS).filter(function (k) { var c = G.CARDS[k]; return c.kind === 'tower' && !c.plus && (c.rarity === 'uncommon' || c.rarity === 'rare'); });
+        var pickId = pool[Math.floor(s.rand() * pool.length)];
+        s.hand.push({ uid: s.uid++, id: pickId, temp: true, cost: 0 });
+        ev(s, { k: 'surprise', id: pickId });
+        break;
+      }
       case 'workshop':
         for (var i = 0; i < def.give.n; i++) {
           if (s.hand.length >= G.RULES.handMax) break;

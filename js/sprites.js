@@ -72,6 +72,11 @@ var G = window.G = window.G || {};
       case 'poster': g.rect(2, 1, 12, 14, '#e8d9b0'); g.rect(2, 1, 12, 2, '#c8b88a'); g.ell(8, 7, 3, 3, '#6b4422'); g.rect(4, 11, 8, 1, '#d94a3a'); g.rect(5, 13, 6, 1, '#ffd84a'); break;
       case 'sword':  for (var k3 = 0; k3 < 9; k3++) { g.px(12 - k3, 2 + k3, '#e8ecf0'); g.px(13 - k3, 2 + k3, '#b4b8bc'); } g.rect(3, 10, 4, 1, '#d9b24a'); g.rect(4, 11, 1, 3, '#8a5a2b'); g.rect(6, 9, 1, 4, '#d9b24a'); break;
       case 'energy': g.rect(7, 1, 2, 14, '#5fc8ff'); g.rect(5, 3, 6, 10, '#5fc8ff'); g.rect(3, 5, 10, 6, '#5fc8ff'); g.rect(1, 7, 14, 2, '#5fc8ff'); g.rect(6, 4, 2, 4, '#e0faff'); g.rect(9, 9, 2, 2, '#2a98c8'); g.px(13, 2, '#ffffff'); g.px(12, 3, '#ffffff'); g.px(14, 3, '#ffffff'); g.px(13, 4, '#ffffff'); break;
+      case 'box':    // びっくり箱：赤い箱のふたが開いて、ばねの先から顔が飛び出す
+                     g.rect(2, 9, 12, 6, '#c8341a'); g.rect(2, 9, 12, 1, '#ff6a4a'); g.rect(10, 10, 4, 5, '#8a2010'); g.rect(6, 11, 4, 3, '#ffd84a'); g.px(7, 12, '#8a2010'); g.px(8, 12, '#8a2010');
+                     g.rect(1, 6, 7, 2, '#ff6a4a'); g.rect(1, 7, 7, 1, '#c8341a');
+                     g.px(9, 8, '#c3c7cc'); g.px(10, 7, '#c3c7cc'); g.px(9, 6, '#c3c7cc'); g.px(10, 5, '#c3c7cc');
+                     g.ell(10, 3, 2.6, 2.6, '#f0e0c0'); g.px(9, 3, '#16120f'); g.px(11, 3, '#16120f'); g.px(10, 4, '#d94a3a'); g.rect(8, 0, 5, 1, '#3a7bd9'); break;
       case 'saw':    g.rect(2, 7, 12, 4, '#b4b8bc'); for (var x = 2; x < 14; x += 2) g.px(x, 11, '#8b8f94'); g.rect(11, 4, 4, 4, '#8a5a2b'); g.rect(3, 2, 6, 3, '#8a5a2b'); g.rect(4, 3, 4, 1, '#c08a4a'); break;
     }
     return g.outline(OUT).bake();
@@ -142,7 +147,7 @@ var G = window.G = window.G || {};
       icon: {}, node: {}, relic: {},
       heart: heart()
     };
-    ['eye', 'bag', 'stone', 'coin', 'hammer', 'horn', 'saw', 'gear', 'scroll', 'meteor', 'sword', 'hourglass', 'star', 'bandage', 'target', 'poster', 'energy'].forEach(function (k) { S.icon[k] = icon(k); });
+    ['eye', 'bag', 'stone', 'coin', 'hammer', 'horn', 'saw', 'gear', 'scroll', 'meteor', 'sword', 'hourglass', 'star', 'bandage', 'target', 'poster', 'energy', 'box'].forEach(function (k) { S.icon[k] = icon(k); });
     ['battle', 'elite', 'event', 'shop', 'rest', 'boss'].forEach(function (k) { S.node[k] = nodeIcon(k); });
     G.TowerArt.apply(S);
     G.EnemyArt.apply(S);   // 敵の絵は js/enemyart.js（24×18の疑似3D・段階③）で、できた種類から上書きする   // タワーの絵は js/towerart.js（24×18の疑似3D）で作る

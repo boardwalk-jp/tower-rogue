@@ -408,17 +408,17 @@ G.CARDS = {
   barricade: { kind: 'tower', tower: 'barricade', rarity: 'uncommon' },
   barracks: { kind: 'tower', tower: 'barracks', rarity: 'rare' },
 
-  supply:   { kind: 'skill', name: '補給', cost: 0, target: 'none', rarity: 'uncommon', icon: 'bag', n: 2,
+  supply:   { kind: 'skill', name: '補給', cost: 1, target: 'none', rarity: 'uncommon', icon: 'bag', n: 2,   // 2026-10-22 コスト0→1（オーナー指定）
               text: 'カードを2枚引く。' },
   whet:     { kind: 'skill', name: '研ぎ石', cost: 0, target: 'tower', rarity: 'common', icon: 'stone', amount: 3,
               text: 'タワー1つの攻撃力を+3（この戦闘中ずっと）。' },
-  tax:      { kind: 'skill', name: '臨時徴税', cost: 0, target: 'none', rarity: 'common', icon: 'coin', exhaust: true, gold: 20,
-              text: 'お金+20。使い切り（この戦闘中は戻らない）。' },
+  tax:      { kind: 'skill', name: '臨時徴税', cost: 0, target: 'none', rarity: 'common', icon: 'coin', exhaust: true, gold: 50,   // 2026-10-22 +20→+50（オーナー指定）
+              text: 'お金+50。使い切り（この戦闘中は戻らない）。' },
   forge:    { kind: 'skill', name: '鍛冶仕事', cost: 1, target: 'tower', rarity: 'uncommon', icon: 'hammer',
               text: 'タワー1つをお金を使わずにLv+1（この戦闘中ずっと）。' },
   warcry:   { kind: 'skill', name: '号令', cost: 1, target: 'none', rarity: 'uncommon', icon: 'horn', mult: 1.5,
               text: 'すべてのタワーの攻撃速度をこのターンだけ1.5倍。' },
-  timestop: { kind: 'skill', name: '時止め', cost: 2, target: 'none', rarity: 'rare', icon: 'hourglass', sec: 3,
+  timestop: { kind: 'skill', name: 'ストップ', cost: 1, target: 'none', rarity: 'rare', icon: 'hourglass', sec: 3,   // 2026-10-22 名前「時止め」→「ストップ」・コスト2→1（オーナー指定）
               text: '次の3秒間（攻撃中）、すべての敵が止まる。ボスは半分の速さになる。' },
   masterwork: { kind: 'skill', name: '名匠の技', cost: 1, target: 'tower', rarity: 'rare', icon: 'star', exhaust: true,
               text: 'タワー1つを、お金を使わずに最大レベルまで強化（この戦闘中ずっと）。使い切り。' },
@@ -433,7 +433,7 @@ G.CARDS = {
   // ---- ここから下は、経験値をためると解放されるカード（unlock: true） ----
   overclock: { kind: 'skill', name: '過負荷', cost: 1, target: 'none', rarity: 'rare', icon: 'gear', mult: 2, unlock: true,
               text: 'すべてのタワーの攻撃速度をこのターンだけ2倍。' },
-  architect: { kind: 'skill', name: '設計の天才', cost: 1, target: 'none', rarity: 'uncommon', icon: 'scroll', n: 2, unlock: true,
+  architect: { kind: 'skill', name: '設計の天才', cost: 1, target: 'none', rarity: 'rare', icon: 'scroll', n: 2, unlock: true,
               text: 'このターン、次に使うタワーのカード2枚のエネルギーが0になる。' },
   meteor:   { kind: 'skill', name: '隕石', cost: 2, target: 'none', rarity: 'rare', icon: 'meteor', dmg: 90, unlock: true,
               text: '今マップにいるすべての敵に90ダメージ（魔法）。攻撃中に使う。' },
@@ -441,7 +441,10 @@ G.CARDS = {
               text: 'エネルギー+1。' },
   workshop: { kind: 'skill', name: '急造工房', cost: 2, target: 'none', rarity: 'rare', icon: 'saw', exhaust: true,
               text: '「弓兵の塔（エネルギー0・使い切り）」を2枚手札に加える。使い切り。',
-              give: { card: 'archer', n: 2, cost: 0 } }
+              give: { card: 'archer', n: 2, cost: 0 } },
+  // びっくり箱（2026-10-22 オーナー指定）：商人でしか買えない（shopOnly。報酬・イベントには出ない）。レア度はアンコモン扱い（商人の値段とくじの重み）
+  surprise: { kind: 'skill', name: 'びっくり箱', cost: 1, target: 'none', rarity: 'uncommon', icon: 'box', exhaust: true, shopOnly: true,
+              text: 'ランダムなアンコモンかレアのタワーを1枚、エネルギー0で手札に加える（この戦闘だけ）。使い切り。' }
 };
 // タワーのカードは名前・コスト・説明をタワーから取る
 Object.keys(G.CARDS).forEach(function (id) {
@@ -455,13 +458,14 @@ G.PLUS_SKILL = {
   // plusNote：鍛える前 → 後（画面では「→」の後ろをアップの色で出す）
   aim:      { mult: 2, text: 'タワー1つの攻撃力をこのターンだけ2倍。', plusNote: ['攻撃力の倍率', '1.5倍', '2倍'] },
   energize: { n: 2, text: 'エネルギー+2。', plusNote: ['もらえるエネルギー', '+1', '+2'] },
-  supply:   { n: 3, text: 'カードを3枚引く。', plusNote: ['引く枚数', '2枚', '3枚'] },
+  supply:   { cost: 0, text: 'カードを2枚引く。', plusNote: ['エネルギー', '1', '0'] },   // 2026-10-22 鍛えるとコスト0に（前：3枚引く）
   whet:     { amount: 5, text: 'タワー1つの攻撃力を+5（この戦闘中ずっと）。', plusNote: ['攻撃力', '+3', '+5'] },
-  tax:      { gold: 32, text: 'お金+32。使い切り（この戦闘中は戻らない）。', plusNote: ['もらえるお金', '+20', '+32'] },
+  tax:      { gold: 80, text: 'お金+80。使い切り（この戦闘中は戻らない）。', plusNote: ['もらえるお金', '+50', '+80'] },
   forge:    { cost: 0, text: 'タワー1つをお金を使わずにLv+1（この戦闘中ずっと）。', plusNote: ['エネルギー', '1', '0'] },
   warcry:   { mult: 1.8, text: 'すべてのタワーの攻撃速度をこのターンだけ1.8倍。', plusNote: ['攻撃速度の倍率', '1.5倍', '1.8倍'] },
   workshop: { cost: 1, text: '「弓兵の塔（エネルギー0・使い切り）」を2枚手札に加える。使い切り。', plusNote: ['エネルギー', '2', '1'] },
   timestop: { sec: 4, text: '次の4秒間（攻撃中）、すべての敵が止まる。ボスは半分の速さになる。', plusNote: ['止める時間', '3秒', '4秒'] },
+  surprise: { cost: 0, text: 'ランダムなアンコモンかレアのタワーを1枚、エネルギー0で手札に加える（この戦闘だけ）。使い切り。', plusNote: ['エネルギー', '1', '0'] },
   masterwork: { cost: 0, text: 'タワー1つを、お金を使わずに最大レベルまで強化（この戦闘中ずっと）。使い切り。', plusNote: ['エネルギー', '1', '0'] },
   patch:    { heal: 5, text: 'ライフ+5（最大ライフまで）。使い切り。', plusNote: ['回復', '+3', '+5'] },
   focus:    { mult: 2, text: 'タワー1つの攻撃速度をこのターンだけ2倍。', plusNote: ['攻撃速度の倍率', '1.5倍', '2倍'] },
