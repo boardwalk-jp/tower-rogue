@@ -72,24 +72,23 @@ h1 span{font-size:18px;color:var(--muted)}
 .hud-turn #h-phase{color:var(--accent)}
 .hud-stats{display:flex;flex-direction:column;line-height:1.15;font-size:14px;min-width:0}
 /* 2026-10-23 上の帯の作り直し：指揮官の名前・階段（層-階）・炎（アセンション）・アイコンのボタン */
-.hud .hud-cmd{color:var(--accent);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 1px 0 #000}
+.hud .hud-cmd,.runbar .hud-cmd{color:var(--accent);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 1px 0 #000}
 .hud-cmd-row{display:flex;align-items:center;gap:6px;min-width:0}
 .hud-cmd-row .hud-asc{font-size:13px;gap:1px}
 .hud-cmd-row .hico-flame{width:20px;height:20px;margin-top:-3px}
 .hud-stats-row{display:flex;gap:8px;white-space:nowrap}
-.hud-where{display:flex;align-items:center;gap:8px;white-space:nowrap}
-.hud-floor .elite{font-size:11px;color:#ff8a6a;margin-left:2px}
-.hud-floor,.hud-asc{display:inline-flex;align-items:center;gap:3px;font-size:14px}
-.hud-floor b{color:#f2e6c8}
+.hud-asc{display:inline-flex;align-items:center;gap:3px;font-size:14px}
+.hud-floor{color:var(--muted);font-size:11px;line-height:1.1;white-space:nowrap}
 .hud-asc b{color:#ff9a4a}
 .hud-asc.zero{opacity:.45}
 .hico{display:inline-flex;line-height:0}
 .hico-c{image-rendering:pixelated;image-rendering:crisp-edges}
-.hico-stairs,.hico-flame{width:20px;height:20px}
-.hico-map,.hico-deck,.hico-gear{width:28px;height:28px}
+.hico-flame{width:20px;height:20px}
+.hico-map,.hico-deck,.hico-gear,.hico-help{width:28px;height:28px}
 .hico-drawpile,.hico-discard{width:32px;height:32px}
-.hud{gap:6px}
-.hud .nav-btns{gap:3px}
+.hud,.runbar{gap:6px}
+.runbar .hud-stats b{font-weight:400}   /* 戦闘画面の上の帯と同じ太さに */
+.hud .nav-btns,.runbar .nav-btns{gap:3px}
 .nav-btn.ico-btn{min-width:36px;min-height:38px;padding:0 4px;display:inline-flex;align-items:center;justify-content:center}
 .hud-turn{display:flex;flex-direction:column;align-items:center;line-height:1.15;font-size:14px;min-width:0;flex:1 1 auto}
 .hud-turn-row{white-space:nowrap}
@@ -144,6 +143,8 @@ h1 span{font-size:18px;color:var(--muted)}
 .pile-list li b{margin-left:auto;font-weight:400;color:var(--accent);font-variant-numeric:tabular-nums}
 .pile-list li.none{justify-content:center;color:var(--muted);padding:10px}
 #btn-draw small{color:var(--gold);font-size:13px}
+#btn-draw{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.15}   /* 2026-10-23「ドロー」の下に「● 15」 */
+#btn-draw small{white-space:nowrap}
 /* 速度：横にずらすと1〜4倍 */
 .speed{display:flex;align-items:center;gap:6px;flex:1 1 auto;min-width:0;max-width:160px;padding:0 4px;min-height:44px}
 .speed span{min-width:26px;color:var(--accent);font-variant-numeric:tabular-nums;font-size:15px}
@@ -388,6 +389,7 @@ dt{color:var(--muted);text-align:right} dd{margin:0;text-align:left}
 .help-body .rr{display:inline-block;padding:0 6px;border-radius:6px;border:1px solid currentColor;font-size:12px;line-height:18px}
 .title-help{min-height:40px;padding:0 16px;font-size:14px;background:rgba(18,12,16,.78);border-color:rgba(246,217,138,.6);color:#f6d98a}
 .help-btn{min-width:34px;padding:0;font-size:16px}
+.nav-btn.ico-btn.help-btn{min-width:36px;padding:0 4px}
 .menu-nav{min-width:38px;padding:0;font-size:20px;line-height:1}
 .help-box{height:auto;max-height:calc(100dvh - 32px)}
 .help-body{font-size:15px}

@@ -20,6 +20,10 @@ var G = window.G = window.G || {};
     document.querySelectorAll('.rb-life').forEach(function (e) { e.textContent = run.life + '/' + run.maxLife; });
     document.querySelectorAll('.rb-gold').forEach(function (e) { e.textContent = run.gold; });
     document.querySelectorAll('.rb-deck').forEach(function (e) { e.textContent = run.deck.length; });
+    // 指揮官の名前と、炎＋アセンション（2026-10-23 戦闘画面の上の帯とそろえた）
+    document.querySelectorAll('.rb-cmd').forEach(function (e) { e.textContent = (G.COMMANDERS[run.cmd] || {}).name || ''; });
+    document.querySelectorAll('.rb-asc').forEach(function (e) { e.textContent = run.asc || 0; });
+    document.querySelectorAll('.rb-asc-box').forEach(function (e) { e.classList.toggle('zero', !run.asc); });
   }
   function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; }
   // 画面に入った直後は、ダブルタップの2回目が選択肢に当たらないように、短い間だけタップを無視する
@@ -485,8 +489,8 @@ var G = window.G = window.G || {};
   function startBattle(n) {
     var opts = R.battleOpts(run);
     music(n.type === 'boss' ? 'boss' : 'w' + run.act);   // ふつうの戦闘・エリート：ワールドマップの曲のまま（2026-10-22。前は戦闘の曲）。ボス戦は今までどおり
-    // 上の帯：階段のアイコンの横に「層-階」（ボスは「層-ボス」）、エリートは後ろに「エリート」（2026-10-23 アイコン化。前は「1層3階エリート」）
-    var label = run.act + '-' + (n.type === 'boss' ? 'ボス' : (n.floor + 1)) + (n.type === 'elite' ? ' エリート' : '');
+    // 上の帯：「1層3階エリート」（2026-10-23 階段のアイコンはやめて、元の書き方にもどした。「階」の言い方はオーナーと相談中）
+    var label = run.act + '層' + (n.type === 'boss' ? 'ボス' : (n.floor + 1) + '階' + (n.type === 'elite' ? 'エリート' : ''));
     var t0 = Date.now();
     UI.start(opts, function (s) {
       s.realSec = Math.round((Date.now() - t0) / 1000);   // 統計用：戦闘にかかった時間（秒）

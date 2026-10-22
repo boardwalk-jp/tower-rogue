@@ -154,8 +154,7 @@ var G = window.G = window.G || {};
     last = v;
     $('h-life').textContent = s.life + '/' + s.maxLife;
     $('h-gold').textContent = s.gold;
-    var lb = String(info.label || '').split(' ');                 // 「3-8 エリート」→ 後ろは小さい赤い字
-    $('h-floor').innerHTML = lb[0] + (lb[1] ? '<span class="elite">' + lb[1] + '</span>' : '');
+    $('h-floor').textContent = info.label || '';
     $('h-cmd').textContent = info.cmdName || '';                  // 指揮官の名前（2026-10-23）
     $('h-asc').textContent = info.asc || 0;                       // アセンション（炎のアイコンの横）
     $('h-asc-box').classList.toggle('zero', !info.asc);
