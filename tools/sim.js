@@ -74,7 +74,7 @@ function fight(opts) {
     if (s.phase === 'prep') { playTurn(s); B.startAttack(s); }
     B.update(s, 1 / 30);
     if (process.env.LEAKS) s.events.forEach(function (e) { if (e.k === 'leak') LEAK[e.type] = (LEAK[e.type] || 0) + e.life; });
-    // ボス本体：倒せたか・城に着いたか、着いた時に残っていた体力の割合
+    // ボス本体：倒せたか・砦に着いたか、着いた時に残っていた体力の割合
     if (process.env.BOSS) s.events.forEach(function (e) {
       if (e.k === 'tfreeze') { TFREEZE++; TFREEZE_TOWERS += e.towers.length; }
       if (e.k === 'spawn' && e.boss) bossNow = s.enemies[s.enemies.length - 1];
@@ -89,7 +89,7 @@ function fight(opts) {
   return s;
 }
 
-// 休憩：ライフが6割以上なら1枚鍛える（強い順の表の最初の1枚）、それ以外は休む
+// たき火：ライフが6割以上なら1枚鍛える（強い順の表の最初の1枚）、それ以外は休む
 var UP_ORDER = ['archer', 'mage', 'thunder', 'fire', 'cannon', 'ballista', 'frost', 'barracks', 'poison', 'bowman', 'sling', 'aim'];
 function upgradeBest(run) {
   for (var k = 0; k < UP_ORDER.length; k++) { var i = run.deck.indexOf(UP_ORDER[k]); if (i >= 0) return G.Run.upgradeCard(run, i); }
@@ -153,4 +153,4 @@ Object.keys(G.COMMANDERS).filter(function (c) { return !only || c === only; }).f
 console.log('合計 ' + totalWins + '/' + total);
 if (process.env.LEAKS) console.log(JSON.stringify(LEAK));
 if (process.env.BOSS) console.log('吹雪の魔女が止めた回数：' + TFREEZE + '回（タワー ' + TFREEZE_TOWERS + '個ぶん）');
-if (process.env.BOSS) Object.keys(BOSS).forEach(function (k) { var b = BOSS[k], tot = b.kill + (b.lost || 0); console.log(G.ENEMIES[k].name + '：倒した ' + b.kill + '（城に着く前 ' + (b.early || 0) + '）・城に着いた ' + (b.arrive || 0) + (b.left.length ? '（着いた時の残り体力 平均' + Math.round(b.left.reduce(function (a, c) { return a + c; }, 0) / b.left.length) + '%）' : '') + '・城をたたいて減らしたライフ 合計' + (b.hits || 0)); });
+if (process.env.BOSS) Object.keys(BOSS).forEach(function (k) { var b = BOSS[k], tot = b.kill + (b.lost || 0); console.log(G.ENEMIES[k].name + '：倒した ' + b.kill + '（砦に着く前 ' + (b.early || 0) + '）・砦に着いた ' + (b.arrive || 0) + (b.left.length ? '（着いた時の残り体力 平均' + Math.round(b.left.reduce(function (a, c) { return a + c; }, 0) / b.left.length) + '%）' : '') + '・砦をたたいて減らしたライフ 合計' + (b.hits || 0)); });

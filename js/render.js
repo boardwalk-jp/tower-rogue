@@ -495,7 +495,7 @@ var G = window.G = window.G || {};
         rings.push({ x: sx(e.x), y: sy(e.y), r: 3, max: e.r * TW, col: '#bfe8ff', life: 0.5, ml: 0.5 });
         for (var bz = 0; bz < 14 && parts.length < 400; bz++) { var ba = Math.random() * Math.PI * 2, br = Math.random() * e.r; parts.push({ x: sx(e.x + Math.cos(ba) * br), y: sy(e.y + Math.sin(ba) * br), vx: 10, vy: 8, g: 0, life: 0.6, ml: 0.6, col: Math.random() < 0.5 ? '#ffffff' : '#bfe8ff' }); }
       } else if (e.k === 'bossHit') {
-        // ボスが城をたたく：城が赤く光り、がれきが飛び、画面がゆれる
+        // ボスが砦をたたく：砦が赤く光り、がれきが飛び、画面がゆれる
         fx.castleHit = 0.35; addShake(4);
         burst(e.x, e.y + 0.4, 18, ['#9ca1a7', '#cfc2ab', '#ff5a5a', '#5a5048'], 50, 90, 0.6);
         rings.push({ x: sx(e.x), y: sy(e.y + 0.4), r: 3, max: 22, col: '#ff5a5a', life: 0.35, ml: 0.35 });
@@ -686,8 +686,8 @@ var G = window.G = window.G || {};
       b.globalAlpha = 1;
     }
 
-    // 次の攻撃に空を飛ぶ敵がいれば、飛んでくる線（入口→城のまっすぐ）を出す
-    // 見えやすくするため：太さ2ドットの点線＋暗いふち、城の方へ流れる矢じり、地面にうすい影の線（2026-10-22）
+    // 次の攻撃に空を飛ぶ敵がいれば、飛んでくる線（入口→砦のまっすぐ）を出す
+    // 見えやすくするため：太さ2ドットの点線＋暗いふち、砦の方へ流れる矢じり、地面にうすい影の線（2026-10-22）
     if (s.phase === 'prep') {
       var flyG = {};
       G.Battle.nextWave(s).forEach(function (w) { if (G.ENEMIES[w.type].fly) flyG[w.gate] = true; });
@@ -705,7 +705,7 @@ var G = window.G = window.G || {};
           b.fillStyle = 'rgba(16,10,24,.7)'; b.fillRect(px2 - 1, py2 - 1, 4, 4);
           b.globalAlpha = pulse; b.fillStyle = '#e8d0ff'; b.fillRect(px2, py2, 2, 2); b.globalAlpha = 1;
         }
-        // 矢じり：1マスおきに、城の方を向いた「＞」を流す
+        // 矢じり：1マスおきに、砦の方を向いた「＞」を流す
         var step = Math.max(1, Math.round(n / Math.max(1, Math.round(L)))), off = (t * 1.5) % 1;
         for (q = 0; q < Math.round(L); q++) {
           f2 = (q + off) / Math.max(1, L); if (f2 > 0.97) continue;
@@ -828,7 +828,7 @@ var G = window.G = window.G || {};
         b.fillStyle = 'rgba(0,0,0,.35)'; b.fillRect(ex - 5, ey - 1, 10, 2);
         if (o.fly) ey -= 7 + Math.round(Math.sin(t * 5 + o.id) * 1.5);   // 空を飛ぶ敵は影から浮かせて描く
       }
-      // 城の前のボス：攻撃の時に、のけぞってから城へ体当たりする動き
+      // 砦の前のボス：攻撃の時に、のけぞってから砦へ体当たりする動き
       if (o.atkAnim > 0) { var ap = 1 - o.atkAnim / 0.45; ey += Math.round(ap < 0.35 ? -ap / 0.35 * 4 : Math.sin((ap - 0.35) / 0.65 * Math.PI) * 7); }
       blitB(img, ex, ey);
       if (o.flash > 0) {

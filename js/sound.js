@@ -183,9 +183,9 @@ var G = window.G = window.G || {};
     },
     boom:   function (t) { noise(t, { dur: 0.3, vol: 0.35, f: 400 }); tone(t, { f: 90, f2: 35, dur: 0.25, type: 'sine', vol: 0.3 }); },
     boss:   function (t) { tone(t, { f: 82, dur: 0.9, type: 'sawtooth', vol: 0.18 }); tone(t, { f: 110, dur: 0.9, type: 'sawtooth', vol: 0.12, delay: 0.05 }); noise(t, { dur: 0.6, vol: 0.2, f: 300 }); },
-    // ボスが城をたたく：重い一撃＋石がくだける音
+    // ボスが砦をたたく：重い一撃＋石がくだける音
     bossHit: function (t) { tone(t, { f: 70, f2: 32, dur: 0.35, type: 'sine', vol: 0.4 }); noise(t, { dur: 0.25, vol: 0.4, f: 900 }); noise(t, { dur: 0.5, vol: 0.18, f: 2500, bp: true, delay: 0.05 }); tone(t, { f: 160, f2: 90, dur: 0.18, type: 'square', vol: 0.08 }); },
-    // ボスが城の前にたどり着いた：うなり声
+    // ボスが砦の前にたどり着いた：うなり声
     bossRoar: function (t) { tone(t, { f: 140, f2: 70, dur: 0.7, type: 'sawtooth', vol: 0.18 }); tone(t, { f: 210, f2: 95, dur: 0.6, type: 'sawtooth', vol: 0.1, delay: 0.05 }); noise(t, { dur: 0.6, vol: 0.12, f: 500, bp: true }); },
     summon: function (t) { tone(t, { f: 320, f2: 140, dur: 0.3, type: 'square', vol: 0.1 }); tone(t, { f: 480, f2: 210, dur: 0.3, type: 'square', vol: 0.05, delay: 0.04 }); },
     heal:   function (t) { tone(t, { f: 880, f2: 1250, dur: 0.15, type: 'sine', vol: 0.06 }); },

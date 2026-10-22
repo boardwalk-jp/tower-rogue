@@ -631,7 +631,7 @@ var G = window.G = window.G || {};
       else if (e.k === 'spawn' && e.boss) showBanner('ボス出現！', 'attack');
       else if (e.k === 'summon') toast('ボスが手下を呼んだ！');
       else if (e.k === 'tfreeze') toast('吹雪でタワーが止まった！');
-      else if (e.k === 'bossArrive') showBanner('ボスが城に着いた！', 'attack');
+      else if (e.k === 'bossArrive') showBanner('ボスが砦に着いた！', 'attack');
       else if (e.k === 'bossHit') inf = true;
       else if (e.k === 'kill' || e.k === 'leak') {
         inf = true;
@@ -674,7 +674,7 @@ var G = window.G = window.G || {};
       }
     });
   }
-  // まだ生きているボスがいるか（ボスを倒す・城に着くと元のBGMに戻す）
+  // まだ生きているボスがいるか（ボスを倒す・砦に着くと元のBGMに戻す）
   function bossesLeft() { return s.enemies.some(function (en) { return en.hp > 0 && G.ENEMIES[en.type].boss; }) || s.spawnQueue.some(function (q) { return G.ENEMIES[q.type].boss; }); }
   function closeTowerSheetIfGone() { if (ui.selTower && !B.findTower(s, ui.selTower)) closeTowerSheet(); }
   function finish() {

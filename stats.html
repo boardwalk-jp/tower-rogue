@@ -216,7 +216,7 @@
     var en = {};
     d.enemySeen.forEach(function (r) { en[r.enemy] = { enemy: r.enemy, fights: r.fights, spawned: r.spawned, life: 0, hitFights: 0 }; });
     d.enemyDmg.forEach(function (r) { var o = en[r.enemy] || (en[r.enemy] = { enemy: r.enemy, fights: 0, spawned: 0, life: 0, hitFights: 0 }); o.life = r.life; o.hitFights = r.fights; });
-    add(table('enemies', '敵の種類ごとの減ったライフ', '「出た戦闘」は予定の数（実際は分裂などで増えることがある）。ボスは城を叩いたダメージ。', [
+    add(table('enemies', '敵の種類ごとの減ったライフ', '「出た戦闘」は予定の数（実際は分裂などで増えることがある）。ボスは砦を叩いたダメージ。', [
       ['敵', function (r) { return enemyName(r.enemy); }, 't'],
       ['出た戦闘', function (r) { return r.fights; }, 'n'],
       ['出た数', function (r) { return r.spawned; }, 'n'],

@@ -1,4 +1,4 @@
-// ラン（1回の挑戦）の処理：ワールドマップ、デッキ、ライフ・お金、報酬、商人、イベント、休憩
+// ラン（1回の挑戦）の処理：ワールドマップ、デッキ、ライフ・お金、報酬、商人、イベント、たき火
 // 画面（DOM）には触らない
 'use strict';
 var G = window.G = window.G || {};
@@ -44,7 +44,7 @@ var G = window.G = window.G || {};
   function nextUnlock(xp) { return G.UNLOCKS.filter(function (u) { return u.xp > xp; })[0] || null; }
 
   // ---- ワールドマップ（スレイザスパイア式の分かれ道） ----
-  // 下（0階）から上へ進む。最後の階（floors-1）はすべて休憩、その上がボス
+  // 下（0階）から上へ進む。最後の階（floors-1）はすべてたき火、その上がボス
   // ボスの直前の段（すべてたき火）は2〜3マスにする（2026-10-22 オーナー指定）。そうならない形が出たら作り直す
   function makeWorld(r) {
     var w, tries = 0;
@@ -90,7 +90,7 @@ var G = window.G = window.G || {};
       else t = 'battle';
       n.type = t;
     });
-    // 同じ道で 休憩・商人・エリートが続かないようにする（続いたら戦闘に）
+    // 同じ道で たき火・商人・エリートが続かないようにする（続いたら戦闘に）
     Object.keys(nodes).forEach(function (k) {
       var n = nodes[k];
       n.next.forEach(function (nk) {
@@ -113,13 +113,13 @@ var G = window.G = window.G || {};
     Object.keys(nodes).forEach(function (k) { if (nodes[k].floor === 0) walk(k, []); });
     return out;
   }
-  // どの道を通っても：休憩は G.RULES.restPerRoute の範囲、商人は shopPerRoute 以下になるように直す
-  // 前後のマス（つながっている上下の階）に休憩がないか
+  // どの道を通っても：たき火は G.RULES.restPerRoute の範囲、商人は shopPerRoute 以下になるように直す
+  // 前後のマス（つながっている上下の階）にたき火がないか
   function restNear(nodes, n) {
     if (n.next.some(function (k) { return nodes[k].type === 'rest'; })) return true;
     return Object.keys(nodes).some(function (k) { return nodes[k].type === 'rest' && nodes[k].next.indexOf(n.id) >= 0; });
   }
-  // 休憩が2つ続くか（どの道でも）。続く所の下側のマス（最後の階の休憩は動かさない）を返す
+  // たき火が2つ続くか（どの道でも）。続く所の下側のマス（最後の階のたき火は動かさない）を返す
   function restPair(nodes) {
     var ks = Object.keys(nodes);
     for (var i = 0; i < ks.length; i++) {
@@ -133,7 +133,7 @@ var G = window.G = window.G || {};
     var lo = G.RULES.restPerRoute[0], hi = G.RULES.restPerRoute[1], shopMax = G.RULES.shopPerRoute;
     for (var guard = 0; guard < 200; guard++) {
       var routes = allRoutes(nodes), fixed = false;
-      // 休憩は絶対に2つ続けない（続いていたら下側を戦闘に）
+      // たき火は絶対に2つ続けない（続いていたら下側を戦闘に）
       var pair = restPair(nodes);
       if (pair) { pair.type = 'battle'; continue; }
       for (var i = 0; i < routes.length && !fixed; i++) {
@@ -141,8 +141,8 @@ var G = window.G = window.G || {};
         var rests = route.filter(function (n) { return n.type === 'rest'; });
         var shops = route.filter(function (n) { return n.type === 'shop'; });
         if (rests.length < lo) {
-          // 5〜9階の 戦闘・イベントのうち、前後が休憩でないマスを休憩に変える
-          // 前後（ほかの道の分も含む）に休憩がないマスだけを休憩に変える
+          // 5〜9階の 戦闘・イベントのうち、前後がたき火でないマスをたき火に変える
+          // 前後（ほかの道の分も含む）にたき火がないマスだけをたき火に変える
           var cands = route.filter(function (n) {
             return n.floor >= 4 && n.floor <= F - 3 && (n.type === 'battle' || n.type === 'event') && !restNear(nodes, n);
           });
@@ -351,8 +351,8 @@ var G = window.G = window.G || {};
       case 'goldLife': return { msg: 'お金を' + choice.gold + '手に入れた。' };
       case 'gamble':
         run.gold += choice.gold;
-        if (run.rand() < 0.5) { run.gold += choice.win; return { msg: '当たり！ ' + choice.win + 'G を受け取った。' }; }
-        return { msg: 'はずれ。20G を失った。' };
+        if (run.rand() < 0.5) { run.gold += choice.win; return { msg: '当たり！ お金を' + choice.win + '受け取った。' }; }
+        return { msg: 'はずれ。お金を20失った。' };
       case 'randomCard': var id = pick(cardPool(), run.rand); addCard(run, id); return { msg: '「' + G.CARDS[id].name + '」を手に入れた。' };
       case 'maxLife': run.maxLife += choice.amount; run.life = Math.min(run.maxLife, run.life + choice.amount); return { msg: '最大ライフが' + choice.amount + '増えた。' };
       case 'risk':

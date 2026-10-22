@@ -20,7 +20,7 @@ var G = window.G = window.G || {};
     });
     return (pathCache[map.id] = out);
   }
-  // 空を飛ぶ敵の道：入口から城までまっすぐ（入口の名前の後ろに「~」）
+  // 空を飛ぶ敵の道：入口から砦までまっすぐ（入口の名前の後ろに「~」）
   var flyCache = {};
   function flyPathsOf(map) {
     if (flyCache[map.id]) return flyCache[map.id];
@@ -446,7 +446,7 @@ var G = window.G = window.G || {};
 
   // ---- タワーが狙う敵の決め方（射程内の敵のうち、点数が一番大きい敵を狙う） ----
   var TARGET_SCORE = {
-    first:  function (e) { return e.d; },               // 先頭（一番城に近い）
+    first:  function (e) { return e.d; },               // 先頭（一番砦に近い）
     last:   function (e) { return -e.d; },              // 最後尾
     strong: function (e) { return e.hp; },              // 体力が一番多い
     weak:   function (e) { return -e.hp; },             // 体力が一番少ない
@@ -615,7 +615,7 @@ var G = window.G = window.G || {};
         if (e.hp <= 0) continue;
       }
       place(s, e);
-      // ボス：城の前で止まり、一定の間隔で城を攻撃する（倒すまで戦闘は終わらない）
+      // ボス：砦の前で止まり、一定の間隔で砦を攻撃する（倒すまで戦闘は終わらない）
       if (E.boss && e.d >= pathOf(s, e.gate).len - 1.6) {
         e.d = pathOf(s, e.gate).len - 1.6; place(s, e);
         if (!e.atCastle) { e.atCastle = true; e.atkT = 1.0; ev(s, { k: 'bossArrive', x: e.x, y: e.y, type: e.type }); }
@@ -632,7 +632,7 @@ var G = window.G = window.G || {};
         e.hp = 0; e.leaked = true; s.stats.leaked++;
         if (s.wallUsed < has(s, 'wall') && !E.boss) { s.wallUsed++; ev(s, { k: 'relic', id: 'wall', x: e.x, y: e.y }); }
         else {
-          // アセンション8：ボス以外は、小型（ライフ1）+1・中型（ライフ2以上）+2 だけ、城に着いた時のダメージが増える
+          // アセンション8：ボス以外は、小型（ライフ1）+1・中型（ライフ2以上）+2 だけ、砦に着いた時のダメージが増える
           var lk = E.life + (E.boss ? 0 : E.life >= 2 ? (s.leakM || 0) : (s.leakS || 0));
           s.life = Math.max(0, s.life - lk); s.stats.dmgBy[e.type] = (s.stats.dmgBy[e.type] || 0) + lk; ev(s, { k: 'leak', x: e.x, y: e.y, life: lk, type: e.type });
         }

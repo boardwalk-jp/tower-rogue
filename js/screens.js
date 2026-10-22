@@ -1,4 +1,4 @@
-// ランの画面：スタート、ワールドマップ、報酬、イベント、商人、休憩、ランの終わり、カード選び
+// ランの画面：スタート、ワールドマップ、報酬、イベント、商人、たき火、ランの終わり、カード選び
 'use strict';
 var G = window.G = window.G || {};
 
@@ -6,7 +6,7 @@ var G = window.G = window.G || {};
   var $ = function (id) { return document.getElementById(id); };
   var R = G.Run, UI = G.BattleUI, SPR = G.SPR;
   var run = null;
-  var KIND = { battle: '戦闘', elite: 'エリート', event: 'イベント', shop: '商人', rest: '休憩', boss: 'ボス' };
+  var KIND = { battle: '戦闘', elite: 'エリート', event: 'イベント', shop: '商人', rest: 'たき火', boss: 'ボス' };
 
   // ---- 画面の切り替え ----
   G.currentScreen = 'start';
@@ -221,7 +221,7 @@ var G = window.G = window.G || {};
     if (!seen) setTimeout(showHelp, 50);
     music('cmd');   // 指揮官を選ぶ画面の曲
     openPanel('指揮官', function (body, foot) {
-      if (G.cmdBg) $('panel').insertBefore(G.cmdBg(), $('panel').firstChild);   // 背景：城の中庭（いちばん下の層）
+      if (G.cmdBg) $('panel').insertBefore(G.cmdBg(), $('panel').firstChild);   // 背景：砦の中庭（いちばん下の層）
       body.appendChild(el('h2', 'panel-title', '指揮官を選ぶ'));
       var list = el('div', 'choices cmd-list'), picked = null;
       // 始める時：BGMをいったん止めて、出陣のファンファーレ。ワールドマップの曲は、ファンファーレが終わってから始まる
@@ -520,7 +520,7 @@ var G = window.G = window.G || {};
     save(lastResume);
     openPanel(n.type === 'boss' ? 'ボス撃破' : n.type === 'elite' ? 'エリート撃破' : '勝利', function (body, foot) {
       body.appendChild(el('h2', 'panel-title', '勝利！'));
-      body.appendChild(el('p', 'panel-text', '倒した敵 ' + s.stats.killed + '体・通した敵 ' + s.stats.leaked + '体。戦闘で得たお金 +' + s.stats.goldEarned + 'G、勝利のおまけ +' + bonus + 'G。'));
+      body.appendChild(el('p', 'panel-text', '倒した敵 ' + s.stats.killed + '体・通した敵 ' + s.stats.leaked + '体。戦闘で得たお金 ●' + s.stats.goldEarned + '、勝利のおまけ ●' + bonus + '。'));
       if (big) {
         if (!savedCards) { lastResume.relic = R.rollRelic(run, 'elite'); R.addRelic(run, lastResume.relic); save(lastResume); }
         var rid = savedCards ? s.relic : lastResume.relic;
@@ -698,7 +698,7 @@ var G = window.G = window.G || {};
   }
 
   // ============================================================
-  // 休憩：ライフ回復 または カードを1枚手放す
+  // たき火：ライフ回復 または カードを1枚手放す
   // ============================================================
   // たき火の背景の絵を、画面のいちばん下の層に敷く（選択肢は上にそのまま並ぶ）
   function restBg() { if (G.restArt) $('panel').insertBefore(G.restArt(run ? run.act : 1), $('panel').firstChild); }
@@ -706,7 +706,7 @@ var G = window.G = window.G || {};
     lockTaps(TAP_LOCK_MS);
     // たき火：BGMはなし。うっすら風の音とたき火の音（火山はグツグツも）。ワールドマップに戻ると曲にもどる（2026-10-22）
     music(null); if (G.Sound && G.Sound.ambient) G.Sound.ambient(G.ACTS[run.act - 1].theme === 'volcano' ? 'volcano' : 'camp');
-    openPanel('休憩', function (body, foot) {
+    openPanel('たき火', function (body, foot) {
       restBg();
       body.appendChild(el('h2', 'panel-title', 'たき火'));
       body.appendChild(el('p', 'panel-text', 'ひと休みできる。どれか1つを選ぶ。'));
@@ -724,7 +724,7 @@ var G = window.G = window.G || {};
     function done(text) {
       lastResume = { type: 'map' }; save(lastResume);
       lockTaps(TAP_LOCK_MS);
-      openPanel('休憩', function (body, foot) {
+      openPanel('たき火', function (body, foot) {
         restBg();
         body.appendChild(el('h2', 'panel-title', 'たき火'));
         body.appendChild(el('p', 'panel-text', text));
@@ -765,7 +765,7 @@ var G = window.G = window.G || {};
   // ============================================================
   var HELP = [
     '<h3>目的</h3>',
-    '<p>タワーで<b>城</b>を守りながら進み、<b>第3層のボス</b>を倒せばクリア。<b>ライフ</b>が0で終わり。</p>',
+    '<p>タワーで<b>砦</b>を守りながら進み、<b>第3層のボス</b>を倒せばクリア。<b>ライフ</b>が0で終わり。</p>',
     '<h3>マップの記号</h3>',
     '<ul class="help-list">',
     '<li>{node:battle}<span><b>戦闘</b></span></li>',
@@ -777,9 +777,9 @@ var G = window.G = window.G || {};
     '</ul>',
     '<h3>戦闘</h3>',
     '<ul class="help-list">',
-    '<li><span><b class="c-life">♥ ライフ</b>：城に敵が着くと減る。戦闘をまたいで続く</span></li>',
+    '<li><span><b class="c-life">♥ ライフ</b>：砦に敵が着くと減る。戦闘をまたいで続く</span></li>',
     '<li><span><b class="c-en">◆ エネルギー</b>：カードを使う力。毎ターン3。カード左上の数字だけ減る</span></li>',
-    '<li><span><b>■ カード</b>：毎ターン' + G.RULES.drawPerTurn + '枚引く。<b class="c-gold">' + G.RULES.extraDrawCost + '金</b>払うと「ドロー」で1枚追加</span></li>',
+    '<li><span><b>■ カード</b>：毎ターン' + G.RULES.drawPerTurn + '枚引く。<b class="c-gold">● ' + G.RULES.extraDrawCost + '</b>払うと「ドロー」で1枚追加</span></li>',
     '<li><span><b class="c-gold">● お金</b>：敵を倒すともらえる。タワーをタップ →「強化」で強くできる</span></li>',
     '</ul>',
     '<p class="help-how">建て方：カードをタップ → 置くマスを<b>2回</b>タップ</p>',
@@ -923,7 +923,7 @@ var G = window.G = window.G || {};
     return box;
   }
 
-  // ---- パネル画面（報酬・イベント・商人・休憩・終わり）の共通の入れ物 ----
+  // ---- パネル画面（報酬・イベント・商人・たき火・終わり）の共通の入れ物 ----
   function openPanel(kind, fill) {
     G.showScreen('panel');
     $('panel-kind').textContent = kind;

@@ -104,7 +104,7 @@ G.MAPS = {
   }
 };
 // ---- 道の曲がり角（マスの座標）だけを書いて、マップを自動で作る ----
-// gates：入口ごとの曲がり角 [[x,y],...]（最初は0行目の入口、最後は14行目の城）。縦か横にまっすぐつなぐ
+// gates：入口ごとの曲がり角 [[x,y],...]（最初は0行目の入口、最後は14行目の砦）。縦か横にまっすぐつなぐ
 // 木と岩は、決まった数から計算した場所に置く（毎回同じ形になる）
 function buildMap(name, gates, gateName, seed) {
   var W = 11, H = 15, g = [], k, i;
@@ -123,7 +123,7 @@ function buildMap(name, gates, gateName, seed) {
   Object.keys(gates).forEach(function (key) { g[0][gates[key][0][0]] = key; });
   for (var yy = 13; yy <= 14; yy++) for (var xx = castle[0] - 1; xx <= castle[0] + 1; xx++) g[yy][xx] = 'X';
   g[14][castle[0]] = 'G'; g[13][castle[0]] = '#';
-  // 木と岩（道・城の近く・入口の列は避ける）
+  // 木と岩（道・砦の近く・入口の列は避ける）
   var h = seed;
   function rnd() { h = (h * 1103515245 + 12345) & 0x7fffffff; return h / 0x7fffffff; }
   for (y = 1; y < H; y++) for (x = 0; x < W; x++) {
@@ -153,7 +153,7 @@ G.MAPS.forkgate  = buildMap('砦への二本道', { A: [[1, 0], [1, 4], [4, 4], 
 G.MAPS.trident   = buildMap('三つ又の砦', { A: [[1, 0], [1, 12], [5, 12], [5, 14]], B: [[9, 0], [9, 12], [5, 12], [5, 14]], C: [[5, 0], [5, 2], [3, 2], [3, 9], [7, 9], [7, 5], [5, 5], [5, 14]] },
                           { A: '左の入口', B: '右の入口', C: '中央の入口' }, 131);
 // ---- 13列にする：左右に1列ずつ足す（画面の横幅いっぱいに使うため）----
-// 足した列は、決まった数から計算して木・岩・地面にする（毎回同じ形）。敵の道・城の位置は1列ぶん右にずらすだけで、通る順番や長さは変わらない
+// 足した列は、決まった数から計算して木・岩・地面にする（毎回同じ形）。敵の道・砦の位置は1列ぶん右にずらすだけで、通る順番や長さは変わらない
 function widen(k, m) {
   var h = 0; for (var q = 0; q < k.length; q++) h = (h * 31 + k.charCodeAt(q)) & 0x7fffffff;
   function rnd() { h = (h * 1103515245 + 12345) & 0x7fffffff; return h / 0x7fffffff; }
@@ -453,7 +453,7 @@ Object.keys(G.CARDS).forEach(function (id) {
   var c = G.CARDS[id]; c.id = id;
   if (c.kind === 'tower') { var T = G.TOWERS[c.tower]; c.name = T.name; c.cost = T.cost; c.text = T.text; }
 });
-// ---- 強化したカード（id の後ろに「+」、名前の後ろに「＋」）。休憩の「鍛える」などで作る ----
+// ---- 強化したカード（id の後ろに「+」、名前の後ろに「＋」）。たき火の「鍛える」などで作る ----
 // タワー：強化できるタワーは Lv2 の状態で置かれる。強化のないタワーはエネルギー-1
 // スキル：下の表のとおりに数値が良くなる
 G.PLUS_SKILL = {
@@ -505,7 +505,7 @@ G.ASCENSION = [
   // 6〜10：2026-10-22 追加
   { lv: 6, text: '敵の歩く速さが5%上がる', speed: 1.05 },
   { lv: 7, text: 'ボスが砦に着いた時のダメージが増える', bossHit: 2 },
-  // A8：通常の敵（エリート戦・ボス戦に出る敵も。ボスは入らない）が城に着いた時のダメージが増える。小型（ライフ1）+1、中型（ライフ2以上）+2
+  // A8：通常の敵（エリート戦・ボス戦に出る敵も。ボスは入らない）が砦に着いた時のダメージが増える。小型（ライフ1）+1、中型（ライフ2以上）+2
   { lv: 8, text: '通常の敵の攻撃力が上がる', leak: [1, 2] },
   { lv: 9, text: 'エリートとボスの体力が増える', elite: 1.1, boss: 1.06 },
   // A10（2026-10-22 変更。前：最大ライフ-6・敵の速さ+5%）：3層のボス戦に勝つと、続けて別の3層ボスともう1戦（マップは動かない。タワーは引き継がない）
@@ -519,7 +519,7 @@ G.ascMods = function (a) {
     if (x.lv > (a || 0)) return;
     ['hp', 'elite', 'boss', 'speed', 'gold'].forEach(function (k) { if (x[k]) m[k] *= x[k]; });
     if (x.life) m.life += x.life; if (x.bossHit) m.bossHit += x.bossHit;
-    if (x.leak) { m.leakS += x.leak[0]; m.leakM += x.leak[1]; }   // 小型・中型が城に着いた時の追加ダメージ
+    if (x.leak) { m.leakS += x.leak[0]; m.leakM += x.leak[1]; }   // 小型・中型が砦に着いた時の追加ダメージ
     if (x.twoBoss) m.twoBoss = true;   // 3層ボスが2体
   });
   return m;
@@ -537,9 +537,9 @@ G.COMMANDERS = {   // 2026-10-22 初期デッキ・ライフを変更、名前�
 // 敵
 // speed はマス/秒、armor は物理ダメージを減らす割合、life はゴールに着いた時に減るライフ
 // revive：一度だけ体力半分で起き上がる。split：倒すと分かれる。immune：効かない状態異常。magicResist：魔法・炎を減らす割合
-// fly：空を飛ぶ（道を通らず入口から城へまっすぐ。罠・バリケード・兵士に止められず、大砲は当たらない）
+// fly：空を飛ぶ（道を通らず入口から砦へまっすぐ。罠・バリケード・兵士に止められず、大砲は当たらない）
 // heal：近くの仲間の体力を回復する。summon：一定の時間ごとに手下を呼ぶ（ボス）
-// ボスは城に着いても消えず、城の前で止まって bossHit.every 秒ごとに城を攻撃する（1回で bossHit.dmg のライフが減る）
+// ボスは砦に着いても消えず、砦の前で止まって bossHit.every 秒ごとに砦を攻撃する（1回で bossHit.dmg のライフが減る）
 // ============================================================
 G.ENEMIES = {
   slime:  { name: 'スライム',   hp: 48,   speed: 0.9,  armor: 0,   life: 1,  gold: 3,   gap: 1.2 },
@@ -687,44 +687,44 @@ G.ACTS = [
 // ============================================================
 G.EVENTS = [
   { id: 'smith', acts: [1, 2, 3], title: '旅の鍛冶屋', text: '道ばたで鍛冶屋が店を広げている。「いらない道具を引き取ろうか？」',
-    choices: [{ label: 'カードを1枚鍛える', note: '-40G、カードを＋にする', effect: 'upgradeCard', gold: -40 },
-              { label: 'カードを1枚手放す', note: '-30G', effect: 'removeCard', gold: -30 },
+    choices: [{ label: 'カードを1枚鍛える', note: '-●40、カードを＋にする', effect: 'upgradeCard', gold: -40 },
+              { label: 'カードを1枚手放す', note: '-●30', effect: 'removeCard', gold: -30 },
               { label: '立ち去る', effect: 'none' }] },
   { id: 'spring', acts: [1], title: '不思議な泉', text: '澄んだ水がわき出ている。底には金貨が光っている。',
     choices: [{ label: '水を飲む', note: 'ライフ+8', effect: 'heal', amount: 8 },
-              { label: '金貨を投げ入れる', note: '-10G、ランダムなカードを1枚得る', effect: 'randomCard', gold: -10 }] },
+              { label: '金貨を投げ入れる', note: '-●10、ランダムなカードを1枚得る', effect: 'randomCard', gold: -10 }] },
   { id: 'fallen', acts: [1, 2], title: '倒れた冒険者', text: '冒険者が倒れている。荷物は手つかずのようだ。',
-    choices: [{ label: '荷物を探す', note: '+40G、ライフ-4', effect: 'goldLife', gold: 40, life: -4 },
+    choices: [{ label: '荷物を探す', note: '+●40、ライフ-4', effect: 'goldLife', gold: 40, life: -4 },
               { label: '弔う', note: 'ライフ+3', effect: 'heal', amount: 3 }] },
   { id: 'gambler', acts: [1, 2, 3], title: '賭け好きの商人', text: '「コインの裏表、当てたら3倍だ」',
-    choices: [{ label: '20Gを賭ける', note: '50%で+60G', effect: 'gamble', gold: -20, win: 60 },
+    choices: [{ label: '●20を賭ける', note: '50%で+●60', effect: 'gamble', gold: -20, win: 60 },
               { label: '断る', effect: 'none' }] },
   { id: 'altar', acts: [3], title: '古い祭壇', text: '赤い石の祭壇。ささげ物をすれば力を授けるという。',
     choices: [{ label: '血をささげる', note: 'ライフ-6、珍しいカードを3枚から1枚選ぶ', effect: 'rareCard', life: -6 },
               { label: '立ち去る', effect: 'none' }] },
   { id: 'child', acts: [1], title: '迷子の子ども', text: '泣いている子どもがいる。家まで送ると遠回りになりそうだ。',
     choices: [{ label: '家まで送る', note: 'ライフ-3、お礼にレリックを1つ', effect: 'relic', life: -3 },
-              { label: '道だけ教える', note: '+15G（親からのお礼）', effect: 'goldLife', gold: 15 }] },
+              { label: '道だけ教える', note: '+●15（親からのお礼）', effect: 'goldLife', gold: 15 }] },
   { id: 'box', acts: [1, 2, 3], title: '謎の宝箱', text: '古びた宝箱。鍵はかかっていないが、何かの気配がする。',
     choices: [{ label: '開ける', note: '50%でレリック、50%でライフ-6', effect: 'box' },
               { label: '開けない', effect: 'none' }] },
   { id: 'forge', acts: [3], title: '溶岩の鍛冶場', text: '溶岩の熱を使う鍛冶場。「同じ道具をもう1つ作ってやろう」',
-    choices: [{ label: 'カードを1枚複製する', note: '-40G、選んだカードと同じものをデッキに追加', effect: 'copyCard', gold: -40 },
+    choices: [{ label: 'カードを1枚複製する', note: '-●40、選んだカードと同じものをデッキに追加', effect: 'copyCard', gold: -40 },
               { label: '立ち去る', effect: 'none' }] },
   { id: 'hut', acts: [2], title: '雪山の小屋', text: '暖炉のある無人の小屋。薪が積んである。',
     choices: [{ label: '暖まって休む', note: 'ライフ+6', effect: 'heal', amount: 6 },
-              { label: '薪を売りに持っていく', note: '+25G', effect: 'goldLife', gold: 25 }] },
+              { label: '薪を売りに持っていく', note: '+●25', effect: 'goldLife', gold: 25 }] },
   { id: 'shrine', acts: [2], title: '氷の祠', text: '氷に閉じ込められた祠。中に何かが光っている。',
     choices: [{ label: '素手で氷を割る', note: 'ライフ-5、レリックを1つ', effect: 'relic', life: -5 },
               { label: '祈るだけにする', note: 'ライフ+4', effect: 'heal', amount: 4 }] },
   { id: 'stranded', acts: [2], title: '遭難した旅人', text: '雪に埋もれかけた旅人がいる。「食べ物を分けてくれないか」',
-    choices: [{ label: '食料を分ける', note: '-20G、最大ライフ+4', effect: 'maxLife', gold: -20, amount: 4 },
+    choices: [{ label: '食料を分ける', note: '-●20、最大ライフ+4', effect: 'maxLife', gold: -20, amount: 4 },
               { label: '道を急ぐ', effect: 'none' }] },
   { id: 'firespring', acts: [3], title: '火の泉', text: '煮えたぎる泉。浴びれば体がきたえられるという。',
     choices: [{ label: '泉を浴びる', note: 'ライフ-8、最大ライフ+6', effect: 'maxLife', life: -8, amount: 6 },
               { label: '立ち去る', effect: 'none' }] },
   { id: 'lavatreasure', acts: [3], title: '溶岩の中の宝', text: '溶岩の流れの向こうに金貨の山が見える。',
-    choices: [{ label: '手を伸ばす', note: '50%で+80G、50%でライフ-8', effect: 'risk', win: 80, lose: 8 },
+    choices: [{ label: '手を伸ばす', note: '50%で+●80、50%でライフ-8', effect: 'risk', win: 80, lose: 8 },
               { label: 'やめておく', effect: 'none' }] }
 ];
 
@@ -743,7 +743,7 @@ G.RELICS = {
   spring:    { name: '泉の水',     kind: 'number', rarity: 'uncommon', text: '戦闘に勝つとライフ+3。' },
   seal:      { name: '商人の印',   kind: 'number', rarity: 'uncommon', text: '商人の値段が25%安くなる。' },
   blueprint: { name: '設計図の束', kind: 'change', rarity: 'uncommon', text: 'タワーを建てると、1ターンに1回だけカードを1枚引く。' },
-  wall:      { name: '応急の石壁', kind: 'change', rarity: 'rare',     text: '攻撃1回ごとに、城に着いた最初の敵ではライフが減らない。' },
+  wall:      { name: '応急の石壁', kind: 'change', rarity: 'rare',     text: '攻撃1回ごとに、砦に着いた最初の敵ではライフが減らない。' },
   stone:     { name: 'エネルギー石', kind: 'change', rarity: 'rare',   text: '毎ターンのエネルギー+1。' },
   // ---- 組み合わせのレリック（2つの効果が重なると強くなる） ----
   conductor: { name: '導電の氷',   kind: 'combo', rarity: 'uncommon', text: '遅くなっている敵（氷・沼）が受ける雷のダメージが2倍。' },
@@ -800,15 +800,15 @@ G.RULES = {
   drawPerTurn: 4,     // 毎ターン無料で引く枚数
   handMax: 8,
   extraDrawCost: 15,  // お金で1枚追加で引く
-  floors: 10,         // 1層あたりのボスの前の階の数（最後の階は休憩）
+  floors: 10,         // 1層あたりのボスの前の階の数（最後の階はたき火）
   acts: 3,            // 層の数（3層目のボスがラスボス）
   actHeal: 99,        // 次の層へ進む時に回復するライフ（99＝全回復）
-  restPerRoute: [2, 5],   // どの道を通っても、休憩マスはこの範囲（最後の階の休憩も数える）
+  restPerRoute: [2, 5],   // どの道を通っても、たき火マスはこの範囲（最後の階のたき火も数える）
   shopPerRoute: 2,        // どの道を通っても、商人マスはこの数まで
   floorScale: 0.04,   // 1階進むごとに敵の体力が4%ずつ増える（数はひな形どおり）
   battleGold: { battle: 10, elite: 30 },   // 戦闘に勝った時のおまけのお金
   restHeal: 12,
-  bossHit: { every: 2.5, dmg: 7, finalDmg: 10 },   // 城の前で止まったボスの攻撃（間隔の秒・1回で減るライフ。ラスボスは finalDmg）
+  bossHit: { every: 2.5, dmg: 7, finalDmg: 10 },   // 砦の前で止まったボスの攻撃（間隔の秒・1回で減るライフ。ラスボスは finalDmg）
   bossHp: 0.7,        // ボスの体力の倍率（階が進む分の倍率はボスにはかけず、層の倍率×これ）
   easyBattles: 3,     // 各層の最初の3回の通常戦闘は、その層で弱い方の攻撃のひな形から選ぶ
   easyPool: 3,        // 弱い順に何個のひな形から選ぶか
