@@ -9,7 +9,7 @@ var G = window.G = window.G || {};
   var buf = document.createElement('canvas'); buf.width = W; buf.height = H;
   var b = buf.getContext('2d');
   var bgCache = {}, M = G.MAPS.field;   // M：今描いているマップ
-  var parts = [], rings = [], floats = [], nums = [], beams = [], glows = [];
+  var parts = [], rings = [], floats = [], nums = [], beams = [], glows = [], booms = [];   // booms：爆発の火の玉・砲口の光・毒のしみ（段階④）
   // 手ごたえの演出：画面のゆれ（shake：強さ）と白い光（flash：0〜1）
   var fx = { shake: 0, flash: 0, castleHit: 0 };
   function addShake(v) { fx.shake = Math.max(fx.shake, v); }
@@ -345,6 +345,72 @@ var G = window.G = window.G || {};
     return null;
   }
 
+  // ---- 弾と効果の豪華さ：タワーのレア度で決める ----
+  function tierOf(type) { var c = type && G.CARDS[type]; return !c ? 0 : c.rarity === 'rare' ? 2 : c.rarity === 'uncommon' ? 1 : 0; }
+  function P2(x, y, w, h, col) { b.fillStyle = col; b.fillRect(Math.round(x), Math.round(y), w, h); }
+  function glowDot(x, y, r, col, a) { b.globalCompositeOperation = 'lighter'; b.globalAlpha = a; DA.ell(b, Math.round(x), Math.round(y), r, Math.max(1, Math.round(r * 0.8)), col); b.globalAlpha = 1; b.globalCompositeOperation = 'source-over'; }
+  function trail(sh, x, y, n) { var tr = sh._tr || (sh._tr = []); tr.unshift([x, y]); if (tr.length > n) tr.length = n; return tr; }
+  function drawShot(sh, t) {
+    var x = sx(sh.x), y = sy(sh.y), tier = tierOf(sh.src), k, tr;
+    if (sh.kind === 'arrow' || sh.kind === 'bolt') {
+      var ca = Math.cos(sh.ang || 0), sa = Math.sin(sh.ang || 0) * 0.75, bolt = sh.kind === 'bolt';
+      if (tier >= 1) {   // 風を切る白い線（アンコモン）／金色の光の尾（レア）
+        tr = trail(sh, x, y, tier === 2 ? 7 : 4);
+        for (k = 1; k < tr.length; k++) { b.globalAlpha = (1 - k / tr.length) * (tier === 2 ? 0.8 : 0.45); P2(tr[k][0], tr[k][1], tier === 2 ? 2 : 1, 1, tier === 2 ? '#ffe08a' : '#ffffff'); }
+        b.globalAlpha = 1;
+      }
+      var len = bolt ? 13 : 8, thick = bolt ? 2 : 1;
+      for (k = 0; k < len; k++) {   // 矢じり（はがね）→ 柄（木）→ 羽（白）
+        var col = k < 2 ? '#e8ecf0' : k > len - 3 ? (bolt ? '#ffd84a' : '#f4f0e0') : bolt ? '#6a5a4a' : '#a87440';
+        P2(x - ca * k, y - sa * k, thick, 1, col);
+      }
+      P2(x, y, thick, 1, '#ffffff');
+      if (tier === 2) { glowDot(x, y, 3, '#ffd84a', 0.35); if (Math.random() < 0.5) parts.push({ x: x, y: y, vx: (Math.random() - 0.5) * 6, vy: -4, g: 0, life: 0.25, ml: 0.25, col: '#fff0b0' }); }
+    } else if (sh.kind === 'stone' || sh.kind === 'ball') {
+      var big = sh.kind === 'ball', hy = y - (sh.h || 0) * TH * 1.6, r = big ? (tier === 2 ? 4 : 3) : 2;
+      DA.ell(b, Math.round(x), Math.round(y), r, 1, 'rgba(0,0,0,.3)');   // 地面の影
+      if (big && tier >= 1) {   // けむりの尾（アンコモン）／炎の尾（レア）
+        tr = trail(sh, x, hy, tier === 2 ? 8 : 5);
+        for (k = 2; k < tr.length; k += 1) { var fa = 1 - k / tr.length; DA.ell(b, Math.round(tr[k][0]), Math.round(tr[k][1]), Math.max(1, Math.round(r * fa)), Math.max(1, Math.round(r * fa)), tier === 2 ? (k < 4 ? 'rgba(255,170,60,' + (fa * 0.8).toFixed(2) + ')' : 'rgba(255,90,30,' + (fa * 0.5).toFixed(2) + ')') : 'rgba(160,150,140,' + (fa * 0.5).toFixed(2) + ')'); }
+      }
+      if (big) {   // 黒い鉄の玉（左上が明るい）。レアは赤く焼けた玉
+        DA.disc(b, Math.round(x), Math.round(hy), r, tier === 2 ? '#5a2214' : '#2a2c34');
+        DA.disc(b, Math.round(x) - 1, Math.round(hy) - 1, Math.max(1, r - 1), tier === 2 ? '#a83a1a' : '#4a4e5a');
+        P2(x - r + 1, hy - r + 1, 2, 1, tier === 2 ? '#ffb040' : '#8a8e9a');
+        if (tier === 2) glowDot(x, hy, r + 2, '#ff7a24', 0.3);
+      } else { DA.disc(b, Math.round(x), Math.round(hy), 2, '#6a6460'); P2(x - 1, hy - 1, 2, 1, '#b8b2aa'); }   // 投石：灰色の石
+    } else if (sh.kind === 'flame') {   // 火の玉：外がこい赤・中がオレンジ・芯が黄色。火の粉の尾
+      tr = trail(sh, x, y, 5);
+      for (k = 1; k < tr.length; k++) DA.disc(b, Math.round(tr[k][0]), Math.round(tr[k][1]), Math.max(1, 3 - k), k < 2 ? '#ff6a2a' : '#c8341a');
+      DA.disc(b, Math.round(x), Math.round(y), 4, '#c8341a'); DA.disc(b, Math.round(x), Math.round(y), 3, '#ff7a24'); DA.disc(b, Math.round(x) - 1, Math.round(y) - 1, 1, '#ffe060');
+      glowDot(x, y, 6, '#ff8a2a', 0.22);
+      if (Math.random() < 0.7) parts.push({ x: x, y: y, vx: (Math.random() - 0.5) * 10, vy: -14, g: 0, life: 0.3, ml: 0.3, col: Math.random() < 0.5 ? '#ff8a2a' : '#ffd84a' });
+    } else if (sh.kind === 'spark') {   // 雷の玉：白い芯・まわりで小さな稲妻がはじける。レア（嵐）は大きく紫がかる
+      var rr = tier === 2 ? 4 : 3, c1 = tier === 2 ? '#c8b0ff' : '#9ae0ff';
+      glowDot(x, y, rr + 3, c1, 0.3);
+      DA.disc(b, Math.round(x), Math.round(y), rr, c1); DA.disc(b, Math.round(x), Math.round(y), rr - 1, '#ffffff');
+      for (k = 0; k < (tier === 2 ? 3 : 2); k++) { var an = Math.random() * 6.28, ln = rr + 2 + Math.random() * 3; P2(x + Math.cos(an) * ln, y + Math.sin(an) * ln, 1, 1, '#ffe14d'); P2(x + Math.cos(an) * (ln - 2), y + Math.sin(an) * (ln - 2), 1, 1, '#ffffff'); }
+    } else if (sh.kind === 'ice') {   // 氷のかけら：進む向きにとがった水晶。冷気の粒の尾
+      var ia = Math.cos(sh.ang || 0), ib = Math.sin(sh.ang || 0) * 0.75;
+      tr = trail(sh, x, y, 4);
+      for (k = 1; k < tr.length; k++) { b.globalAlpha = 0.5 * (1 - k / tr.length); P2(tr[k][0], tr[k][1], 1, 1, '#d8f4ff'); }
+      b.globalAlpha = 1;
+      for (k = 0; k < 6; k++) { var w2 = k < 2 ? 1 : k < 4 ? 2 : 1; P2(x - ia * k - (w2 >> 1), y - ib * k - (w2 >> 1), w2, w2, k < 2 ? '#ffffff' : k < 4 ? '#9ae0ff' : '#5fa8d8'); }
+      glowDot(x, y, 3, '#bff0ff', 0.25);
+    } else if (sh.kind === 'drip') {   // 毒のしずく：こい緑のふち・明るい緑・白い光。しずくが落ちる
+      DA.disc(b, Math.round(x), Math.round(y), 3, '#2e6a1e'); DA.disc(b, Math.round(x), Math.round(y), 2, '#7ac84a'); P2(x - 1, y - 1, 1, 1, '#e8ffd0');
+      if (Math.random() < 0.3) parts.push({ x: x, y: y + 2, vx: 0, vy: 10, g: 40, life: 0.3, ml: 0.3, col: '#7ac84a' });
+    } else if (sh.kind === 'orb') {   // 魔法の玉：紫の光の輪と、きらきらの尾
+      tr = trail(sh, x, y, 6);
+      for (k = 1; k < tr.length; k++) { b.globalAlpha = 0.6 * (1 - k / tr.length); P2(tr[k][0] + (k % 2 ? 1 : -1), tr[k][1], 1, 1, k % 2 ? '#e8d0ff' : '#9a6ad8'); }
+      b.globalAlpha = 1;
+      glowDot(x, y, 5, '#b07aff', 0.28);
+      DA.disc(b, Math.round(x), Math.round(y), 3, '#5a3a9a'); DA.disc(b, Math.round(x), Math.round(y), 2, '#a87aff'); P2(x - 1, y - 1, 1, 1, '#ffffff');
+      var oa = t * 9; P2(x + Math.cos(oa) * 5, y + Math.sin(oa) * 3.5, 1, 1, '#e8d0ff');   // まわりを回る小さな光
+    } else {
+      DA.disc(b, Math.round(x), Math.round(y), 2, '#4a4e5a');
+    }
+  }
   function addEvents(events) {
     for (var i = 0; i < events.length; i++) {
       var e = events[i];
@@ -393,16 +459,34 @@ var G = window.G = window.G || {};
         var cols = e.type === 'slime' ? ['#5cc350', '#b6f29a'] : e.type === 'goblin' ? ['#8bc34a', '#7a5230'] : ['#6e9a4e', '#a0a0aa'];
         burst(e.x, e.y - 0.4, 12, cols, 40, 90, 0.6);
         nums.push({ x: sx(e.x), y: sy(e.y) - 22, vy: -14, text: '+' + e.gold, col: '#ffd84a', size: 0.9, life: 0.9, ml: 0.9, coin: true });
-      } else if (e.k === 'boom') {
-        if (e.small) burst(e.x, e.y, 6, ['#9ca1a7', '#cfc2ab', '#6b5235'], 26, 60, 0.35);
-        else { burst(e.x, e.y, 14, ['#ffb347', '#ffe08a', '#ff6b3a', '#5a5048'], 50, 40, 0.5); addShake(e.r >= 1.4 ? 2.5 : 1); }
-        rings.push({ x: sx(e.x), y: sy(e.y), r: 2, max: e.r * TW, col: e.small ? '#cfc2ab' : '#ffcf6a', life: 0.3, ml: 0.3 });
+      } else if (e.k === 'boom') {   // 爆発：レア度が高いほど大きな火の玉・二重の輪・がれき・ゆれ
+        var bt = tierOf(e.src);
+        if (e.small) burst(e.x, e.y, 9, ['#9ca1a7', '#cfc2ab', '#6b5235'], 39, 90, 0.4);
+        else {
+          burst(e.x, e.y, 14 + bt * 8, ['#ffb347', '#ffe08a', '#ff6b3a', '#5a5048'], 60 + bt * 15, 40, 0.5 + bt * 0.1);
+          booms.push({ x: sx(e.x), y: sy(e.y), r: Math.round(e.r * TW * (0.45 + bt * 0.1)), life: 0.35 + bt * 0.1, ml: 0.35 + bt * 0.1, tier: bt });
+          if (bt === 2) { burst(e.x, e.y, 10, ['#3a3430', '#5a5048', '#2a2420'], 50, 120, 0.8); rings.push({ x: sx(e.x), y: sy(e.y), r: 4, max: e.r * TW * 1.25, col: '#ffffff', life: 0.25, ml: 0.25 }); }
+          addShake(e.r >= 1.4 ? 2.5 + bt : 1 + bt * 0.5);
+        }
+        rings.push({ x: sx(e.x), y: sy(e.y), r: 2, max: e.r * TW, col: e.small ? '#cfc2ab' : '#ffcf6a', life: 0.3, ml: 0.3, w: e.small ? 1 : 2 });
       } else if (e.k === 'spawn') { // 入口（画面の上）から現れた時：ボスだけ衝撃を出す
         if (e.boss) { addShake(4); rings.push({ x: sx(e.x), y: sy(e.y), r: 4, max: 40, col: '#ff4d3a', life: 0.7, ml: 0.7 }); }
       } else if (e.k === 'chain') {
-        beams.push({ x0: sx(e.x0), y0: sy(e.y0), x1: sx(e.x1), y1: sy(e.y1), life: 0.18 });
+        beams.push({ x0: sx(e.x0), y0: sy(e.y0), x1: sx(e.x1), y1: sy(e.y1), life: 0.18 + tierOf(e.src) * 0.06, tier: tierOf(e.src) });
       } else if (e.k === 'flame') {
-        burst(e.x, e.y, 10, ['#ff6a2a', '#ffd84a', '#ff3a1a'], 34, -30, 0.45);
+        burst(e.x, e.y, 15, ['#ff6a2a', '#ffd84a', '#ff3a1a'], 51, -45, 0.5);
+        booms.push({ x: sx(e.x), y: sy(e.y), r: 7, life: 0.3, ml: 0.3, tier: 1 });
+      } else if (e.k === 'pin') {   // 矢・ボルトが当たった：小さな火花（レアは金色の光と輪）
+        var pt = tierOf(e.src);
+        burst(e.x, e.y, 3 + pt * 3, pt === 2 ? ['#fff0b0', '#ffd84a', '#ffffff'] : ['#ffffff', '#d8d0c0'], 30, 30, 0.25);
+        if (pt === 2) rings.push({ x: sx(e.x), y: sy(e.y), r: 1, max: 9, col: '#ffe08a', life: 0.22, ml: 0.22 });
+      } else if (e.k === 'fire') {   // 撃った時：砲口の光（アンコモン＝小さな光、レア＝光と輪）
+        var ft = tierOf(e.type);
+        if (ft >= 1 && e.x !== undefined) {
+          var mx = sx(e.x), my = sy(e.y);
+          booms.push({ x: mx, y: my, r: 2 + ft, life: 0.12, ml: 0.12, muzzle: true });
+          if (ft === 2) rings.push({ x: mx, y: my, r: 1, max: 7, col: '#fff0b0', life: 0.18, ml: 0.18 });
+        }
       } else if (e.k === 'revive') {
         burst(e.x, e.y - 0.5, 12, ['#e8e2d0', '#bff0ff'], 30, -10, 0.6);
         nums.push({ x: sx(e.x), y: sy(e.y) - 24, vy: -12, text: '復活', col: '#e8e2d0', size: 0.9, life: 1, ml: 1 });
@@ -410,18 +494,22 @@ var G = window.G = window.G || {};
         nums.push({ x: sx(e.x), y: sy(e.y) - 14, vy: -14, text: '+' + e.gold, col: '#ffd84a', size: 1, life: 1.2, ml: 1.2 });
       } else if (e.k === 'relic' && e.x !== undefined) {
         nums.push({ x: sx(e.x), y: sy(e.y) - 22, vy: -12, text: G.RELICS[e.id].name, col: '#ffd84a', size: 0.85, life: 1.2, ml: 1.2 });
-      } else if (e.k === 'frost') {
-        burst(e.x, e.y, 6, ['#bff0ff', '#ffffff', '#5fc8ff'], 26, 10, 0.35);
-      } else if (e.k === 'splat') {
-        burst(e.x, e.y, 5, ['#a6e85a', '#4a8a2a'], 20, 40, 0.35);
+      } else if (e.k === 'frost') {   // 氷：かけらが飛び散り、小さな霜の輪
+        burst(e.x, e.y, 9 + tierOf(e.src) * 4, ['#bff0ff', '#ffffff', '#5fc8ff'], 39, 15, 0.4);
+        rings.push({ x: sx(e.x), y: sy(e.y), r: 2, max: 10, col: '#d8f4ff', life: 0.3, ml: 0.3 });
+      } else if (e.k === 'splat') {   // 毒：しぶきと、地面にうすい緑のしみ
+        burst(e.x, e.y, 8, ['#a6e85a', '#4a8a2a'], 30, 60, 0.4);
+        booms.push({ x: sx(e.x), y: sy(e.y), r: 6, life: 0.5, ml: 0.5, poison: true });
       } else if (e.k === 'skill') {
         if (e.x !== null) { burst(e.x, e.y - 0.8, 14, [G.UP_COLOR, '#ffffff', '#ffd0c0'], 30, -20, 0.6); rings.push({ x: sx(e.x), y: sy(e.y), r: 3, max: 16, col: G.UP_COLOR, life: 0.45, ml: 0.45 }); }
       } else if (e.k === 'broken') {
         burst(e.x, e.y, 14, ['#8a5a2b', '#c08a4a', '#5a3a1e'], 40, 80, 0.6);
       } else if (e.k === 'soldierDown') {
         burst(e.x, e.y - 0.3, 8, ['#c0c8d8', '#ff6b5b'], 26, 60, 0.5);
-      } else if (e.k === 'zap') {
-        burst(e.x, e.y, 6, ['#c79bff', '#ffffff', '#9be7ff'], 30, 0, 0.35);
+      } else if (e.k === 'zap') {   // 魔法・雷が当たった：光の粒と小さな輪（レアは大きく）
+        var zt = tierOf(e.src);
+        burst(e.x, e.y, 9 + zt * 5, e.kind === 'spark' ? ['#ffffff', '#9ae0ff', '#ffe14d'] : ['#c79bff', '#ffffff', '#9be7ff'], 45, 0, 0.4);
+        rings.push({ x: sx(e.x), y: sy(e.y), r: 2, max: 8 + zt * 5, col: e.kind === 'spark' ? '#ffe14d' : '#c79bff', life: 0.25, ml: 0.25 });
       } else if (e.k === 'leak') {
         floats.push({ x: sx(e.x), y: sy(e.y) - 20, text: '-' + e.life, col: '#ff5a5a', life: 1.2, heart: true });
         addShake(e.life >= 3 ? 3.5 : 1.5);
@@ -453,9 +541,10 @@ var G = window.G = window.G || {};
     for (i = floats.length - 1; i >= 0; i--) { floats[i].life -= dt; floats[i].y -= dt * 14; if (floats[i].life <= 0) floats.splice(i, 1); }
     for (i = beams.length - 1; i >= 0; i--) { beams[i].life -= dt; if (beams[i].life <= 0) beams.splice(i, 1); }
     for (i = glows.length - 1; i >= 0; i--) { glows[i].life -= dt; if (glows[i].life <= 0) glows.splice(i, 1); }
+    for (i = booms.length - 1; i >= 0; i--) { booms[i].life -= dt; if (booms[i].life <= 0) booms.splice(i, 1); }
     for (i = nums.length - 1; i >= 0; i--) { var n = nums[i]; n.life -= dt; n.y += n.vy * dt; n.vy *= 0.92; if (n.life <= 0) nums.splice(i, 1); }
   }
-  function clearFx() { parts = []; rings = []; floats = []; nums = []; beams = []; glows = []; fx.shake = 0; fx.flash = 0; }
+  function clearFx() { parts = []; rings = []; floats = []; nums = []; beams = []; glows = []; booms = []; fx.shake = 0; fx.flash = 0; }
   // 画面のゆれの量（ピクセル）を出して少しずつ弱める
   function shakeOffset(dt) {
     if (fx.flash > 0) fx.flash = Math.max(0, fx.flash - dt * 2.2);
@@ -712,45 +801,8 @@ var G = window.G = window.G || {};
       if (nx) rangeEllipse(selTw.x, selTw.y, nx.range, nc, t);
     }
 
-    // 弾
-    s.shots.forEach(function (sh) {
-      var x = sx(sh.x), y = sy(sh.y);
-      if (sh.kind === 'arrow' || sh.kind === 'bolt') {
-        var ca = Math.cos(sh.ang || 0), sa = Math.sin(sh.ang || 0), len = sh.kind === 'bolt' ? 9 : 5;
-        for (var k = 0; k < len; k++) {
-          b.fillStyle = k === 0 ? '#ffffff' : sh.kind === 'bolt' ? '#8a8f99' : '#c08a4a';
-          b.fillRect(Math.round(x - ca * k), Math.round(y - sa * k * 0.75), sh.kind === 'bolt' ? 2 : 1, 1);
-        }
-      } else if (sh.kind === 'flame') {
-        b.fillStyle = '#e04a1a'; b.fillRect(Math.round(x) - 2, Math.round(y) - 2, 5, 5);
-        b.fillStyle = '#ffd84a'; b.fillRect(Math.round(x) - 1, Math.round(y) - 1, 3, 3);
-        if (Math.random() < 0.6) parts.push({ x: x, y: y, vx: 0, vy: -8, g: 0, life: 0.25, ml: 0.25, col: '#ff8a2a' });
-      } else if (sh.kind === 'spark') {
-        b.fillStyle = '#ffffff'; b.fillRect(Math.round(x) - 1, Math.round(y) - 1, 3, 3);
-        b.fillStyle = '#ffe14d'; b.fillRect(Math.round(x) - 2, Math.round(y), 5, 1); b.fillRect(Math.round(x), Math.round(y) - 2, 1, 5);
-      } else if (sh.kind === 'ice') {
-        b.fillStyle = '#5fc8ff'; b.fillRect(Math.round(x) - 1, Math.round(y) - 2, 3, 5); b.fillRect(Math.round(x) - 2, Math.round(y) - 1, 5, 3);
-        b.fillStyle = '#ffffff'; b.fillRect(Math.round(x), Math.round(y), 1, 1);
-      } else if (sh.kind === 'drip') {
-        b.fillStyle = '#4a8a2a'; b.fillRect(Math.round(x) - 2, Math.round(y) - 1, 4, 4);
-        b.fillStyle = '#a6e85a'; b.fillRect(Math.round(x) - 1, Math.round(y), 2, 2);
-      } else if (sh.kind === 'stone') {
-        var hy2 = y - (sh.h || 0) * TH * 1.6;
-        b.fillStyle = 'rgba(0,0,0,.35)'; b.fillRect(Math.round(x) - 1, Math.round(y), 2, 1);
-        b.fillStyle = '#16120f'; b.fillRect(Math.round(x) - 1, Math.round(hy2) - 1, 3, 3);
-        b.fillStyle = '#9ca1a7'; b.fillRect(Math.round(x), Math.round(hy2), 1, 1);
-      } else if (sh.kind === 'orb') {
-        b.fillStyle = '#6f4cc0'; b.fillRect(Math.round(x) - 2, Math.round(y) - 2, 5, 5);
-        b.fillStyle = '#c79bff'; b.fillRect(Math.round(x) - 1, Math.round(y) - 1, 3, 3);
-        b.fillStyle = '#ffffff'; b.fillRect(Math.round(x), Math.round(y), 1, 1);
-        if (Math.random() < 0.5) parts.push({ x: x, y: y, vx: 0, vy: 0, g: 0, life: 0.25, ml: 0.25, col: '#9a6ad8' });
-      } else {
-        var hy = y - (sh.h || 0) * TH * 1.6;
-        b.fillStyle = 'rgba(0,0,0,.35)'; b.fillRect(Math.round(x) - 1, Math.round(y), 3, 1);
-        b.fillStyle = '#16120f'; b.fillRect(Math.round(x) - 2, Math.round(hy) - 1, 4, 4);
-        b.fillStyle = '#4a4d52'; b.fillRect(Math.round(x) - 1, Math.round(hy), 2, 2);
-      }
-    });
+    // 弾（2026-10-22 段階④：24×18の細かさに合わせて描き直し。レア度が高いタワーほど豪華：0＝初期・ノーマル、1＝アンコモン、2＝レア）
+    s.shots.forEach(function (sh) { drawShot(sh, t); });
 
     // 置く前の見本（ドラッグ中・選択中に指している場所）
     if (ui.selType && ui.preview) {
@@ -772,22 +824,37 @@ var G = window.G = window.G || {};
     }
 
     // 効果
+    booms.forEach(function (o) {   // 爆発の火の玉（外が赤・中が黄・芯が白）／砲口の光／毒のしみ
+      var p = 1 - o.life / o.ml;
+      if (o.poison) { b.globalAlpha = 0.35 * (1 - p); DA.ell(b, o.x, o.y, o.r, Math.max(1, Math.round(o.r * 0.5)), '#7ac84a'); b.globalAlpha = 1; return; }
+      var r = Math.max(1, Math.round(o.r * (o.muzzle ? 1 : 0.6 + p * 0.6)));
+      b.globalCompositeOperation = 'lighter'; b.globalAlpha = (1 - p) * (o.muzzle ? 0.9 : 0.75);
+      DA.ell(b, o.x, o.y - (o.muzzle ? 0 : 2), r, Math.max(1, Math.round(r * 0.75)), o.muzzle ? '#ffd84a' : '#ff6a2a');
+      if (r > 2) DA.ell(b, o.x, o.y - (o.muzzle ? 0 : 3), Math.round(r * 0.6), Math.max(1, Math.round(r * 0.45)), '#ffd060');
+      if (r > 4) DA.ell(b, o.x, o.y - 4, Math.round(r * 0.3), Math.max(1, Math.round(r * 0.22)), '#ffffff');
+      b.globalAlpha = 1; b.globalCompositeOperation = 'source-over';
+      if (!o.muzzle && o.tier === 2 && p > 0.3) { b.globalAlpha = 0.5 * (1 - p); DA.ell(b, o.x, o.y - 8 - Math.round(p * 10), Math.round(r * 0.7), Math.round(r * 0.5), '#5a5048'); b.globalAlpha = 1; }   // レア：立ちのぼる黒いけむり
+    });
     rings.forEach(function (r) {
-      var p = 1 - r.life / r.ml, rr = r.r + (r.max - r.r) * p, n = Math.max(12, Math.round(rr * 2.5));
+      var p = 1 - r.life / r.ml, rr = r.r + (r.max - r.r) * p, n = Math.max(12, Math.round(rr * 2.5)), w = r.w || 1;
       b.globalAlpha = 1 - p; b.fillStyle = r.col;
-      for (var k = 0; k < n; k++) { var a = k / n * Math.PI * 2; b.fillRect(Math.round(r.x + Math.cos(a) * rr), Math.round(r.y + Math.sin(a) * rr * 0.75), 1, 1); }
+      for (var k = 0; k < n; k++) { var a = k / n * Math.PI * 2; b.fillRect(Math.round(r.x + Math.cos(a) * rr), Math.round(r.y + Math.sin(a) * rr * 0.75), w, w); }
       b.globalAlpha = 1;
     });
-    beams.forEach(function (bm) {   // 雷が飛び移る線（ジグザグ）
-      var n = 6; b.fillStyle = Math.random() < 0.5 ? '#ffffff' : '#ffe14d';
-      for (var k = 0; k <= n * 3; k++) {
-        var t2 = k / (n * 3), jx = (k % 3 === 1) ? (Math.random() - 0.5) * 4 : 0;
-        b.fillRect(Math.round(bm.x0 + (bm.x1 - bm.x0) * t2 + jx), Math.round(bm.y0 + (bm.y1 - bm.y0) * t2 + jx), 1, 1);
-      }
+    beams.forEach(function (bm) {   // 雷が飛び移る線（ジグザグ）：外に青い光・中に白い線。レア（嵐）は紫で太い
+      var n = 7, pts = [], k;
+      for (k = 0; k <= n; k++) { var t2 = k / n, j2 = (k > 0 && k < n) ? (Math.random() - 0.5) * 7 : 0; pts.push([bm.x0 + (bm.x1 - bm.x0) * t2 + j2, bm.y0 + (bm.y1 - bm.y0) * t2 + j2 * 0.6]); }
+      var outer = bm.tier === 2 ? '#a87aff' : '#58d4ff', w = bm.tier === 2 ? 3 : 2;
+      [[outer, w, 0.55], ['#ffffff', 1, 1]].forEach(function (pass) {
+        b.globalAlpha = pass[2]; b.fillStyle = pass[0];
+        for (k = 0; k < n; k++) for (var q = 0; q <= 6; q++) { var u = q / 6; b.fillRect(Math.round(pts[k][0] + (pts[k + 1][0] - pts[k][0]) * u - (pass[1] >> 1)), Math.round(pts[k][1] + (pts[k + 1][1] - pts[k][1]) * u - (pass[1] >> 1)), pass[1], pass[1]); }
+      });
+      b.globalAlpha = 1;
     });
-    parts.forEach(function (p) {
-      b.globalAlpha = Math.min(1, p.life / p.ml * 1.6); b.fillStyle = p.col;
-      b.fillRect(Math.round(p.x), Math.round(p.y), 1, 1);
+    parts.forEach(function (p) {   // 粒：はじめは2ドット、消えかけると1ドット
+      var a = Math.min(1, p.life / p.ml * 1.6), sz = a > 0.55 ? 2 : 1;
+      b.globalAlpha = a; b.fillStyle = p.col;
+      b.fillRect(Math.round(p.x), Math.round(p.y), sz, sz);
     });
     b.globalAlpha = 1;
     floats.forEach(function (f) {

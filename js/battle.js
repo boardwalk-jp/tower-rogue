@@ -665,7 +665,7 @@ var G = window.G = window.G || {};
             var ee = s.enemies[j];
             if (ee.hp > 0 && !(sh.noAir && ee.fly) && Math.hypot(ee.x - sh.tx, ee.y - sh.ty) <= sh.splash) hurt(s, ee, sh.dmg, sh.dmgType, sh.src);
           }
-          ev(s, { k: 'boom', x: sh.tx, y: sh.ty, r: sh.splash, small: sh.kind === 'stone' });
+          ev(s, { k: 'boom', x: sh.tx, y: sh.ty, r: sh.splash, small: sh.kind === 'stone', src: sh.src });
           s.shots.splice(i, 1);
         }
         continue;
@@ -690,11 +690,11 @@ var G = window.G = window.G || {};
               var cd = Math.hypot(ce.x - from.x, ce.y - from.y); if (cd < nd) { nd = cd; nx = ce; }
             }
             if (!nx) break;
-            ev(s, { k: 'chain', x0: from.x, y0: from.y - 0.4, x1: nx.x, y1: nx.y - 0.4 });
+            ev(s, { k: 'chain', x0: from.x, y0: from.y - 0.4, x1: nx.x, y1: nx.y - 0.4, src: sh.src });
             hurt(s, nx, sh.dmg * sh.chainMul, sh.dmgType, sh.src); hit.push(nx.id); from = nx;
           }
         }
-        ev(s, { k: sh.kind === 'orb' ? 'zap' : sh.kind === 'ice' ? 'frost' : sh.kind === 'drip' ? 'splat' : sh.kind === 'flame' ? 'flame' : sh.kind === 'spark' ? 'zap' : 'pin', x: sh.tx, y: sh.ty });
+        ev(s, { k: sh.kind === 'orb' ? 'zap' : sh.kind === 'ice' ? 'frost' : sh.kind === 'drip' ? 'splat' : sh.kind === 'flame' ? 'flame' : sh.kind === 'spark' ? 'zap' : 'pin', x: sh.tx, y: sh.ty, src: sh.src, kind: sh.kind });
         s.shots.splice(i, 1);
       } else { sh.x += dx / dist * step; sh.y += dy / dist * step; }
     }
