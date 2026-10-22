@@ -45,7 +45,14 @@ var G = window.G = window.G || {};
 
   // ---- ワールドマップ（スレイザスパイア式の分かれ道） ----
   // 下（0階）から上へ進む。最後の階（floors-1）はすべて休憩、その上がボス
+  // ボスの直前の段（すべてたき火）は2〜3マスにする（2026-10-22 オーナー指定）。そうならない形が出たら作り直す
   function makeWorld(r) {
+    var w, tries = 0;
+    do { w = makeWorld0(r); tries++; }
+    while (tries < 60 && (function () { var n = Object.keys(w.nodes).filter(function (k) { return w.nodes[k].floor === w.floors - 1; }).length; return n < 2 || n > 3; })());
+    return w;
+  }
+  function makeWorld0(r) {
     var F = G.RULES.floors, nodes = {}, edges = {};
     function id(f, c) { return f + ':' + c; }
     function add(f, c) { if (!nodes[id(f, c)]) nodes[id(f, c)] = { id: id(f, c), floor: f, lane: c, next: [] }; return nodes[id(f, c)]; }

@@ -333,10 +333,15 @@ var G = window.G = window.G || {};
   // ============================================================
   var pendingNode = null;
   var LANE_W = 62, FLOOR_H = 70, PAD_Y = 46, NODE = 44;
+  // ボスの絵は大きく（高さ BOSS_H まで）。ボスの上に少し余白、ボスと直前の段（たき火）のあいだは BOSS_GAP あける（2026-10-22）
+  var BOSS_H = 84, BOSS_TOP = 16, BOSS_GAP = 26;
+  function bossY() { return BOSS_TOP + BOSS_H / 2; }
+  function firstRowY() { return bossY() + BOSS_H / 2 + BOSS_GAP + NODE / 2; }
   function nodePos(n, width) {
     var lanes = 5, left = (width - LANE_W * (lanes - 1)) / 2;
-    var floors = run.world.floors + 1;
-    return { x: left + n.lane * LANE_W, y: PAD_Y + (floors - 1 - n.floor) * FLOOR_H };
+    var F = run.world.floors;
+    if (n.type === 'boss') return { x: left + n.lane * LANE_W, y: bossY() };
+    return { x: left + n.lane * LANE_W, y: firstRowY() + (F - 1 - n.floor) * FLOOR_H };
   }
   // view：見るだけ（戦闘・イベント中に上の「マップ」ボタンから開いた時）。マスは選べず、「もどる」で元の画面へ
   var viewFrom = null;
@@ -347,7 +352,7 @@ var G = window.G = window.G || {};
     $('world-menu-btn').hidden = view; $('world-back').hidden = !view;
     pendingNode = null;
     var box = $('world-map'), svg = $('world-lines'), width = Math.min(box.parentNode.clientWidth || 360, 420);
-    var floors = run.world.floors + 1, height = PAD_Y * 2 + (floors - 1) * FLOOR_H;
+    var height = firstRowY() + (run.world.floors - 1) * FLOOR_H + PAD_Y;
     box.style.height = height + 'px'; box.style.width = width + 'px';
     svg.setAttribute('width', width); svg.setAttribute('height', height); svg.setAttribute('viewBox', '0 0 ' + width + ' ' + height);
     box.querySelectorAll('.node').forEach(function (b) { b.remove(); });
@@ -372,7 +377,7 @@ var G = window.G = window.G || {};
       var ic = document.createElement('canvas'), bossId = n.type === 'boss' ? R.bossType(run) : '';
       if (bossId && SPR[bossId]) {
         // ボスマス：枠をなくして、そのボスの絵を大きく出す（どのボスが出るか、マップで見分けられる）
-        var bi = SPR[bossId][0].r, bk = bi.nu ? Math.min(1.7, 56 / bi.height) : 1.7, bw = Math.round(bi.width * bk), bh = Math.round(bi.height * bk);   // 新しい絵は大きいので、高さ56pxまでに縮める
+        var bi = SPR[bossId][0].r, bk = bi.nu ? BOSS_H / bi.height : 1.7, bw = Math.round(bi.width * bk), bh = Math.round(bi.height * bk);   // 新しい絵は高さ BOSS_H（84px）にそろえる
         ic.width = bi.width; ic.height = bi.height; ic.getContext('2d').drawImage(bi, 0, 0);
         ic.style.width = bw + 'px'; ic.style.height = bh + 'px';
         b.classList.add('boss-art');

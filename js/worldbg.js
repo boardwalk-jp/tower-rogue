@@ -104,7 +104,7 @@
     things.forEach(function (o) { thing2(g, T, theme, o); });
     // いちばん上：層ごとの目印（ボスのいる所）
     var mx = Math.round(cw / 2);
-    if (theme === 'volcano') volcano2(g, mx, 6); else if (theme === 'snow') mountain2(g, mx, 4); else ruins(g, mx, 8);
+    if (theme === 'volcano') volcano2(g, mx, 8); else if (theme === 'snow') mountain2(g, mx, 6); else mesa(g, mx, 10);
     return cv;
   }
   function px(g, c, x, y, w, h) { g.fillStyle = c; g.fillRect(x, y, w || 1, h || 1); }
@@ -142,7 +142,24 @@
       if (v < 0.5) px(g, '#ff6a2a', x, y - Math.round(sh * 0.5), 1, 2);
     }
   }
-  // 草原の目印：丘の上の石の遺跡（くずれた城壁・アーチ・旗）
+  // 草原の目印：切り立った茶色い岩山（台形に近い形）。左の面は明るく、右の面は影、上は平らで草が少し、横に地層のすじ（2026-10-22）
+  function mesa(g, cx, top) {
+    var H = 34, topW = 40, botW = 74, i, x;
+    ellP(g, 'rgba(0,0,0,.3)', cx + 4, top + H + 1, botW / 2 + 4, 4);
+    for (i = 0; i < H; i++) {
+      var w = Math.round(topW + (botW - topW) * Math.pow(i / H, 1.4)), l = cx - (w >> 1), split = Math.round(w * 0.55);
+      var band = (i % 7 === 3) || (i % 11 === 8);
+      px(g, band ? '#946438' : '#a87a4a', l, top + i, split, 1);          // 左（光の当たる面）
+      px(g, band ? '#5a3a20' : '#6a4628', l + split, top + i, w - split, 1);   // 右（影の面）
+      px(g, '#c49a64', l, top + i, 1, 1);                                  // 左のふちのハイライト
+      px(g, '#4a2e18', l + w - 1, top + i, 1, 1);                          // 右のふちの暗い線
+    }
+    px(g, '#c49a64', cx - topW / 2, top - 2, topW, 2); px(g, '#d8b07a', cx - topW / 2, top - 2, topW * 0.55, 1);   // 平らな上の面
+    for (x = cx - topW / 2; x < cx + topW / 2; x += 3) px(g, '#4f8a3e', x, top - 3 - ((x * 7) % 2), 2, 1);           // 上のふちの草
+    for (i = 0; i < 6; i++) { var cxk = cx - 20 + i * 8 + ((i * 5) % 3); for (var j = 0; j < 7 + (i % 3) * 3; j++) px(g, '#4a2e18', cxk + ((j * 3) % 2), top + 6 + j * 3 + (i % 2) * 2, 1, 2); }   // 縦のひび
+    [[-34, 2], [30, 3], [-24, 1], [38, 1]].forEach(function (q) { ellP(g, '#6a4628', cx + q[0], top + H - 1, q[1] + 2, q[1] + 1); px(g, '#a87a4a', cx + q[0] - 2, top + H - 2 - q[1], 2, 1); });   // ふもとの岩
+  }
+  // （旧）草原の目印：丘の上の石の遺跡（くずれた城壁・アーチ・旗）。今は使っていない
   function ruins(g, cx, top) {
     ellP(g, '#3a7032', cx, top + 34, 46, 10); ellP(g, '#4a8a3e', cx - 6, top + 31, 36, 7);
     var S = { t: '#b3aea2', f: '#87827a', s: '#66625b', hi: '#cdc8bc', d: '#42403b' };
