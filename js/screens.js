@@ -212,6 +212,7 @@ var G = window.G = window.G || {};
     var seen = false; try { seen = !!localStorage.getItem('towerRogue.helpSeen'); } catch (e) { seen = true; }
     if (!seen) setTimeout(showHelp, 50);
     openPanel('指揮官', function (body, foot) {
+      if (G.cmdBg) $('panel').insertBefore(G.cmdBg(), $('panel').firstChild);   // 背景：城の中庭（いちばん下の層）
       body.appendChild(el('h2', 'panel-title', '指揮官を選ぶ'));
       var list = el('div', 'choices cmd-list'), picked = null;
       var ok = button('この指揮官で始める', 'go', function () { if (picked) newRun(picked, ascPick); });
@@ -219,20 +220,24 @@ var G = window.G = window.G || {};
       Object.keys(G.COMMANDERS).forEach(function (id) {
         var C = G.COMMANDERS[id], b = button('', 'choice cmd', function () {
           list.querySelectorAll('.cmd').forEach(function (x) { x.classList.remove('sel'); });
-          b.classList.add('sel'); picked = id; ok.disabled = false;
+          b.classList.add('sel'); list.classList.add('has-sel'); picked = id; ok.disabled = false;
         });
-        var cv = document.createElement('canvas'), img = G.towerImg(C.icon, 2); cv.width = 26; cv.height = 34;
-        G.drawTowerFit(cv.getContext('2d'), img, 26, 34);
-        b.appendChild(cv);
+        // 指揮官の全身の絵（2026-10-22 新デザイン。前はタワーの絵）
+        var cv = G.cmdPortrait ? G.cmdPortrait(id) : null;
+        if (cv) b.appendChild(cv);
         var tx = el('span', 'cmd-txt');
-        tx.appendChild(el('b', '', C.name + '　♥' + C.life));
+        var hd = el('span', 'cmd-head'); hd.appendChild(el('b', 'cmd-name', C.name)); hd.appendChild(el('span', 'cmd-life', '♥ ' + C.life)); tx.appendChild(hd);
         // 能力＝指揮官のレリック（最初から持っている。レリックを見ればどの指揮官か分かる）
         if (C.relic) {
           var rl = el('small', 'cmd-relic'); rl.appendChild(UI.relicCanvas(C.relic));
           rl.appendChild(el('span', '', G.RELICS[C.relic].name + '：' + G.RELICS[C.relic].text)); tx.appendChild(rl);
         }
-        var cnt = {}; C.deck.forEach(function (k) { cnt[k] = (cnt[k] || 0) + 1; });
-        tx.appendChild(el('small', 'cmd-deck', 'デッキ：' + Object.keys(cnt).map(function (k) { return G.CARDS[k].name + '×' + cnt[k]; }).join('、')));
+        // 初期デッキ：小さなカードの絵を並べる（同じカードは×枚数）。名前は下の1行に
+        var cnt = {}, ord = []; C.deck.forEach(function (k) { if (!cnt[k]) ord.push(k); cnt[k] = (cnt[k] || 0) + 1; });
+        var dk = el('span', 'cmd-deck-icons'); dk.setAttribute('aria-label', 'デッキ ' + C.deck.length + '枚');
+        ord.forEach(function (k) { var it = el('span', 'cmd-dk'); it.appendChild(UI.cardArt(k)); if (cnt[k] > 1) it.appendChild(el('b', '', '×' + cnt[k])); dk.appendChild(it); });
+        tx.appendChild(dk);
+        tx.appendChild(el('small', 'cmd-deck', 'デッキ' + C.deck.length + '枚：' + ord.map(function (k) { return G.CARDS[k].name + (cnt[k] > 1 ? '×' + cnt[k] : ''); }).join('・')));
         tx.appendChild(el('small', 'cmd-sub', C.sub));
         b.appendChild(tx);
         list.appendChild(b);

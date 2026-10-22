@@ -1003,6 +1003,98 @@
     return cv;
   };
 
+  // ======================================================================
+  // 指揮官を選ぶ画面（2026-10-22）
+  //   G.cmdPortrait(id)：指揮官の全身の絵（30×44ドット・台座つき）。左上から光、黒いふち取りなし
+  //   G.cmdBg()：背景（夕暮れの城の中庭・3本の旗・たいまつ）。いちばん下の層に敷く（180×320ドット）
+  // ======================================================================
+  function body3(g, x, y, w, h, c, hi, sh) { R(g, c, x, y, w, h); R(g, hi, x, y, 1, h); R(g, sh, x + w - 2, y, 2, h); }
+  var PORTRAIT = {
+    // 隊長：はがねのよろい・青いマント・羽かざりのかぶと・肩にかついだ剣
+    captain: function (g, X, Y) {
+      R(g, '#22305a', X - 8, Y - 26, 16, 22); R(g, '#2c3e78', X - 8, Y - 26, 4, 22); R(g, '#1a2444', X + 6, Y - 26, 2, 22);   // マント（後ろ）
+      body3(g, X - 4, Y - 9, 3, 9, '#3a3e4a', '#5a5e6a', '#2a2e38'); body3(g, X + 1, Y - 9, 3, 9, '#3a3e4a', '#5a5e6a', '#2a2e38');   // 足
+      R(g, '#2a1c10', X - 5, Y - 1, 4, 1); R(g, '#2a1c10', X + 1, Y - 1, 4, 1);
+      body3(g, X - 6, Y - 22, 12, 13, '#9aa4b4', '#d0d8e4', '#6a7484');   // よろいの胴
+      R(g, '#c8a040', X - 6, Y - 12, 12, 2); R(g, '#e8c860', X - 6, Y - 12, 4, 1);                        // 金のベルト
+      R(g, '#b0bac8', X - 4, Y - 20, 8, 1); R(g, '#3a6ad0', X - 1, Y - 19, 2, 5);                          // 胸の青い紋章
+      body3(g, X - 9, Y - 22, 3, 9, '#aab4c4', '#d8e0ea', '#7a8494'); body3(g, X + 6, Y - 22, 3, 9, '#aab4c4', '#d8e0ea', '#7a8494');   // 腕
+      R(g, '#f0c49a', X - 3, Y - 28, 6, 6); R(g, '#d0a478', X + 2, Y - 28, 1, 6); R(g, '#2a1a10', X - 1, Y - 26, 1, 1); R(g, '#2a1a10', X + 1, Y - 26, 1, 1);   // 顔
+      R(g, '#6a4a2a', X - 3, Y - 23, 6, 1);                                                                 // ひげ
+      body3(g, X - 4, Y - 33, 8, 5, '#b8c2d0', '#e8eef6', '#7a8494'); R(g, '#7a8494', X - 4, Y - 29, 8, 1);  // かぶと
+      R(g, '#d03a30', X - 1, Y - 38, 2, 5); R(g, '#ff6a5a', X - 1, Y - 38, 1, 3); R(g, '#d03a30', X + 1, Y - 37, 2, 2);   // 赤い羽かざり
+      R(g, '#e8ecf0', X + 8, Y - 40, 2, 18); R(g, '#ffffff', X + 8, Y - 40, 1, 18); R(g, '#c8a040', X + 6, Y - 22, 6, 2); R(g, '#6a4a2a', X + 8, Y - 20, 2, 4);   // 剣
+    },
+    // 魔女：紫のとんがり帽子・長い銀髪・紫のローブ・光る水晶のつえ
+    witch: function (g, X, Y) {
+      for (var j = 0; j < 22; j++) { var w = 5 + Math.round(j * 0.35); R(g, j % 4 === 0 ? '#7a54b8' : '#5e3e98', X - w, Y - 22 + j, w, 1); R(g, '#3e2468', X, Y - 22 + j, w + 1, 1); }   // ローブ（すそが広い）
+      R(g, '#2a1848', X - 12, Y - 1, 25, 1); R(g, '#c8a040', X - 6, Y - 14, 12, 1);
+      R(g, '#d8d4e8', X - 6, Y - 28, 2, 14); R(g, '#d8d4e8', X + 4, Y - 28, 2, 12); R(g, '#f4f0ff', X - 6, Y - 28, 1, 10);   // 長い銀髪
+      R(g, '#f4d0b0', X - 3, Y - 28, 6, 6); R(g, '#d8b090', X + 2, Y - 28, 1, 6); R(g, '#5a2a7a', X - 1, Y - 26, 1, 1); R(g, '#5a2a7a', X + 1, Y - 26, 1, 1); R(g, '#c84a6a', X, Y - 24, 1, 1);
+      R(g, '#3e2468', X - 9, Y - 30, 18, 2); R(g, '#7a54b8', X - 9, Y - 30, 7, 1);                        // 帽子のつば
+      for (j = 0; j < 12; j++) { var hw = Math.max(0, 5 - Math.floor(j / 2.4)); R(g, '#6a48a8', X - hw - Math.round(j * 0.3), Y - 31 - j, hw + 1, 1); R(g, '#4a2e80', X + 1 - Math.round(j * 0.3), Y - 31 - j, hw, 1); }   // とんがり（少し曲がる）
+      R(g, '#c8a040', X - 5, Y - 32, 10, 1);
+      R(g, '#8a5a2a', X - 11, Y - 34, 1, 34); R(g, '#a87440', X - 11, Y - 34, 1, 4);                     // つえ
+      R(g, '#a8f0ff', X - 13, Y - 39, 5, 5); R(g, '#ffffff', X - 12, Y - 38, 2, 2); R(g, '#5ac8ff', X - 9, Y - 36, 1, 2);   // 水晶
+      R(g, '#f4d0b0', X - 10, Y - 18, 2, 2);                                                                // つえを持つ手
+    },
+    // 工兵：革の帽子にゴーグル・オレンジの作業着・道具のベルト・大きな金づち
+    engineer: function (g, X, Y) {
+      body3(g, X - 4, Y - 9, 3, 9, '#4a3a2a', '#6a5440', '#2e2418'); body3(g, X + 1, Y - 9, 3, 9, '#4a3a2a', '#6a5440', '#2e2418');
+      R(g, '#2a1c10', X - 5, Y - 2, 4, 2); R(g, '#2a1c10', X + 1, Y - 2, 4, 2);                              // 長ぐつ
+      body3(g, X - 6, Y - 21, 12, 12, '#d8722a', '#f09a4a', '#a8541a');                                     // オレンジの作業着
+      R(g, '#6a4a2a', X - 6, Y - 12, 12, 2); R(g, '#c8c8d0', X - 4, Y - 12, 2, 2); R(g, '#c8a040', X + 1, Y - 12, 2, 2); R(g, '#8a8a90', X + 4, Y - 11, 1, 3);   // 道具のベルト
+      R(g, '#3a3a40', X - 2, Y - 21, 1, 9); R(g, '#3a3a40', X + 1, Y - 21, 1, 9);                          // つりひも
+      body3(g, X - 9, Y - 21, 3, 9, '#d8722a', '#f09a4a', '#a8541a'); body3(g, X + 6, Y - 21, 3, 9, '#d8722a', '#f09a4a', '#a8541a');
+      R(g, '#f0c49a', X - 3, Y - 27, 6, 6); R(g, '#d0a478', X + 2, Y - 27, 1, 6); R(g, '#2a1a10', X - 1, Y - 24, 1, 1); R(g, '#2a1a10', X + 1, Y - 24, 1, 1);
+      R(g, '#6a4a2a', X - 3, Y - 22, 6, 1);
+      body3(g, X - 4, Y - 32, 8, 5, '#8a5a2a', '#a87440', '#5e3a18'); R(g, '#5e3a18', X - 5, Y - 28, 10, 1);   // 革の帽子
+      R(g, '#3a3a40', X - 4, Y - 30, 8, 2); R(g, '#9ae0ff', X - 3, Y - 30, 2, 2); R(g, '#9ae0ff', X + 1, Y - 30, 2, 2); R(g, '#ffffff', X - 3, Y - 30, 1, 1);   // ゴーグル
+      R(g, '#8a5a2a', X + 9, Y - 30, 2, 22); R(g, '#a87440', X + 9, Y - 30, 1, 22);                        // 金づちの柄
+      body3(g, X + 6, Y - 36, 9, 6, '#7a7e88', '#a8acb4', '#4a4e58');                                       // 金づちの頭
+    }
+  };
+  G.cmdPortrait = function (id) {
+    var cv = document.createElement('canvas'); cv.width = 36; cv.height = 48; cv.className = 'cmd-portrait';
+    var g = cv.getContext('2d'), X = 18, Y = 45;
+    DA.ell(g, X + 1, Y, 12, 3, '#3a3430'); DA.ell(g, X, Y - 1, 11, 2, '#6a625a'); R(g, '#8a8278', X - 8, Y - 2, 7, 1);   // 石の台座
+    (PORTRAIT[id] || PORTRAIT.captain)(g, X, Y - 1);
+    return cv;
+  };
+  G.cmdBg = function () {
+    var cv = document.createElement('canvas'); cv.width = RW; cv.height = RH; cv.className = 'panel-bg cmd-bg'; cv.setAttribute('aria-hidden', 'true');
+    var st = DA.mk(RW, RH), g = st.c, x, y, i, P = TP(), t0 = performance.now();
+    var SK = ['#140a1e', '#22102a', '#3a1630', '#5a2230'];
+    for (y = 0; y < 150; y++) { var tt = y / 150 * 3.999, a = Math.floor(tt); R(g, SK[a], 0, y, RW, 1); if (tt - a > 0.7) for (x = (y & 1); x < RW; x += 2) R(g, SK[Math.min(3, a + 1)], x, y); }
+    for (i = 0; i < 40; i++) R(g, '#d8d0e8', hash(i + 2.2) * RW, hash(i + 7.7) * 110);
+    // 城の壁（奥）：石積み・ぎざぎざ・3本の旗（青・紫・オレンジ＝3人の指揮官の色）
+    var WY = 150, WH = 70;
+    for (y = WY; y < WY + WH; y++) for (x = 0; x < RW; x++) { var hv = hash(Math.floor(x / 8) + (Math.floor((y - WY) / 5) % 2) * 0.5, Math.floor((y - WY) / 5), 3); R(g, hv < 0.5 ? '#4a4652' : hv < 0.8 ? '#423e4a' : '#544f5c', x, y); }
+    for (y = WY + 4; y < WY + WH; y += 5) R(g, '#2e2b34', 0, y, RW, 1);
+    for (x = 0; x < RW; x += 10) { R(g, '#4a4652', x, WY - 6, 6, 6); R(g, '#6a6574', x, WY - 6, 6, 1); }
+    R(g, '#6a6574', 0, WY, RW, 1);
+    [['#3a6ad0', '#2a4a9a', 40], ['#7a54b8', '#4e3480', 90], ['#d8722a', '#a8541a', 140]].forEach(function (q) {   // 垂れ幕
+      R(g, q[0], q[2] - 7, WY + 4, 14, 34); R(g, q[1], q[2] + 4, WY + 4, 3, 34); R(g, '#e8c040', q[2] - 7, WY + 4, 14, 1);
+      c0(q[2]); function c0(cx) { g.clearRect(cx - 1, WY + 37, 3, 1); R(g, '#e8c040', cx - 1, WY + 14, 2, 6); R(g, '#e8c040', cx - 3, WY + 16, 6, 2); }
+    });
+    // 石だたみの中庭（手前ほど明るい）
+    for (y = WY + WH; y < RH; y++) for (x = 0; x < RW; x++) { var k = Math.floor((x + (Math.floor((y - WY - WH) / 8) % 2) * 6) / 12), hv2 = hash(k, Math.floor((y - WY - WH) / 8), 9); R(g, hv2 < 0.5 ? '#5a5560' : hv2 < 0.8 ? '#504b56' : '#66616c', x, y); }
+    for (y = WY + WH; y < RH; y += 8) R(g, '#3a3640', 0, y, RW, 1);
+    g.globalCompositeOperation = 'source-atop'; g.fillStyle = 'rgba(20,10,30,.35)'; g.fillRect(0, WY - 10, RW, RH); g.globalCompositeOperation = 'source-over';
+    var gg = cv.getContext('2d');
+    function paint() {
+      var t = (performance.now() - t0) / 1000; gg.clearRect(0, 0, RW, RH); gg.drawImage(st.cv, 0, 0);
+      [16, 164].forEach(function (tx, k2) {   // たいまつ（左右の壁）
+        R(gg, '#4a2e16', tx, WY + 18, 2, 10); fire2(gg, tx + 1, WY + 18, t + k2, 0.8);
+        gg.globalCompositeOperation = 'lighter'; DA.ell(gg, tx + 1, WY + 22, 18 + Math.round(Math.sin(t * 9 + k2) * 2), 14, 'rgba(255,140,50,.08)'); gg.globalCompositeOperation = 'source-over';
+      });
+      embers(gg, t);
+    }
+    paint();
+    var idt = setInterval(function () { if (!cv.isConnected) { clearInterval(idt); return; } paint(); }, 100);
+    return cv;
+  };
+
   var alive = [];
   // key：選んだ後の結果の絵（選択肢の番号。賭けは '0win' / '0lose'）。SCENES2[id].after[key] があればそれを使う
   //   after[key].stat：元の動かない絵の上に描き足す（元の絵を塗りかえてもよい）
