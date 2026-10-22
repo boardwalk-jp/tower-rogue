@@ -31,7 +31,8 @@ var G = window.G = window.G || {};
     clearTimeout(tapLockTimer);
     tapLockTimer = setTimeout(function () { pn.classList.remove('tap-lock'); }, ms);
   }
-  function button(label, cls, fn) { var b = el('button', cls, label); b.type = 'button'; b.addEventListener('click', function (e) { if (Date.now() < tapLockUntil) return; if (G.Sound) G.Sound.play('tap'); fn(e); }); return b; }
+  // quiet：true なら押した時の「カチャッ」を鳴らさない（自分で別の音を鳴らすボタン用）
+  function button(label, cls, fn, quiet) { var b = el('button', cls, label); b.type = 'button'; b.addEventListener('click', function (e) { if (Date.now() < tapLockUntil) return; if (G.Sound && !quiet) G.Sound.play('tap'); fn(e); }); return b; }
   function music(name) { if (G.Sound) G.Sound.music(name); }
 
   // ---- スタート画面 ----
@@ -189,7 +190,13 @@ var G = window.G = window.G || {};
   $('t-cont').addEventListener('click', function () { setChoice('cont'); });
   $('t-new').addEventListener('click', function () { setChoice('new'); });
   refreshTitle();
-  music('title');   // はじめて開いた時もタイトルの曲（音は最初のタップのあとに出る）
+  music('cmd');   // はじめて開いた時から指揮官を選ぶ画面の曲（2026-10-22 オーナー指定。指揮官を選ぶ画面に進んでも切りかえずに続ける）。音は最初のタップのあとに出る
+  // タイトル・メニュー・遊び方・データの画面のボタンは、押すと「カチャッ」（button() で作るボタンは、そちらで鳴らす）
+  document.addEventListener('click', function (e) {
+    var bt = e.target && e.target.closest ? e.target.closest('button') : null;
+    if (!bt || bt.disabled || !G.Sound) return;
+    if (bt.id === 'world-menu-btn' || bt.closest('#start, #title-menu, #world-menu, #help, #data-modal')) G.Sound.play('tap');
+  }, true);
 
   // ブラウザに「このサイトのデータは消さないで」とお願いする（Safari 17〜。許可するかはブラウザが決める。結果は記録だけして画面には出さない）
   function askPersist() {
@@ -217,7 +224,8 @@ var G = window.G = window.G || {};
       if (G.cmdBg) $('panel').insertBefore(G.cmdBg(), $('panel').firstChild);   // 背景：城の中庭（いちばん下の層）
       body.appendChild(el('h2', 'panel-title', '指揮官を選ぶ'));
       var list = el('div', 'choices cmd-list'), picked = null;
-      var ok = button('この指揮官で始める', 'go', function () { if (picked) newRun(picked, ascPick); });
+      // 始める時：BGMをいったん止めて、出陣のファンファーレ。ワールドマップの曲は、ファンファーレが終わってから始まる
+      var ok = button('この指揮官で始める', 'go', function () { if (!picked) return; if (G.Sound) { G.Sound.music(null); G.Sound.play('start'); G.Sound.hold(1.5); } newRun(picked, ascPick); }, true);
       ok.disabled = true;
       Object.keys(G.COMMANDERS).forEach(function (id) {
         var C = G.COMMANDERS[id], b = button('', 'choice cmd', function () {
@@ -256,7 +264,7 @@ var G = window.G = window.G || {};
           if (!ascPick) { note.textContent = 'A0：追加のルールなし。'; return; }
           // 選んだ段の効果だけを出す（前の段の分はのせない）。A1 以外は頭に「さらに、」（2026-10-22 オーナー指定）
           var cur = G.ASCENSION.filter(function (a) { return a.lv === ascPick; })[0];
-          if (cur) { if (ascPick > 1) note.appendChild(document.createTextNode('さらに、')); note.appendChild(el('b', '', cur.text)); }
+          if (cur) { if (cur.tag) note.appendChild(el('b', '', cur.tag)); if (ascPick > 1) note.appendChild(document.createTextNode('さらに、')); note.appendChild(el('b', '', cur.text)); }
           note.appendChild(document.createTextNode('。経験値+' + ascPick * 10 + '%'));
         };
         row.appendChild(prev); row.appendChild(lbl); row.appendChild(next);
@@ -277,7 +285,7 @@ var G = window.G = window.G || {};
     G.started = false;
     document.querySelectorAll('[data-screen]').forEach(function (e) { e.hidden = true; });
     G.currentScreen = 'start';
-    $('start').hidden = false; music('title');   // タイトルの曲
+    $('start').hidden = false; music('cmd');   // タイトルも指揮官を選ぶ画面の曲
     refreshTitle();
     window.scrollTo(0, 0);
   }
@@ -462,7 +470,7 @@ var G = window.G = window.G || {};
     // マスに入る時点で保存（途中でやめても、つづきからは同じマスに入り直す。戦闘は最初から）
     lastResume = { type: 'node' }; save(lastResume);
     if (n.type === 'battle' || n.type === 'elite' || n.type === 'boss') return startBattle(n);
-    if (n.type !== 'battle' && n.type !== 'elite' && n.type !== 'boss') music('m' + run.act);
+    if (n.type === 'event' || n.type === 'shop') music('w' + run.act);   // イベント・商人：ワールドマップの曲のまま（2026-10-22。前は専用の曲）
     if (n.type === 'event') return showEvent();
     if (n.type === 'shop') return showShop();
     if (n.type === 'rest') return showRest();
@@ -473,13 +481,28 @@ var G = window.G = window.G || {};
   // ============================================================
   function startBattle(n) {
     var opts = R.battleOpts(run);
-    music(n.type === 'boss' ? 'boss' : 'a' + run.act);
+    music(n.type === 'boss' ? 'boss' : 'w' + run.act);   // ふつうの戦闘・エリート：ワールドマップの曲のまま（2026-10-22。前は戦闘の曲）。ボス戦は今までどおり
     var label = run.act + '層' + (n.type === 'boss' ? 'ボス' : (n.floor + 1) + '階' + (n.type === 'elite' ? 'エリート' : ''));
     UI.start(opts, function (s) {
+      var first = n.type === 'boss' ? R.bossName(run) : '';
       R.finishBattle(run, s);
       if (run.over) { clearSave(); return showEnd(); }
+      if (run.secondBoss) { run.secondBoss = false; return showSecondBoss(n, first); }   // A10：もう1体の3層ボス
       showReward(n, run.gold - s.gold, s);
     }, { label: label, title: n.type === 'boss' ? (run.act >= G.RULES.acts ? 'ラスボス戦' : 'ボス戦') : n.type === 'elite' ? 'エリート戦' : '準備ターン' });
+  }
+
+  // ---- A10：3層ボスを倒した後、別の3層ボスが現れる（マップは動かない。タワーは引き継がず、新しい戦闘を最初から） ----
+  function showSecondBoss(n, first) {
+    lastResume = { type: 'node' }; save(lastResume);   // ここでやめても、つづきからは2体目のボス戦から
+    music('boss');
+    lockTaps(TAP_LOCK_MS);
+    openPanel('ラスボス戦', function (body, foot) {
+      body.appendChild(el('h2', 'panel-title lose', 'もう1体のボスが現れた！'));
+      body.appendChild(el('p', 'panel-text', (first ? first + 'を倒した。' : '') + 'だが、その奥から「' + R.bossName(run) + '」が姿を現した。'));
+      body.appendChild(el('p', 'panel-text', 'タワーはすべてくずれてしまった。もう一度、はじめから守りを固めよう（ライフ ' + run.life + '/' + run.maxLife + '）。'));
+      foot.appendChild(button('戦う', 'go', function () { startBattle(n); }));
+    });
   }
 
   // ---- 報酬：カード3枚から1枚（取らなくてもよい） ----
@@ -673,6 +696,8 @@ var G = window.G = window.G || {};
   function restBg() { if (G.restArt) $('panel').insertBefore(G.restArt(run ? run.act : 1), $('panel').firstChild); }
   function showRest() {
     lockTaps(TAP_LOCK_MS);
+    // たき火：BGMはなし。うっすら風の音とたき火の音（火山はグツグツも）。ワールドマップに戻ると曲にもどる（2026-10-22）
+    music(null); if (G.Sound && G.Sound.ambient) G.Sound.ambient(G.ACTS[run.act - 1].theme === 'volcano' ? 'volcano' : 'camp');
     openPanel('休憩', function (body, foot) {
       restBg();
       body.appendChild(el('h2', 'panel-title', 'たき火'));
@@ -710,7 +735,7 @@ var G = window.G = window.G || {};
       var art = G.eventArt && G.eventArt(run.won ? 'victory' : 'defeat', run.act); if (art) body.appendChild(art);
       body.appendChild(el('h2', 'panel-title ' + (run.won ? 'win' : 'lose'), (run.won ? '全3層クリア！' : '敗北…') + (run.asc ? '（アセンション' + run.asc + '）' : '')));
       var n = R.node(run), cmd = (G.COMMANDERS[run.cmd] || G.COMMANDERS.captain).name;
-      body.appendChild(el('p', 'panel-text end-lead', cmd + '：' + (run.won ? 'ラスボスの' + R.bossName(run) + 'を倒した。' : G.ACTS[run.act - 1].name + 'の' + (n ? (n.type === 'boss' ? 'ボス戦' : (n.floor + 1) + '階') : '') + 'で力つきた。')));
+      body.appendChild(el('p', 'panel-text end-lead', cmd + '：' + (run.won ? 'ラスボスの' + (run.boss2Fight ? R.bossName(run, run.act, run.boss || 0) + 'と' : '') + R.bossName(run) + 'を倒した。' : G.ACTS[run.act - 1].name + 'の' + (n ? (n.type === 'boss' ? 'ボス戦' : (n.floor + 1) + '階') : '') + 'で力つきた。')));
       var tiles = el('div', 'end-stats');
       [['勝った戦闘', run.stats.battles + '回'], ['エリート', run.stats.elites + '回'], ['手に入れたカード', run.stats.cardsTaken + '枚'], ['最後のデッキ', run.deck.length + '枚'], ['レリック', run.relics.length + '個'], ['ライフ', Math.max(0, run.life) + '/' + run.maxLife]].forEach(function (q) {
         var d = el('div', 'end-stat'); d.appendChild(el('small', '', q[0])); d.appendChild(el('b', '', q[1])); tiles.appendChild(d);

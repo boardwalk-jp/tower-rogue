@@ -24,7 +24,7 @@ var G = window.G = window.G || {};
   }
   // ランの終わりに経験値を計算して足す。返り値：内訳・前後の経験値・新しく解放されたもの
   function gainXp(run) {
-    var X = G.XP_RULES, n = node(run), bosses = run.won ? G.RULES.acts : run.act - 1;
+    var X = G.XP_RULES, n = node(run), bosses = (run.won ? G.RULES.acts : run.act - 1) + (run.boss2Fight ? 1 : 0);   // A10 の1体目に勝っていれば+1
     var elites = run.stats.elites, normal = Math.max(0, run.stats.battles - elites - bosses);
     var floors = (run.act - 1) * (G.RULES.floors + 1) + (n ? (n.type === 'boss' ? G.RULES.floors + 1 : n.floor + 1) : 0);
     var rows = [['通常戦闘の勝利', normal, X.battle], ['エリートの勝利', elites, X.elite], ['ボスの撃破', bosses, X.boss], ['進んだ階', floors, X.floor]];
@@ -194,7 +194,7 @@ var G = window.G = window.G || {};
   // ボスの名前（そのひな形の中のボスの敵）
   // ボスの敵の種類（マップのボスの絵に使う）
   function bossType(run, act, idx) {
-    var W = G.WAVE_SETS['a' + (act || run.act)], tpl = W.boss[idx !== undefined ? idx : (run.boss || 0)], id = '';
+    var W = G.WAVE_SETS['a' + (act || run.act)], tpl = W.boss[idx !== undefined ? idx : (run.boss2Fight ? run.boss2 : (run.boss || 0))], id = '';   // A10 の2戦目は2体目のボス
     tpl.forEach(function (w) { w.forEach(function (g) { if (G.ENEMIES[g[0]].boss) id = g[0]; }); });
     return id;
   }
@@ -226,7 +226,7 @@ var G = window.G = window.G || {};
     if (kind === 'battle' && (run.actBattles || 0) < G.RULES.easyBattles) set = easyTemplates(run.act).filter(function (t) { return t !== run.lastTpl; });
     var map = G.MAPS[mapId], gates = Object.keys(map.paths), PL = B.pathLengths(map);
     var longest = gates.slice().sort(function (a, b) { return PL[b] - PL[a]; })[0];
-    var tpl = kind === 'boss' ? set[run.boss || 0] : pick(set, r), scale = (1 + f * G.RULES.floorScale) * A.hp;
+    var tpl = kind === 'boss' ? set[run.boss2Fight ? run.boss2 : (run.boss || 0)] : pick(set, r), scale = (1 + f * G.RULES.floorScale) * A.hp;
     if (kind === 'battle') run.lastTpl = tpl;
     var waves = tpl.map(function (wave) {
       return wave.map(function (g) {
@@ -251,7 +251,17 @@ var G = window.G = window.G || {};
     run.stats.battles++;
     var n = node(run);
     if (n.type === 'boss') {
-      if (run.act >= G.RULES.acts) { run.over = true; run.won = true; return; }
+      if (run.act >= G.RULES.acts) {
+        // A10：3層ボスに勝ったら、続けて別の3層ボスともう1戦（screens.js が secondBoss を見て、同じマスでもう一度戦闘を始める。タワーは引き継がない）
+        if (G.ascMods(run.asc).twoBoss && !run.boss2Fight) {
+          var L = G.WAVE_SETS['a' + run.act].boss.length, k = Math.floor(run.rand() * (L - 1));
+          run.boss2 = k >= (run.boss || 0) ? k + 1 : k;   // 1体目とちがうボス
+          run.boss2Fight = true; run.secondBoss = true;
+          run.phoenixUsed = (run.phoenixUsed || 0) + (s.phoenixUsed || 0);
+          return;
+        }
+        run.over = true; run.won = true; return;
+      }
       run.actClear = true; return;      // 次の層へ（screens.js が nextAct を呼ぶ）
     }
     if (n.type === 'elite') run.stats.elites++;
@@ -357,7 +367,7 @@ var G = window.G = window.G || {};
   // ---- セーブ用：ランを文字にできる形にする／元に戻す ----
   function toSave(run) {
     return { world: run.world, at: run.at, visited: run.visited, deck: run.deck, life: run.life, maxLife: run.maxLife,
-             gold: run.gold, stats: run.stats, rng: run.rand.state(), relics: run.relics, act: run.act, cmd: run.cmd, asc: run.asc || 0, boss: run.boss, phoenixUsed: run.phoenixUsed || 0, actBattles: run.actBattles || 0, lastMap: run.lastMap || null, shop: run.shop || null };
+             gold: run.gold, stats: run.stats, rng: run.rand.state(), relics: run.relics, act: run.act, cmd: run.cmd, asc: run.asc || 0, boss: run.boss, boss2: run.boss2 || 0, boss2Fight: !!run.boss2Fight, phoenixUsed: run.phoenixUsed || 0, actBattles: run.actBattles || 0, lastMap: run.lastMap || null, shop: run.shop || null };
   }
   function fromSave(d) {
     // 前の版のセーブ：指揮官のレリックがなければ足す
@@ -365,7 +375,7 @@ var G = window.G = window.G || {};
     if (C && C.relic && rel.indexOf(C.relic) < 0) rel.unshift(C.relic);
     d.relics = rel;
     return { rand: B.rng(d.rng), world: d.world, at: d.at, visited: d.visited, deck: d.deck, life: d.life, maxLife: d.maxLife,
-             gold: d.gold, stats: d.stats, relics: d.relics || [], act: d.act || 1, cmd: d.cmd || 'captain', asc: d.asc || 0, boss: d.boss || 0, phoenixUsed: d.phoenixUsed || 0, actBattles: d.actBattles || 0, lastMap: d.lastMap || null, shop: d.shop || null, over: false, won: false };
+             gold: d.gold, stats: d.stats, relics: d.relics || [], act: d.act || 1, cmd: d.cmd || 'captain', asc: d.asc || 0, boss: d.boss || 0, boss2: d.boss2 || 0, boss2Fight: !!d.boss2Fight, phoenixUsed: d.phoenixUsed || 0, actBattles: d.actBattles || 0, lastMap: d.lastMap || null, shop: d.shop || null, over: false, won: false };
   }
 
   function rest(run) { var before = run.life; run.life = Math.min(run.maxLife, run.life + G.RULES.restHeal); return run.life - before; }

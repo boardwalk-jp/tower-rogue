@@ -490,7 +490,7 @@ G.START_DECK = ['bowman', 'bowman', 'bowman', 'sling', 'sling', 'warcry', 'barri
 // ============================================================
 G.ASCENSION = [
   // 文のきまり（2026-10-22 オーナー指定）：お金・速さ・ライフだけ数字を書き、ほかは「増える」「上がる」とざっくり書く
-  // 指揮官を選ぶ画面には、選んだ段の文だけを「さらに、」をつけて出す（A1 だけ「さらに」なし）。文の中に「さらに」はつけない（A10 の速さだけ、A6 とかさなるので残す）
+  // 指揮官を選ぶ画面には、選んだ段の文だけを「さらに、」をつけて出す（A1 だけ「さらに」なし）。文の中に「さらに」はつけない。tag は「さらに、」の前に出す
   { lv: 1, text: 'エリートの体力が増える', elite: 1.15 },
   { lv: 2, text: '最大ライフ-4', life: 4 },
   { lv: 3, text: '通常の敵の体力が増える', hp: 1.05 },
@@ -502,17 +502,19 @@ G.ASCENSION = [
   // A8：通常の敵（エリート戦・ボス戦に出る敵も。ボスは入らない）が城に着いた時のダメージが増える。小型（ライフ1）+1、中型（ライフ2以上）+2
   { lv: 8, text: '通常の敵の攻撃力が上がる', leak: [1, 2] },
   { lv: 9, text: 'エリートとボスの体力が増える', elite: 1.1, boss: 1.06 },
-  { lv: 10, text: '最大ライフ-6・敵の歩く速さがさらに5%上がる', life: 6, speed: 1.05 }
+  // A10（2026-10-22 変更。前：最大ライフ-6・敵の速さ+5%）：3層のボス戦に勝つと、続けて別の3層ボスともう1戦（マップは動かない。タワーは引き継がない）
+  { lv: 10, tag: '（最大レベル）', text: '3層ボスが2体登場する', twoBoss: true }
 ];
 G.ASC_MAX = 10;
 // a までのアセンションの効果をまとめる（倍率はかけ算、ライフ・攻撃は足し算）
 G.ascMods = function (a) {
-  var m = { hp: 1, elite: 1, life: 0, boss: 1, bossHit: 0, speed: 1, gold: 1, leakS: 0, leakM: 0 };
+  var m = { hp: 1, elite: 1, life: 0, boss: 1, bossHit: 0, speed: 1, gold: 1, leakS: 0, leakM: 0, twoBoss: false };
   G.ASCENSION.forEach(function (x) {
     if (x.lv > (a || 0)) return;
     ['hp', 'elite', 'boss', 'speed', 'gold'].forEach(function (k) { if (x[k]) m[k] *= x[k]; });
     if (x.life) m.life += x.life; if (x.bossHit) m.bossHit += x.bossHit;
     if (x.leak) { m.leakS += x.leak[0]; m.leakM += x.leak[1]; }   // 小型・中型が城に着いた時の追加ダメージ
+    if (x.twoBoss) m.twoBoss = true;   // 3層ボスが2体
   });
   return m;
 };

@@ -165,7 +165,22 @@ var G = window.G = window.G || {};
     },
     skill:  function (t) { tone(t, { f: 660, f2: 1320, dur: 0.18, type: 'sine', vol: 0.12 }); tone(t, { f: 990, dur: 0.12, type: 'triangle', vol: 0.06, delay: 0.06 }); },
     card:   function (t) { noise(t, { dur: 0.05, vol: 0.06, f: 5000, hp: true }); tone(t, { f: 1200, dur: 0.03, type: 'triangle', vol: 0.04 }); },   // カードをめくるシュッ
-    tap:    function (t) { tone(t, { f: 880, dur: 0.035, type: 'triangle', vol: 0.05 }); tone(t, { f: 1760, dur: 0.025, type: 'sine', vol: 0.025 }); },
+    // ボタンを押した時の「カチャッ」（2026-10-22 オーナー指定。前は高い「ピッ」）：
+    //   カチ＝ごく短い高いザッと硬い音（つめが当たる）／ャッ＝35ミリ秒あとに、少し低い2つ目の音と小さなこもった音（はまる手ごたえ）
+    tap:    function (t) {
+      noise(t, { dur: 0.018, vol: 0.3, f: 3800, hp: true }); tone(t, { f: 2100, f2: 1500, dur: 0.02, type: 'square', vol: 0.04 });
+      noise(t, { dur: 0.03, vol: 0.2, f: 2200, bp: true, delay: 0.035 }); tone(t, { f: 1250, f2: 900, dur: 0.03, type: 'triangle', vol: 0.07, delay: 0.035 });
+      tone(t, { f: 190, f2: 120, dur: 0.05, type: 'sine', vol: 0.1, delay: 0.035 });
+    },
+    // 「この指揮官で始める」：出陣のファンファーレ（タ・タ・タ・ジャーン）。約1.5秒。この間はBGMを止めておく
+    start:  function (t) {
+      notes(t, [392, 523, 659], { type: 'square', dur: 0.09, vol: 0.07, step: 0.1 });
+      var t2 = t + 0.32;
+      tone(t2, { f: 150, f2: 42, dur: 0.2, type: 'sine', vol: 0.4 });                       // ドン
+      noise(t2, { dur: 0.9, vol: 0.1, f: 5000, hp: true });                                // シャーン（シンバル）
+      [523, 659, 784, 1047].forEach(function (f, i) { voice(t2, { f: f, dur: 0.95, type: i ? 'square' : 'triangle', vol: 0.05, cut: 2600, cutEnd: 1200, sus: 0.7, rel: 0.4 }); });
+      voice(t2, { f: 131, dur: 1.0, type: 'triangle', vol: 0.22, cut: 900, sus: 0.8, rel: 0.4, det: [0] });
+    },
     boom:   function (t) { noise(t, { dur: 0.3, vol: 0.35, f: 400 }); tone(t, { f: 90, f2: 35, dur: 0.25, type: 'sine', vol: 0.3 }); },
     boss:   function (t) { tone(t, { f: 82, dur: 0.9, type: 'sawtooth', vol: 0.18 }); tone(t, { f: 110, dur: 0.9, type: 'sawtooth', vol: 0.12, delay: 0.05 }); noise(t, { dur: 0.6, vol: 0.2, f: 300 }); },
     // ボスが城をたたく：重い一撃＋石がくだける音
@@ -205,6 +220,7 @@ var G = window.G = window.G || {};
   // 和音の名前（'C' 'Am' 'F#m' 'Bb' など）→ 根の音からの半音の数 [根, 3度, 5度] と、根の音の名前
   function chord(name) { var m = /^([A-G][#b]?)(m?)$/.exec(name); return { root: m[1], iv: [0, m[2] ? 3 : 4, 7] }; }
   function semi(f, n) { return f * Math.pow(2, n / 12); }
+  // 2026-10-22：戦闘の曲（a1〜a3）とイベント等の曲（m1〜m3）は消した（戦闘・イベント・商人はワールドマップの曲のまま。たき火は曲なし）
   var TRACKS = {
     // ---- ワールドマップ専用の曲（2026-10-22）。16小節。chords：小節ごとの和音、arp：和音の音を順にならす飾りの音 ----
     // ---- タイトル・指揮官を選ぶ・クリア・敗北の曲（2026-10-22） ----
@@ -255,37 +271,6 @@ var G = window.G = window.G || {};
                    'B4 - E5 - G5 - B5 - C6 - B5 - G5 - E5 - D#5 - F#5 - B5 - A5 - B5 - - - - - - - ' +
                    'A5 - C6 - B5 - A5 - G5 - E5 - C5 - E5 - B4 - - - E5 - G5 - B5 - - - - - - - ' +
                    'C6 - B5 - G5 - E5 - F#5 - A5 - D6 - C6 - B5 - F#5 - D#5 - B4 - E5 - - - - - - -') },
-    // ---- ワールドマップ・イベント・商人・休憩の曲（戦闘よりゆったり） ----
-    m1: { style: 'calm', bpm: 92, lead: 'triangle', vol: 0.75,
-          mel: seq('G4 - C5 - E5 - D5 C5 D5 - - - G4 - - - A4 - C5 - F5 - E5 D5 C5 - - - - - - - ' +
-                   'E5 - G5 - E5 - D5 C5 D5 - E5 - C5 - - - A4 - C5 - D5 - B4 - C5 - - - - - - -'),
-          bass: roots('C3 G2 F2 G2 A2 F2 C3 G2 C3 E2 F2 C3 A2 G2 C3 C3') },
-    m2: { style: 'calm', bpm: 78, lead: 'sine', vol: 0.9,
-          mel: seq('E5 - - - D5 - C5 - B4 - - - A4 - - - C5 - - - D5 - E5 - G5 - - - E5 - - - ' +
-                   'F5 - - - E5 - D5 - C5 - - - B4 - - - A4 - B4 - C5 - D5 - E5 - - - - - - -'),
-          bass: roots('A2 E2 F2 C3 A2 G2 C3 E2 D2 A2 F2 E2 F2 G2 A2 A2') },
-    m3: { style: 'calm', bpm: 100, lead: 'triangle', vol: 0.75,
-          mel: seq('E4 - G4 - B4 - - - A4 - G4 - F#4 - - - E4 - G4 - B4 - E5 - D5 - - - - - - - ' +
-                   'C5 - B4 - A4 - - - B4 - A4 - G4 - - - F#4 - G4 - A4 - B4 - E4 - - - - - - -'),
-          bass: roots('E2 E2 D2 B1 E2 G2 D2 D2 C2 C2 G2 G2 D2 E2 B1 E2') },
-    // 第1層 草原：明るい長調
-    a1: { style: 'battle', bpm: 112, lead: 'square', vol: 0.5,
-          mel: seq('E5 - G5 E5 D5 - C5 - D5 E5 G5 - A5 G5 E5 - C5 - E5 D5 C5 - A4 - G4 A4 C5 D5 E5 - - - ' +
-                   'E5 - G5 E5 D5 - C5 - D5 E5 G5 - A5 - C6 - B5 A5 G5 E5 D5 - E5 - C5 - - - - - - -'),
-          bass: seq('C3 - G3 - C3 - G3 - F3 - C4 - F3 - C4 - A2 - E3 - A2 - E3 - G2 - D3 - G2 - B2 - ' +
-                    'C3 - G3 - C3 - G3 - F3 - C4 - F3 - C4 - G2 - D3 - G2 - D3 - C3 - G3 - C3 - - -') },
-    // 第2層 雪山：静かな短調
-    a2: { style: 'battleSoft', bpm: 96, lead: 'triangle', vol: 0.7,
-          mel: seq('A4 - C5 - E5 - D5 C5 B4 - - - E4 - - - A4 - C5 - E5 - G5 F5 E5 - D5 - C5 - - - ' +
-                   'F5 - E5 - D5 - C5 B4 C5 - A4 - - - - - D5 - C5 - B4 - G#4 - A4 - - - - - - -'),
-          bass: seq('A2 - - - E3 - - - G2 - - - D3 - - - F2 - - - C3 - - - E2 - - - B2 - - - ' +
-                    'D2 - - - A2 - - - F2 - - - C3 - - - E2 - - - E3 - - - A2 - - - A2 - - -') },
-    // 第3層 火山：速くて不穏
-    a3: { style: 'battle', bpm: 132, lead: 'sawtooth', vol: 0.32,
-          mel: seq('E5 - E5 F5 E5 - D5 - C5 - B4 - C5 D5 E5 - G5 - F5 E5 F5 - E5 - D5 - C5 - B4 - - - ' +
-                   'E5 - B5 - A5 G5 F5 - E5 - F5 - G5 - A5 - B5 - A5 G5 F5 - E5 - F5 - E5 - D#5 - E5 -'),
-          bass: seq('E2 E3 E2 E3 E2 E3 E2 E3 F2 F3 F2 F3 F2 F3 F2 F3 D2 D3 D2 D3 D2 D3 D2 D3 E2 E3 E2 E3 B1 B2 B1 B2 ' +
-                    'E2 E3 E2 E3 E2 E3 E2 E3 F2 F3 F2 F3 F2 F3 F2 F3 G2 G3 G2 G3 A2 A3 A2 A3 B1 B2 B1 B2 E2 E3 E2 E3') },
     // ボスに勝った後（次の層へ進むまで）：明るいファンファーレ
     victory: { style: 'battle', bpm: 120, lead: 'square', vol: 0.45,
           mel: seq('C5 - E5 G5 C6 - - - B5 - A5 - G5 - - - A5 - F5 A5 C6 - - - B5 - G5 B5 D6 - - - ' +
@@ -299,10 +284,12 @@ var G = window.G = window.G || {};
           bass: seq('A1 A2 A1 A2 A1 A2 A1 A2 F1 F2 F1 F2 G1 G2 G1 G2 A1 A2 A1 A2 A1 A2 A1 A2 F1 F2 F1 F2 E1 E2 E1 E2 ' +
                     'D2 D3 D2 D3 D2 D3 D2 D3 F1 F2 F1 F2 G1 G2 G1 G2 A1 A2 A1 A2 C2 C3 C2 C3 E1 E2 E1 E2 E1 E2 E1 E2') }
   };
-  var wantTrack = null, playing = null, pos = 0, nextT = 0, timer = null;
+  var wantTrack = null, playing = null, pos = 0, nextT = 0, timer = null, holdUntil = 0;
+  // hold(秒)：これから始める曲を、その秒数だけ待ってから始める（スタートのファンファーレと重ならないように）
+  function hold(sec) { holdUntil = ac ? ac.currentTime + sec : 0; }
   function startTrack(name) {
     if (!ac) return;
-    playing = name; pos = 0; nextT = ac.currentTime + 0.1;
+    playing = name; pos = 0; nextT = Math.max(ac.currentTime + 0.1, holdUntil);
     if (!timer) timer = setInterval(tick, 60);
   }
   function tick() {
@@ -375,10 +362,61 @@ var G = window.G = window.G || {};
   // 曲を変える（同じ曲なら何もしない）。null で止める
   function music(name) {
     if (bossOn) bossTheme(false);
+    if (name) ambient(null);   // ほかの曲に変わったら、たき火の音は止める
     if (wantTrack === name) return;
     wantTrack = name;
     if (!name) { playing = null; return; }
     if (ac) startTrack(name);
+  }
+
+  // ---- たき火の音（2026-10-22）：BGMはなし。うっすらした風の音＋たき火のパチパチ。火山はそれにグツグツ ----
+  // ambient('camp') / ambient('volcano') / ambient(null)。効果音の音量（sfxBus）で鳴る。音の準備を作り直したら、自動で作り直す
+  var amb = null, ambWant = null, ambBuf = null;
+  function ambient(kind) { ambWant = kind || null; ambSync(); }
+  function ambStop() {
+    if (!amb) return;
+    clearInterval(amb.timer);
+    try { var g = amb.out.gain; g.cancelScheduledValues(ac.currentTime); g.setTargetAtTime(0.0001, ac.currentTime, 0.25); } catch (e) {}
+    var old = amb; setTimeout(function () { old.srcs.forEach(function (n) { try { n.stop(); } catch (e) {} }); try { old.out.disconnect(); } catch (e) {} }, 1200);
+    amb = null;
+  }
+  function ambSync() {
+    if (amb && (amb.kind !== ambWant || amb.ac !== ac)) ambStop();
+    if (!ambWant || amb || !ac) return;
+    // 4秒のざーっという音（短いとくり返しが分かるので、効果音用の0.6秒とは別に長く作る）
+    if (!ambBuf || ambBuf.ac !== ac) {
+      ambBuf = ac.createBuffer(1, ac.sampleRate * 4, ac.sampleRate); ambBuf.ac = ac;
+      var d = ambBuf.getChannelData(0); for (var i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    }
+    var out = ac.createGain(), now = ac.currentTime, srcs = [];
+    out.gain.setValueAtTime(0.0001, now); out.gain.setTargetAtTime(1, now, 0.6); out.connect(sfxBus);   // ふわっと始める
+    function bed(type, freq, q, vol) {   // ずっと鳴っているざーっという音（フィルターで色をつける）
+      var src = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
+      src.buffer = ambBuf; src.loop = true; f.type = type; f.frequency.value = freq; f.Q.value = q; g.gain.value = vol;
+      src.connect(f); f.connect(g); g.connect(out); src.start(now, Math.random() * 3.5); srcs.push(src);
+      return { f: f, g: g };
+    }
+    var wind = bed('bandpass', 520, 0.6, 0.05), wind2 = bed('lowpass', 240, 0.7, 0.03);   // 風：ヒューという帯と、低いゴーッ
+    var fire = bed('lowpass', 170, 0.8, 0.05);                                             // たき火の低いゴーッ（炎の息）
+    var lava = ambWant === 'volcano' ? bed('lowpass', 90, 0.9, 0.06) : null;              // 火山：溶岩のうなり
+    var k = 0;
+    var timer = setInterval(function () {
+      if (!ready()) return;
+      var t = ac.currentTime + 0.05; k++;
+      if (k % 10 === 0) {   // 0.5秒ごとに、風の強さと高さをゆっくり変える（強く吹いたり、やんだり）
+        wind.g.gain.setTargetAtTime(0.015 + Math.random() * 0.06, t, 0.8); wind.f.frequency.setTargetAtTime(350 + Math.random() * 450, t, 1.0);
+        wind2.g.gain.setTargetAtTime(0.015 + Math.random() * 0.03, t, 1.0);
+      }
+      fire.g.gain.setTargetAtTime(0.03 + Math.random() * 0.04, t, 0.08);   // 炎のゆらぎ
+      if (Math.random() < 0.28) noise(t, { dur: 0.006 + Math.random() * 0.016, vol: 0.04 + Math.random() * 0.14, f: 1500 + Math.random() * 3000, hp: true, bus: out });   // パチッ
+      if (Math.random() < 0.025) { tone(t, { f: 95, f2: 50, dur: 0.05, type: 'sine', vol: 0.07, bus: out }); noise(t, { dur: 0.05, vol: 0.08, f: 900, bp: true, bus: out }); }   // パンッ（まきがはじける）
+      if (lava && Math.random() < 0.12) {   // グツグツ：低い音が「ぽこっ」と上がる泡
+        var f0 = 80 + Math.random() * 90;
+        tone(t, { f: f0, f2: f0 * 1.8, dur: 0.07 + Math.random() * 0.05, type: 'sine', vol: 0.05 + Math.random() * 0.04, bus: out });
+        if (Math.random() < 0.4) tone(t + 0.09, { f: f0 * 1.2, f2: f0 * 2.1, dur: 0.06, type: 'sine', vol: 0.04, bus: out });
+      }
+    }, 50);
+    amb = { kind: ambWant, ac: ac, out: out, srcs: srcs, timer: timer };
   }
 
   function set(kind, v) {
@@ -395,8 +433,9 @@ var G = window.G = window.G || {};
   function test() { unlock(); var was = cfg.se; cfg.se = true; play('upgrade'); cfg.se = was; }
   // 曲を流したいのに音がまだ出せない時は、画面の下に「タップすると音が出ます」を出す
   setInterval(function () {
+    if (ambWant) ambSync();   // 音の準備ができた・作り直した時に、たき火の音を始める
     var el = document.getElementById('tap-sound'); if (!el) return;
-    el.hidden = !(G.started && (cfg.bgm || cfg.se) && (wantTrack || bossOn) && (!ready() || needFresh));
+    el.hidden = !(G.started && (cfg.bgm || cfg.se) && (wantTrack || bossOn || ambWant) && (!ready() || needFresh));
   }, 500);
-  G.Sound = { play: play, music: music, set: set, setVol: setVol, getVol: function (k) { return cfg[k + 'Vol']; }, bossTheme: bossTheme, track: function () { return playing; }, bossPlaying: function () { return bossOn && !!boss && boss.playing; }, get: function (k) { return cfg[k]; }, state: state, test: test };
+  G.Sound = { play: play, music: music, hold: hold, ambient: ambient, ambientNow: function () { return amb ? amb.kind : null; }, wanted: function () { return wantTrack; }, set: set, setVol: setVol, getVol: function (k) { return cfg[k + 'Vol']; }, bossTheme: bossTheme, track: function () { return playing; }, bossPlaying: function () { return bossOn && !!boss && boss.playing; }, get: function (k) { return cfg[k]; }, state: state, test: test };
 })();
