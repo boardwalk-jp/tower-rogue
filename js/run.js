@@ -296,7 +296,7 @@ var G = window.G = window.G || {};
   }
   // まだ持っていないレリックを1つ（table：elite/shop/rare）
   var RELIC_W = { elite: { common: 50, uncommon: 35, rare: 15 }, shop: { common: 40, uncommon: 40, rare: 20 }, event: { common: 45, uncommon: 40, rare: 15 } };
-  // 同じレリックも出る（重ねがけ）。ただし持っている物は出にくい（持っている数ごとに 0.35倍）
+  // 同じレリックは1回の挑戦で1個まで（持っている物はくじに入れない。addRelic でも2個目は足さない）。下の 0.35倍の重みは、昔の「重ねがけ」の名残で、今は使われない（持っている物は all に入らないため）
   function rollRelic(run, table) {
     // 1回の挑戦で同じレリックは1個まで（持っている物は出ない）
     var w = RELIC_W[table] || RELIC_W.event, all = Object.keys(G.RELICS).filter(function (k) { return G.RELICS[k].rarity !== 'starter' && unlocked('relic', k) && run.relics.indexOf(k) < 0; });
