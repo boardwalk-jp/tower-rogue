@@ -7,5 +7,6 @@
 - 仕様が変わったら、コードと一緒に `docs/SPEC.md` も更新する
 - 素のHTML/CSS/JavaScriptのみ。画像・音声ファイルは使わず、ドット絵とBGMはコードで生成する
 - 基準端末は iPhone の Safari（縦持ち）
-- 公開は Cloudflare（GitHub の main ブランチに反映すると自動で公開される）
+- 公開は Cloudflare Pages（プロジェクト名 `syoppaiya-td`、本番URL https://syoppaiya-td.pages.dev ）。GitHub の main ブランチに反映すると自動で公開される（ビルドなし・リポジトリの直下をそのまま公開）。旧URL https://boardwalk-jp.github.io/tower-rogue/ はテストプレイヤーのデータ引き継ぎが終わるまで残す
+- ほかのチャットも main に commit することがあるので、作業の前と push の前に `git pull` する
 - オーナーへの説明は日本語で、高校生が分かる言葉で書く
