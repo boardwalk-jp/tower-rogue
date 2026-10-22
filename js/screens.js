@@ -489,8 +489,10 @@ var G = window.G = window.G || {};
   function startBattle(n) {
     var opts = R.battleOpts(run);
     music(n.type === 'boss' ? 'boss' : 'w' + run.act);   // ふつうの戦闘・エリート：ワールドマップの曲のまま（2026-10-22。前は戦闘の曲）。ボス戦は今までどおり
-    // 上の帯：「1層3階エリート」（2026-10-23 階段のアイコンはやめて、元の書き方にもどした。「階」の言い方はオーナーと相談中）
-    var label = run.act + '層' + (n.type === 'boss' ? 'ボス' : (n.floor + 1) + '階' + (n.type === 'elite' ? 'エリート' : ''));
+    // 上の帯：「草原 3日目エリート」（2026-10-23 オーナー指定。前は「1層3階エリート」）
+    // 日数は地域が変わっても0にもどさない。1地域＝10マス＋ボス＝11日（ボスのマスも1日と数える）。例：雪山の最初のマス＝12日目
+    var day = (run.act - 1) * (G.RULES.floors + 1) + (n.type === 'boss' ? G.RULES.floors + 1 : n.floor + 1);
+    var label = G.ACTS[run.act - 1].area + ' ' + day + '日目' + (n.type === 'boss' ? 'ボス' : n.type === 'elite' ? 'エリート' : '');
     var t0 = Date.now();
     UI.start(opts, function (s) {
       s.realSec = Math.round((Date.now() - t0) / 1000);   // 統計用：戦闘にかかった時間（秒）
