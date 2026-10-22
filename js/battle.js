@@ -282,7 +282,7 @@ var G = window.G = window.G || {};
   function upgradeCost(tw, s) {
     var T = G.TOWERS[tw.type];
     if (tw.lv >= T.up.length) return null;
-    return has(s, 'cmd_engineer') ? Math.round(T.up[tw.lv].cost * 0.8) : T.up[tw.lv].cost;   // 工兵の工具箱
+    return has(s, 'cmd_engineer') ? Math.round(T.up[tw.lv].cost * 0.7) : T.up[tw.lv].cost;   // 工兵の工具箱（2026-10-22 に20%→30%引き）
   }
   function upgrade(s, towerId) {
     var tw = findTower(s, towerId);

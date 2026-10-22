@@ -514,11 +514,11 @@ G.ascMods = function (a) {
 };
 G.COMMANDERS = {   // 2026-10-22 初期デッキ・ライフを変更（オーナー指定）
   captain:  { name: '隊長', icon: 'bowman', life: 40, relic: 'cmd_captain', deck: ['bowman', 'bowman', 'bowman', 'sling', 'sling', 'warcry', 'barricade', 'recruit'],
-              text: 'スキルのコストが1下がる。', sub: 'バランス型。弓・投石・号令で戦う。ライフは多め' },
+              text: 'スキルのコストが1下がる。', sub: '指揮にすぐれ、スキルを使いこなす指揮官。ライフが多い。' },
   witch:    { name: '魔女', icon: 'mage', life: 34, relic: 'cmd_witch', deck: ['bowman', 'bowman', 'poison', 'poison', 'thunder', 'sling', 'aim', 'recruit'],
-              text: '魔法のタワーの攻撃力+25%。毒とやけどが1秒長く続く。', sub: '毒と氷から始まる。ライフは少なめ' },
+              text: '魔法のタワーの攻撃力+25%。毒とやけどが1秒長く続く。', sub: '魔法に長け、魔法攻撃力が高いがライフが少ない。' },
   engineer: { name: '工兵', icon: 'barracks', life: 36, relic: 'cmd_engineer', deck: ['bowman', 'bowman', 'bowman', 'sling', 'sling', 'recruit', 'barricade', 'whet', 'barrel'],
-              text: 'タワーの強化の値段が20%安い。', sub: 'バリケード・爆弾樽・研ぎ石から始まる' }
+              text: 'タワーの強化の値段が30%安い。', sub: 'タワー建設・強化に特化した指揮官。' }
 };
 
 // ============================================================
@@ -746,7 +746,7 @@ G.RELICS = {
   // ---- 指揮官のレリック（最初から1つだけ持っている。報酬・商人・イベントでは出ない） ----
   cmd_captain:  { name: '隊長の勲章',   kind: 'commander', rarity: 'starter', text: 'スキルのコストが1下がる。' },   // 2026-10-22 変更（前：勝つたびにお金+8）。0より下にはならない（説明には書かない）
   cmd_witch:    { name: '魔女の杖',     kind: 'commander', rarity: 'starter', text: '魔法のタワーの攻撃力+25%。毒とやけどが1秒長く続く。' },
-  cmd_engineer: { name: '工兵の工具箱', kind: 'commander', rarity: 'starter', text: 'タワーの強化の値段が20%安い。' }
+  cmd_engineer: { name: '工兵の工具箱', kind: 'commander', rarity: 'starter', text: 'タワーの強化の値段が30%安い。' }
 };
 Object.keys(G.RELICS).forEach(function (k) { G.RELICS[k].id = k; });
 
