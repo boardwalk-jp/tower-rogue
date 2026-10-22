@@ -1,11 +1,15 @@
 // 統計：集計した表を返す（2026-10-22）。集計ページ stats.html が読む
 // しぼりこみ：?cmd=captain&asc=3&ver=10/22 17:09&partial=0&days=7
+// 外すプレイヤー：&ex=番号,番号,…（プレイヤーの番号。全部で90人まで。2026-10-23）。外した人の記録は、どの表にも入らない（プレイヤーごとの表だけは全員を出す）
 // 自動対戦の記録は入れない（受け取りもしない。念のため bot=1 の行も数えない）
 // 合言葉：Cloudflare の環境変数 STATS_KEY を決めた時だけ、?k=合言葉 が必要になる（決めていなければ、だれでも見られる）
 
 import { ensureSchema } from '../../db/schema.js';
 
-function where(u) {
+const EX_MAX = 90;   // D1 は1つの問い合わせに付けられる値が100個まで。しぼりこみの分をのこして90人まで
+
+// withEx：外すプレイヤーを除くか（プレイヤーごとの表だけ false）
+function where(u, withEx) {
   const w = [], b = [];
   const cmd = u.searchParams.get('cmd'), asc = u.searchParams.get('asc'), ver = u.searchParams.get('ver');
   const partial = u.searchParams.get('partial'), days = Number(u.searchParams.get('days'));
@@ -15,7 +19,31 @@ function where(u) {
   w.push('r.bot = 0');
   if (partial === '0') w.push('r.partial = 0');
   if (days > 0) { w.push('r.ts >= ?'); b.push(Date.now() - days * 86400000); }
-  return { sql: w.length ? w.join(' AND ') : '1=1', bind: b };
+  if (withEx) {
+    const ex = excluded(u);
+    if (ex.length) { w.push('r.pid NOT IN (' + ex.map(() => '?').join(',') + ')'); b.push(...ex); }
+  }
+  return { sql: w.join(' AND '), bind: b };
+}
+function excluded(u) {
+  return (u.searchParams.get('ex') || '').split(',').filter(x => /^[a-z0-9]{4,32}$/.test(x)).slice(0, EX_MAX);
+}
+
+// 中央値：SQLite には中央値の関数がないので、小さい順に並べた順番（ROW_NUMBER）で、真ん中の1つ（個数が奇数）か2つ（偶数）を平均する
+// groups：まとめる列、vals：中央値を出したい列（どちらも SQL の式の配列）。値が空（NULL）の行は数えない
+function medianSql(from, where, groups, vals) {
+  const part = groups.join(', ');
+  const inner = [
+    ...groups.map((g, i) => g + ' g' + i),
+    ...vals.map((v, i) => v + ' v' + i),
+    ...vals.map((v, i) => `ROW_NUMBER() OVER (PARTITION BY ${part} ORDER BY ${v} IS NULL, ${v}) rn${i}`),
+    ...vals.map((v, i) => `COUNT(${v}) OVER (PARTITION BY ${part}) c${i}`)
+  ].join(', ');
+  const outer = [
+    ...groups.map((g, i) => 'g' + i),
+    ...vals.map((v, i) => `AVG(CASE WHEN rn${i} IN ((c${i}+1)/2, (c${i}+2)/2) THEN v${i} END) m${i}`)
+  ].join(', ');
+  return `SELECT ${outer} FROM (SELECT ${inner} FROM ${from}${where ? ' WHERE ' + where : ''}) GROUP BY ${groups.map((g, i) => 'g' + i).join(', ')}`;
 }
 
 export async function onRequestGet({ request, env }) {
@@ -23,7 +51,7 @@ export async function onRequestGet({ request, env }) {
   await ensureSchema(env.DB);   // 表がなければ作る
   const u = new URL(request.url);
   if (env.STATS_KEY && u.searchParams.get('k') !== env.STATS_KEY) return new Response('key', { status: 403 });
-  const W = where(u), DB = env.DB;
+  const W = where(u, true), WP = where(u, false), DB = env.DB;
   const J = 'JOIN runs r ON r.id = x.run_id';
   const WL = W.sql + " AND r.result IN ('win','lose')";   // 勝ち負けの決まったランだけ
   const Q = {
@@ -57,18 +85,47 @@ export async function onRequestGet({ request, env }) {
                FROM fights x ${J} WHERE ${W.sql} AND x.act=3 AND x.kind='boss' GROUP BY r.cmd, r.asc`,
     // アセンションの到達（プレイヤーごとの、いちばん上の解放ずみ）
     ascDist: `SELECT asc_max, COUNT(*) players FROM (SELECT r.pid, MAX(COALESCE(r.asc_max,0)) asc_max FROM runs r WHERE ${W.sql} GROUP BY r.pid) GROUP BY asc_max`,
-    // プレイヤーごと（1人のデータにかたよっていないか見る）
-    players: `SELECT substr(r.pid,1,6) pid, COUNT(*) n, SUM(r.result='win') wins, MAX(COALESCE(r.asc_max,0)) asc_max, MAX(r.ts) last FROM runs r WHERE ${W.sql} GROUP BY r.pid`,
+    // プレイヤーごと：外したプレイヤーも出す（外すか戻すかを選べるように）。n・勝ち・負け・やめた は、しぼりこみの中の数
+    players: `SELECT r.pid pid, COUNT(*) n, SUM(r.result='win') wins, SUM(r.result='lose') loses, SUM(r.result='abandon') abandons,
+              MAX(COALESCE(r.asc_max,0)) asc_max, MIN(r.ts) first, MAX(r.ts) last FROM runs r WHERE ${WP.sql} GROUP BY r.pid`,
+    // プレイヤーごとの総ラン数（しぼりこみも外す設定も関係なく、そのプレイヤーの全部）
+    totals: `SELECT r.pid pid, COUNT(*) total, SUM(r.result='win') total_wins FROM runs r WHERE r.bot = 0 GROUP BY r.pid`,
     // 戦闘以外の選択
     choices: `SELECT x.kind, x.item, x.detail, COUNT(*) n FROM choices x ${J} WHERE ${W.sql} GROUP BY x.kind, x.item, x.detail`,
     // 版の一覧（しぼりこみ用）
     vers: `SELECT r.ver, COUNT(*) n, MIN(r.ts) first FROM runs r WHERE r.bot = 0 GROUP BY r.ver ORDER BY first DESC`,
     // 最近のラン
-    recent: `SELECT r.id, r.ts, substr(r.pid,1,6) pid, r.ver, r.cmd, r.asc, r.result, r.act, r.at, r.floor, r.life, r.gold, r.deck_n, r.dur FROM runs r WHERE ${W.sql} ORDER BY r.id DESC LIMIT 50`
+    recent: `SELECT r.id, r.ts, r.pid pid, r.ver, r.cmd, r.asc, r.result, r.act, r.at, r.floor, r.life, r.gold, r.deck_n, r.dur FROM runs r WHERE ${W.sql} ORDER BY r.id DESC LIMIT 50`
   };
+  const noBind = { vers: 1, totals: 1 };
   const keys = Object.keys(Q);
-  const res = await DB.batch(keys.map(k => DB.prepare(Q[k]).bind(...(k === 'vers' ? [] : W.bind))));
-  const out = { at: Date.now() };
+  const stmts = keys.map(k => DB.prepare(Q[k]).bind(...(noBind[k] ? [] : k === 'players' ? WP.bind : W.bind)));
+
+  // 中央値（平均がある表に足す）。key＝表の行とつなぐ印、props＝足す名前（vals と同じ順）
+  const MED = [
+    { to: 'overview', from: 'runs r', where: W.sql, groups: ['r.cmd', 'r.asc'], vals: ['r.dur', 'r.draws', 'r.extra_draws', 'r.deck_n'], props: ['med_dur', 'med_draws', 'med_extra_draws', 'med_deck_n'], key: r => r.cmd + '|' + r.asc, bind: W.bind },
+    { to: 'maps', from: `fights x ${J}`, where: W.sql, groups: ['x.map', 'x.kind', 'x.act'], vals: ['x.life_lost', 'x.leaked', 'x.killed', 'x.sec', 'x.draws'], props: ['med_life_lost', 'med_leaked', 'med_killed', 'med_sec', 'med_draws'], key: r => r.map + '|' + r.kind + '|' + r.act, bind: W.bind },
+    { to: 'deckCards', from: `(SELECT x.run_id run_id, x.base card, SUM(x.n) cnt FROM run_cards x ${J} WHERE ${WL} GROUP BY x.run_id, x.base) t`, where: '', groups: ['t.card'], vals: ['t.cnt'], props: ['med_copies'], key: r => r.card, bind: W.bind },
+    { to: 'goldEnd', from: 'runs r', where: W.sql + " AND r.result='win'", groups: ['r.cmd', 'r.asc'], vals: ['r.gold'], props: ['med'], key: r => r.cmd + '|' + r.asc, bind: W.bind },
+    { to: 'goldBoss', from: `fights x ${J}`, where: W.sql + " AND x.act=3 AND x.kind='boss'", groups: ['r.cmd', 'r.asc'], vals: ['x.gold_before', 'x.life_before'], props: ['med', 'med_life'], key: r => r.cmd + '|' + r.asc, bind: W.bind }
+  ];
+  MED.forEach(m => stmts.push(DB.prepare(medianSql(m.from, m.where, m.groups, m.vals)).bind(...m.bind)));
+
+  const res = await DB.batch(stmts);
+  const out = { at: Date.now(), excluded: excluded(u).length };
   keys.forEach((k, i) => { out[k] = res[i].results; });
+  // 中央値を、それぞれの表の行にくっつける（まとめる列の値が同じ行どうし）
+  MED.forEach((m, mi) => {
+    const rows = res[keys.length + mi].results, map = {};
+    rows.forEach(r => { map[m.groups.map((g, i) => r['g' + i]).join('|')] = r; });
+    out[m.to].forEach(row => {
+      const r = map[m.key(row)];
+      m.props.forEach((p, i) => { row[p] = r ? r['m' + i] : null; });
+    });
+  });
+  // 総ラン数をプレイヤーの行にくっつける
+  const tot = {}; out.totals.forEach(t => { tot[t.pid] = t; });
+  out.players.forEach(p => { const t = tot[p.pid] || {}; p.total = t.total || p.n; p.total_wins = t.total_wins || 0; });
+  delete out.totals;
   return Response.json(out, { headers: { 'Cache-Control': 'no-store' } });
 }

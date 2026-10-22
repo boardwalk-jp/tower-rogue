@@ -40,6 +40,9 @@
   .tools { display: flex; gap: 8px; align-items: center; margin: 4px 0 6px; flex-wrap: wrap; }
   .tools small { color: var(--sub); }
   #msg { color: var(--bad); padding: 0 16px; }
+  .exinfo { margin: 8px 16px 0; padding: 8px 12px; background: var(--panel); border-left: 3px solid var(--gold); border-radius: 4px; font-size: 13px; }
+  .exinfo button { margin-left: 8px; }
+  input[type=checkbox] { width: 18px; height: 18px; vertical-align: middle; accent-color: #e2b84f; }
 </style>
 </head>
 <body>
@@ -47,6 +50,8 @@
   <h1>プレイ統計</h1>
   <p class="note">ランが終わるたびに送られた記録の集計です。列の名前をタップすると並べかえます（もう一度で逆順）。</p>
   <p class="note">「±」は、95%の確かさで本当の値が入る幅のめやすです。灰色の行は件数が10未満で、数字が大きくぶれます。</p>
+  <p class="note">「中央値」は、数字を小さい順に並べた時の真ん中の値です。極端に大きい・小さいランに引っぱられにくい数字です。「1戦あたり」「100体あたり」のような割り算の数字は、ラン単位で足した形で保存しているので、中央値は出せません。</p>
+  <p class="note">極端なプレイヤーを外して見たい時は、「プレイヤー」の表でチェックを外してください（外した人の記録は、ほかのすべての表に入らなくなります。この設定はこのブラウザに残ります）。</p>
 </header>
 <div class="filters">
   <label>指揮官<select id="f-cmd"><option value="">すべて</option></select></label>
@@ -57,6 +62,7 @@
   <button class="go" id="f-go">集計する</button>
 </div>
 <p id="msg"></p>
+<p id="exinfo" class="exinfo" hidden></p>
 <nav id="nav"></nav>
 <main id="main"><p class="note">読み込み中…</p></main>
 
@@ -100,11 +106,12 @@
 
   // ---- 表 ----
   // cols：[見出し, 値を出す関数, 種類（t＝文字、n＝数字）, 表示用の関数（省略で値そのまま）]
+  var sortMem = {};   // 表ごとの並べ方（チェックを変えて集計し直しても、並べ方を変えない）
   function table(id, title, note, cols, rows, sortCol, fewFn) {
     var sec = document.createElement('section'); sec.id = 's-' + id;
     sec.innerHTML = '<h2>' + title + '</h2>' + (note ? '<p class="note">' + note + '</p>' : '') +
       '<div class="tools"><small>' + rows.length + '行</small><button type="button">CSVで保存</button></div><div class="wrap"><table><thead><tr></tr></thead><tbody></tbody></table></div>';
-    var tr = sec.querySelector('thead tr'), tb = sec.querySelector('tbody'), st = { c: sortCol == null ? 0 : sortCol, asc: false };
+    var tr = sec.querySelector('thead tr'), tb = sec.querySelector('tbody'), st = sortMem[id] || (sortMem[id] = { c: sortCol == null ? 0 : sortCol, asc: false });
     cols.forEach(function (c, i) {
       var th = document.createElement('th'); th.textContent = c[0]; if (c[2] === 't') th.className = 't';
       th.addEventListener('click', function () { if (st.c === i) st.asc = !st.asc; else { st.c = i; st.asc = c[2] === 't'; } draw(); });
@@ -125,7 +132,7 @@
         cols.forEach(function (c) {
           var td = document.createElement('td'), v = c[1](r), out = c[3] ? c[3](v, r) : (v == null ? '' : v);
           if (c[2] === 't') td.className = 't';
-          if (out && typeof out === 'object' && out.html) td.innerHTML = out.html; else td.textContent = out;
+          if (out && typeof out === 'object' && out.nodeType) td.appendChild(out); else if (out && typeof out === 'object' && out.html) td.innerHTML = out.html; else td.textContent = out;
           row.appendChild(td);
         });
         tb.appendChild(row);
@@ -164,10 +171,14 @@
       ['やめた', function (r) { return r.abandons; }, 'n'],
       ['クリア率', function (r) { return pct(r.wins, r.wins + r.loses); }, 'n', P],
       ['±', function (r) { return ci(pct(r.wins, r.wins + r.loses), r.wins + r.loses); }, 'n', function (v) { return v == null ? '' : '±' + (v * 100).toFixed(0); }],
-      ['平均時間(分)', function (r) { return r.dur / 60; }, 'n', f1],
-      ['ドロー/ラン', function (r) { return r.draws; }, 'n', f1],
-      ['お金で引いた/ラン', function (r) { return r.extra_draws; }, 'n', f1],
-      ['最後のデッキ', function (r) { return r.deck_n; }, 'n', f1],
+      ['時間(分) 平均', function (r) { return r.dur / 60; }, 'n', f1],
+      ['時間(分) 中央値', function (r) { return r.med_dur == null ? null : r.med_dur / 60; }, 'n', f1],
+      ['ドロー/ラン 平均', function (r) { return r.draws; }, 'n', f1],
+      ['ドロー/ラン 中央値', function (r) { return r.med_draws; }, 'n', f1],
+      ['お金で引いた/ラン 平均', function (r) { return r.extra_draws; }, 'n', f1],
+      ['お金で引いた/ラン 中央値', function (r) { return r.med_extra_draws; }, 'n', f1],
+      ['最後のデッキ 平均', function (r) { return r.deck_n; }, 'n', f1],
+      ['最後のデッキ 中央値', function (r) { return r.med_deck_n; }, 'n', f1],
       ['人数', function (r) { return r.players; }, 'n']
     ], d.overview, 2, function (r) { return r.wins + r.loses < 10; }), '指揮官×アセ');
 
@@ -182,18 +193,23 @@
     ], d.deaths, 3), '負けた場所');
 
     // 3. マップ
-    add(table('maps', 'マップごとの戦闘', '1戦で減ったライフの平均など。敵の数の倍率（enemyMult）の調整に使う。', [
+    add(table('maps', 'マップごとの戦闘', '1戦で減ったライフの平均・中央値など。敵の数の倍率（enemyMult）の調整に使う。', [
       ['マップ', function (r) { return mapName(r.map); }, 't'],
       ['層', function (r) { return r.act; }, 'n'],
       ['種類', function (r) { return AT[r.kind] || r.kind; }, 't'],
       ['戦闘数', function (r) { return r.n; }, 'n'],
-      ['減ったライフ(平均)', function (r) { return r.life_lost; }, 'n', f1],
+      ['減ったライフ 平均', function (r) { return r.life_lost; }, 'n', f1],
+      ['減ったライフ 中央値', function (r) { return r.med_life_lost; }, 'n', f1],
       ['最大', function (r) { return r.life_max; }, 'n'],
       ['負け', function (r) { return r.lost; }, 'n'],
-      ['通した敵(平均)', function (r) { return r.leaked; }, 'n', f1],
-      ['倒した敵(平均)', function (r) { return r.killed; }, 'n', f1],
-      ['時間(秒)', function (r) { return r.sec; }, 'n', f0],
-      ['ドロー/戦', function (r) { return r.draws; }, 'n', f1]
+      ['通した敵 平均', function (r) { return r.leaked; }, 'n', f1],
+      ['通した敵 中央値', function (r) { return r.med_leaked; }, 'n', f1],
+      ['倒した敵 平均', function (r) { return r.killed; }, 'n', f1],
+      ['倒した敵 中央値', function (r) { return r.med_killed; }, 'n', f1],
+      ['時間(秒) 平均', function (r) { return r.sec; }, 'n', f0],
+      ['時間(秒) 中央値', function (r) { return r.med_sec; }, 'n', f1],
+      ['ドロー/戦 平均', function (r) { return r.draws; }, 'n', f1],
+      ['ドロー/戦 中央値', function (r) { return r.med_draws; }, 'n', f1]
     ], d.maps, 4, function (r) { return r.n < 10; }), 'マップ');
 
     // 4. 敵
@@ -213,7 +229,7 @@
     // 5. カード
     var cards = {};
     function C(id) { return cards[id] || (cards[id] = { card: id, runs: 0, wins: 0, copies: 0, off: 0, take: 0, offR: 0, takeR: 0, offS: 0, takeS: 0, played: 0, playFights: 0 }); }
-    d.deckCards.forEach(function (r) { var o = C(r.card); o.runs = r.runs; o.wins = r.wins; o.copies = r.copies; });
+    d.deckCards.forEach(function (r) { var o = C(r.card); o.runs = r.runs; o.wins = r.wins; o.copies = r.copies; o.medCopies = r.med_copies; });
     d.picks.forEach(function (r) {
       var o = C(String(r.card).replace(/\+$/, ''));
       o.off += r.offered; o.take += r.taken;
@@ -229,7 +245,8 @@
       ['商人で並んだ', function (r) { return r.offS; }, 'n'],
       ['買われた率', function (r) { return pct(r.takeS, r.offS); }, 'n', P],
       ['デッキにあったラン', function (r) { return r.runs; }, 'n'],
-      ['平均枚数', function (r) { return r.copies; }, 'n', f1],
+      ['枚数 平均', function (r) { return r.copies; }, 'n', f1],
+      ['枚数 中央値', function (r) { return r.medCopies; }, 'n', f1],
       ['そのランの勝率', function (r) { return pct(r.wins, r.runs); }, 'n', P],
       ['±', function (r) { return ci(pct(r.wins, r.runs), r.runs); }, 'n', function (v) { return v == null ? '' : '±' + (v * 100).toFixed(0); }],
       ['全体との差', function (r) { var p = pct(r.wins, r.runs); return p == null || base == null ? null : p - base; }, 'n', colored],
@@ -262,6 +279,7 @@
       ['アセ', function (r) { return r.asc; }, 'n'],
       ['クリア数', function (r) { return r.n; }, 'n'],
       ['平均', function (r) { return r.avg; }, 'n', f0],
+      ['中央値', function (r) { return r.med; }, 'n', f1],
       ['最小', function (r) { return r.min; }, 'n'],
       ['最大', function (r) { return r.max; }, 'n']
     ], d.goldEnd, 2), 'お金');
@@ -269,10 +287,12 @@
       ['指揮官', function (r) { return CMD[r.cmd] || r.cmd; }, 't'],
       ['アセ', function (r) { return r.asc; }, 'n'],
       ['件数', function (r) { return r.n; }, 'n'],
-      ['お金(平均)', function (r) { return r.avg; }, 'n', f0],
+      ['お金 平均', function (r) { return r.avg; }, 'n', f0],
+      ['お金 中央値', function (r) { return r.med; }, 'n', f1],
       ['最小', function (r) { return r.min; }, 'n'],
       ['最大', function (r) { return r.max; }, 'n'],
-      ['ライフ(平均)', function (r) { return r.life; }, 'n', f1]
+      ['ライフ 平均', function (r) { return r.life; }, 'n', f1],
+      ['ライフ 中央値', function (r) { return r.med_life; }, 'n', f1]
     ], d.goldBoss, 2));
 
     // 9. アセンションの到達
@@ -282,13 +302,25 @@
       ['人数', function (r) { return r.players; }, 'n'],
       ['割合', function (r) { return pct(r.players, pl); }, 'n', function (v) { return v == null ? '' : { html: P(v) + '<span class="bar" style="width:' + Math.round(v * 120) + 'px"></span>' }; }]
     ], d.ascDist, 0), 'アセ到達');
-    main.appendChild(table('players', 'プレイヤーごと', '1人のデータにかたよっていないかを見る。番号は先頭6文字。', [
-      ['番号', function (r) { return r.pid; }, 't'],
+    var runsAll = d.players.reduce(function (a, r) { return a + r.n; }, 0);
+    add(table('players', 'プレイヤーごと（集計に入れるか選ぶ）', 'チェックを外したプレイヤーは、ほかのすべての表から除かれます（この表には全員を出します）。番号は先頭6文字。「総ラン」は、そのプレイヤーの全部のラン（しぼりこみ・外す設定に関係なく、やめたランもふくむ）。「ラン」以降は今のしぼりこみの中の数で、「割合」はその全体（外した人もふくむ）に占める割合。', [
+      ['集計', function (r) { return exclude[r.pid] ? 0 : 1; }, 'n', function (v, r) {
+        var cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = !exclude[r.pid]; cb.setAttribute('aria-label', '集計に入れる');
+        cb.addEventListener('change', function () { if (!toggleEx(r.pid, cb.checked)) cb.checked = true; });
+        return cb;
+      }],
+      ['番号', function (r) { return r.pid.slice(0, 6); }, 't'],
+      ['総ラン', function (r) { return r.total; }, 'n'],
+      ['総クリア', function (r) { return r.total_wins; }, 'n'],
       ['ラン', function (r) { return r.n; }, 'n'],
+      ['割合', function (r) { return pct(r.n, runsAll); }, 'n', function (v) { return v == null ? '' : { html: P(v) + '<span class="bar" style="width:' + Math.round(v * 120) + 'px"></span>' }; }],
       ['勝ち', function (r) { return r.wins; }, 'n'],
+      ['負け', function (r) { return r.loses; }, 'n'],
+      ['やめた', function (r) { return r.abandons; }, 'n'],
       ['解放ずみアセ', function (r) { return r.asc_max; }, 'n'],
+      ['最初', function (r) { return r.first; }, 'n', function (v) { return v ? new Date(v).toLocaleString('ja-JP') : ''; }],
       ['最後', function (r) { return r.last; }, 'n', function (v) { return v ? new Date(v).toLocaleString('ja-JP') : ''; }]
-    ], d.players, 1));
+    ], d.players, 4, function (r) { return !!exclude[r.pid]; }), 'プレイヤー');
 
     // 10. 選択
     var KIND = { event: 'イベント', rest: 'たき火', buy: '商人で買った', remove: '手放した', upgrade: '鍛えた' };
@@ -308,7 +340,7 @@
     var RES = { win: 'クリア', lose: '負け', abandon: 'やめた' };
     add(table('recent', '最近のラン（50件）', '', [
       ['日時', function (r) { return r.ts; }, 'n', function (v) { return new Date(v).toLocaleString('ja-JP'); }],
-      ['番号', function (r) { return r.pid; }, 't'],
+      ['番号', function (r) { return r.pid.slice(0, 6); }, 't'],
       ['版', function (r) { return r.ver; }, 't'],
       ['指揮官', function (r) { return CMD[r.cmd] || r.cmd; }, 't'],
       ['アセ', function (r) { return r.asc; }, 'n'],
@@ -331,10 +363,33 @@
   // ---- しぼりこみ ----
   Object.keys(CMD).forEach(function (k) { var o = document.createElement('option'); o.value = k; o.textContent = CMD[k]; $('f-cmd').appendChild(o); });
   for (var a = 0; a <= (G.ASC_MAX || 10); a++) { var o = document.createElement('option'); o.value = a; o.textContent = a; $('f-asc').appendChild(o); }
+  // ---- 集計から外すプレイヤー（このブラウザに残す。番号の一覧をそのままサーバーに送る） ----
+  var EXKEY = 'towerRogue.statsExclude', EX_MAX = 90, exclude = {}, reloadT = null;
+  try { (JSON.parse(localStorage.getItem(EXKEY) || '[]') || []).forEach(function (p) { if (/^[a-z0-9]{4,32}$/.test(p)) exclude[p] = 1; }); } catch (e) {}
+  function saveEx() { try { localStorage.setItem(EXKEY, JSON.stringify(Object.keys(exclude))); } catch (e) {} }
+  function toggleEx(pid, include) {
+    if (include) delete exclude[pid];
+    else {
+      if (!exclude[pid] && Object.keys(exclude).length >= EX_MAX) { $('msg').textContent = '外せるのは' + EX_MAX + '人までです'; return false; }
+      exclude[pid] = 1;
+    }
+    saveEx(); clearTimeout(reloadT); reloadT = setTimeout(load, 350);   // 続けてチェックを変えても、1回だけ集計し直す
+    return true;
+  }
+  function showExInfo(d) {
+    var el = $('exinfo'), ids = Object.keys(exclude);
+    if (!ids.length) { el.hidden = true; return; }
+    var runs = 0; d.players.forEach(function (p) { if (exclude[p.pid]) runs += p.n; });
+    el.hidden = false; el.textContent = '集計から外しているプレイヤー：' + ids.length + '人（今のしぼりこみで ' + runs + ' ラン）。';
+    var b = document.createElement('button'); b.type = 'button'; b.textContent = 'すべて戻す';
+    b.addEventListener('click', function () { exclude = {}; saveEx(); load(); });
+    el.appendChild(b);
+  }
   var versLoaded = false;
   function load() {
-    var q = new URLSearchParams();
+    var q = new URLSearchParams(), keepY = window.scrollY;
     [['cmd', 'f-cmd'], ['asc', 'f-asc'], ['ver', 'f-ver'], ['days', 'f-days'], ['partial', 'f-partial']].forEach(function (p) { var v = $(p[1]).value; if (v !== '') q.set(p[0], v); });
+    var ex = Object.keys(exclude).slice(0, EX_MAX); if (ex.length) q.set('ex', ex.join(','));
     if (key()) q.set('k', key());
     $('msg').textContent = '';
     fetch('api/stats?' + q.toString(), { cache: 'no-store' }).then(function (r) {
@@ -352,7 +407,8 @@
         versLoaded = true;
         d.vers.forEach(function (v) { if (!v.ver) return; var o = document.createElement('option'); o.value = v.ver; o.textContent = v.ver + '（' + v.n + '）'; $('f-ver').appendChild(o); });
       }
-      render(d);
+      render(d); showExInfo(d);
+      window.scrollTo(0, keepY);   // チェックを変えて集計し直した時に、見ていた場所から動かない
     }).catch(function (e) { $('msg').textContent = e.message; $('main').innerHTML = ''; });
   }
   $('f-go').addEventListener('click', load);
