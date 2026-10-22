@@ -790,7 +790,7 @@ var G = window.G = window.G || {};
     '<ol><li>右上のメニュー（点が3つ）をタップ</li><li>「ホーム画面に追加」または「アプリをインストール」を選ぶ</li><li>できたアイコンから遊ぶ</li></ol>',
     '<p class="help-how">ホーム画面のアイコンから遊ぶと、それまでブラウザで遊んだ記録が引き継がれないことがあります。先に下の「データの引き継ぎ」で書き出しておくと安心です。</p>',
     '<h3>別の端末・ブラウザで遊ぶとき</h3>',
-    '<p>記録はブラウザごとに別々です。「データの引き継ぎ」で書き出した文字を、新しい方で読み込むと、続きから遊べます（経験値・解放・クリアの記録。途中のランは入りません）。</p>',
+    '<p>記録はブラウザごとに別々です。「データの引き継ぎ」で書き出した文字を、新しい方で読み込むと、続きから遊べます（経験値・解放・アセンション・クリアの記録と、途中のラン。戦闘の途中だった時は、その戦闘の始めから）。</p>',
     '<p><button type="button" class="help-link" id="help-data">▶ データの引き継ぎを開く</button></p>'
   ].join('');
   function helpIcon(key) {
@@ -825,11 +825,12 @@ var G = window.G = window.G || {};
 
 
   // ============================================================
-  // データの引き継ぎ（経験値・解放・クリアの記録を、文字にして書き出す／読み込む）
-  // 形：「TR1:」＋ JSON を base64 にした文字。途中のラン（つづきから）は含めない
+  // データの引き継ぎ（経験値・解放・クリアの記録と、途中のラン（つづきから）を、文字にして書き出す／読み込む）
+  // 形：「TR1:」＋ JSON を base64 にした文字。save は途中のランがある時だけ入る（2026-10-22 追加。古い文字もそのまま読める）
   // ============================================================
   function exportData() {
-    var o = { v: 1, meta: R.metaLoad(), asc: lastAsc() };
+    var o = { v: 1, meta: R.metaLoad(), asc: lastAsc() }, sv = loadSave();
+    if (sv) o.save = sv;
     return 'TR1:' + btoa(unescape(encodeURIComponent(JSON.stringify(o))));
   }
   // 読み込める文字か調べる。だめなら null。よければ { meta, asc }
@@ -847,7 +848,12 @@ var G = window.G = window.G || {};
       if (typeof m.xp !== 'number') return null;
       if (m.ascMax > G.ASC_MAX) m.ascMax = G.ASC_MAX;
       var asc = Math.max(0, Math.min(G.ASC_MAX, +o.asc || 0));
-      return { meta: m, asc: asc };
+      // 途中のラン：形が正しく、実際に読み込める時だけ使う（壊れていたら途中のランだけ無視する）
+      var sv = null;
+      if (o.save && o.save.v === 1 && o.save.run && typeof o.save.run === 'object') {
+        try { R.fromSave(JSON.parse(JSON.stringify(o.save.run))); sv = { v: 1, at: +o.save.at || Date.now(), run: o.save.run, resume: o.save.resume || { type: 'map' } }; } catch (e2) { sv = null; }
+      }
+      return { meta: m, asc: asc, save: sv };
     } catch (e) { return null; }
   }
   var dataArmed = false;
@@ -870,15 +876,18 @@ var G = window.G = window.G || {};
     var d = parseData($('dt-in').value);
     if (!d) { dataArmed = false; $('dt-load').textContent = '読み込む'; return dataMsg('この文字は読み込めません。「TR1:」から始まる文字を、最後まで貼り付けてください。', true); }
     if (!dataArmed) {
-      var now = R.metaLoad();
+      var now = R.metaLoad(), has = !!loadSave();
+      var runMsg = d.save ? (has ? '今の途中のランも、書き出した時の途中のランに置きかえます。' : '書き出した時の途中のランも入ります。')
+                          : (has ? '（この文字に途中のランは入っていないので、今の途中のランはそのまま残ります）' : '');
       dataArmed = true; $('dt-load').textContent = '上書きして読み込む';
-      return dataMsg('今の経験値 ' + now.xp + ' を、経験値 ' + d.meta.xp + ' の記録に置きかえます。よければもう一度押してください。', true);
+      return dataMsg('今の経験値 ' + now.xp + ' を、経験値 ' + d.meta.xp + ' の記録に置きかえます。' + runMsg + 'よければもう一度押してください。', true);
     }
     R.metaSave(d.meta);
     try { localStorage.setItem('towerRogue.lastAsc', String(d.asc)); } catch (e) {}
+    if (d.save) { try { localStorage.setItem(SAVE_KEY, JSON.stringify(d.save)); } catch (e) {} }
     dataArmed = false; $('dt-load').textContent = '読み込む'; $('dt-in').value = '';
     refreshTitle();
-    dataMsg('読み込みました（経験値 ' + d.meta.xp + '）。');
+    dataMsg('読み込みました（経験値 ' + d.meta.xp + (d.save ? '・途中のランあり。タイトルの「つづきから」で続けられます' : '') + '）。');
   });
   $('dt-close').addEventListener('click', function () { $('data-modal').hidden = true; });
   $('wm-data').addEventListener('click', function () { closeMenu(); openData(); });
