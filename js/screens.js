@@ -189,6 +189,7 @@ var G = window.G = window.G || {};
   $('t-cont').addEventListener('click', function () { setChoice('cont'); });
   $('t-new').addEventListener('click', function () { setChoice('new'); });
   refreshTitle();
+  music('title');   // はじめて開いた時もタイトルの曲（音は最初のタップのあとに出る）
 
   // ブラウザに「このサイトのデータは消さないで」とお願いする（Safari 17〜。許可するかはブラウザが決める。結果は記録だけして画面には出さない）
   function askPersist() {
@@ -211,6 +212,7 @@ var G = window.G = window.G || {};
     // はじめての人には、指揮官を選ぶ前に遊び方を1回だけ出す
     var seen = false; try { seen = !!localStorage.getItem('towerRogue.helpSeen'); } catch (e) { seen = true; }
     if (!seen) setTimeout(showHelp, 50);
+    music('cmd');   // 指揮官を選ぶ画面の曲
     openPanel('指揮官', function (body, foot) {
       if (G.cmdBg) $('panel').insertBefore(G.cmdBg(), $('panel').firstChild);   // 背景：城の中庭（いちばん下の層）
       body.appendChild(el('h2', 'panel-title', '指揮官を選ぶ'));
@@ -273,7 +275,7 @@ var G = window.G = window.G || {};
     G.started = false;
     document.querySelectorAll('[data-screen]').forEach(function (e) { e.hidden = true; });
     G.currentScreen = 'start';
-    $('start').hidden = false; music(null);
+    $('start').hidden = false; music('title');   // タイトルの曲
     refreshTitle();
     window.scrollTo(0, 0);
   }
@@ -700,7 +702,7 @@ var G = window.G = window.G || {};
   // ランの終わり
   // ============================================================
   function showEnd() {
-    clearSave(); music(run.won ? 'victory' : null);
+    clearSave(); music(run.won ? 'clear' : 'defeat');   // クリアの曲・敗北の曲（2026-10-22）
     openPanel(run.won ? 'クリア' : '敗北', function (body, foot) {
       // 場面の絵（クリア＝朝日の砦と花火、敗北＝燃える砦）と、記録のタイル（2026-10-22 新デザイン）
       var art = G.eventArt && G.eventArt(run.won ? 'victory' : 'defeat', run.act); if (art) body.appendChild(art);

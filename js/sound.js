@@ -207,6 +207,33 @@ var G = window.G = window.G || {};
   function semi(f, n) { return f * Math.pow(2, n / 12); }
   var TRACKS = {
     // ---- ワールドマップ専用の曲（2026-10-22）。16小節。chords：小節ごとの和音、arp：和音の音を順にならす飾りの音 ----
+    // ---- タイトル・指揮官を選ぶ・クリア・敗北の曲（2026-10-22） ----
+    // タイトル：夕暮れの砦。短調で始まり、後半で明るく広がる
+    title: { style: 'calm', bpm: 88, lead: 'triangle', vol: 0.9, arp: { pat: [0, 1, 2, 1, 0, 1, 2, 1], oct: 4, type: 'triangle', vol: 0.045 },
+          chords: 'Am F C G Am F G G F G Em Am F G C C'.split(' '),
+          mel: seq('A4 - - - E5 - - - F5 - E5 - C5 - A4 - G4 - C5 - E5 - G5 - D5 - - - - - - - ' +
+                   'A4 - C5 - E5 - A5 - A5 - G5 - F5 - C5 - D5 - G5 - B5 - D6 - D6 - - - - - - - ' +
+                   'C6 - - - A5 - F5 - D6 - - - B5 - G5 - E5 - G5 - B5 - G5 - A5 - - - E5 - C5 - ' +
+                   'F5 - A5 - C6 - A5 - B5 - D6 - G5 - B5 - C6 - - - G5 - E5 - C6 - - - - - - -') },
+    // 指揮官を選ぶ：出発の準備。小太鼓の入った行進曲（長調）
+    cmd: { style: 'battleSoft', bpm: 100, lead: 'square', vol: 0.5, arp: { pat: [0, 0, 1, 0, 2, 0, 1, 0], oct: 3, type: 'square', vol: 0.03 },
+          chords: 'G C D G Em C D D G C D Em C D G G'.split(' '),
+          mel: seq('G4 - B4 - D5 - G5 - E5 - - - C5 - E5 - F#5 - E5 - D5 - A4 - B4 - - - G4 - - - ' +
+                   'B4 - E5 - G5 - B5 - A5 - G5 - E5 - C5 - D5 - F#5 - A5 - F#5 - A5 - - - - - - - ' +
+                   'B5 - - - G5 - D5 - E5 - G5 - C6 - G5 - F#5 - A5 - D6 - A5 - G5 - - - E5 - B4 - ' +
+                   'C5 - E5 - G5 - C6 - A5 - F#5 - D5 - F#5 - G5 - - - D5 - B4 - G5 - - - - - - -') },
+    // クリア：全3層を守りきった。大きく明るいフィナーレ（長調）
+    clear: { style: 'map', bpm: 108, lead: 'square', vol: 0.5, arp: { pat: [0, 1, 2, 3, 2, 1, 2, 1], oct: 4, type: 'triangle', vol: 0.05 },
+          chords: 'C Am F G C Am Dm G F G Em Am F G C C'.split(' '),
+          mel: seq('C5 - E5 - G5 - C6 - E6 - - - C6 - A5 - F5 - A5 - C6 - A5 - B5 - - - G5 - D5 - ' +
+                   'E5 - G5 - C6 - E6 - C6 - - - A5 - E5 - F5 - A5 - D6 - F6 - D6 - - - - - - - ' +
+                   'C6 - - - A5 - F5 - B5 - - - G5 - D5 - E5 - G5 - B5 - E6 - C6 - - - A5 - - - ' +
+                   'A5 - C6 - F6 - C6 - B5 - D6 - G6 - D6 - E6 - - - C6 - G5 - C6 - - - - - - -') },
+    // 敗北：静かでさみしい短調（8小節）
+    defeat: { style: 'calm', bpm: 70, lead: 'sine', vol: 0.95, arp: { pat: [0, -1, 1, -1, 2, -1, 1, -1], oct: 4, type: 'sine', vol: 0.045 },
+          chords: 'Am Dm E Am F Dm E Am'.split(' '),
+          mel: seq('E5 - - - C5 - - - D5 - - - F5 - - - E5 - D5 - B4 - G#4 - A4 - - - - - - - ' +
+                   'C5 - - - A4 - - - F4 - A4 - D5 - - - B4 - - - G#4 - - - A4 - - - - - - -') },
     // 第1層 草原：明るく冒険に出る感じ（長調）
     w1: { style: 'map', bpm: 104, lead: 'triangle', vol: 0.85, arp: { pat: [0, 1, 2, 1, 0, 1, 2, 1], oct: 4, type: 'triangle', vol: 0.05 },
           chords: 'C G Am F C G F G Am F C G F G C C'.split(' '),
