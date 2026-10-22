@@ -327,6 +327,9 @@ var G = window.G = window.G || {};
   });
 
   function newRun(cmdId, asc) {
+    // 途中のランを残したまま新しく始めた時は、そのランを「やめた」として統計に送る（2026-10-22）
+    var old = loadSave();
+    if (old && old.run && G.Stats) { try { G.Stats.send(R.report(R.fromSave(old.run), 'abandon')); } catch (e) {} }
     clearSave();
     try { localStorage.setItem('towerRogue.lastAsc', String(asc || 0)); } catch (e) {}
     run = R.create(null, cmdId || (run && run.cmd) || 'captain', asc || 0);
@@ -483,7 +486,9 @@ var G = window.G = window.G || {};
     var opts = R.battleOpts(run);
     music(n.type === 'boss' ? 'boss' : 'w' + run.act);   // ふつうの戦闘・エリート：ワールドマップの曲のまま（2026-10-22。前は戦闘の曲）。ボス戦は今までどおり
     var label = run.act + '層' + (n.type === 'boss' ? 'ボス' : (n.floor + 1) + '階' + (n.type === 'elite' ? 'エリート' : ''));
+    var t0 = Date.now();
     UI.start(opts, function (s) {
+      s.realSec = Math.round((Date.now() - t0) / 1000);   // 統計用：戦闘にかかった時間（秒）
       var first = n.type === 'boss' ? R.bossName(run) : '';
       R.finishBattle(run, s);
       if (run.over) { clearSave(); return showEnd(); }
@@ -530,7 +535,7 @@ var G = window.G = window.G || {};
         }
       }
       body.appendChild(el('p', 'panel-sub', 'カードを1枚えらんでデッキに加えます'));
-      choose(body, foot, cards, '受け取る', function (id) { R.addCard(run, id); after(); }, 'カードを受け取らない', after);
+      choose(body, foot, cards, '受け取る', function (id) { R.logPick(run, n.type, cards, id); R.addCard(run, id); after(); }, 'カードを受け取らない', function () { R.logPick(run, n.type, cards, null); after(); });
     });
   }
 
@@ -582,6 +587,7 @@ var G = window.G = window.G || {};
           var res = R.eventChoice(run, ch);
           renderRunBar();
           if (res.fail) { msg.textContent = res.msg; return; }
+          R.logSet(run, 'ev', { id: ev.id, c: ci, r: ch.effect === 'gamble' ? (res.msg.indexOf('当たり') === 0 ? 'win' : 'lose') : undefined });
           var key = String(ci) + (ch.effect === 'gamble' ? (res.msg.indexOf('当たり') === 0 ? 'win' : 'lose') : '');
           function afterEvent(text, rid) { afterEventK(text, rid, key); }
           if (res.next === 'pickCopy') return pickFromDeck('複製するカードを選ぶ', function (i) { var id = run.deck[i]; R.addCard(run, id); afterEvent('「' + G.CARDS[id].name + '」をもう1枚手に入れた。'); }, true);
@@ -591,7 +597,7 @@ var G = window.G = window.G || {};
             return openPanel('イベント', function (b2, f2) {
               eventArt(b2, key); b2.appendChild(el('h2', 'panel-title', ev.title));
               b2.appendChild(el('p', 'panel-text', res.msg + ' カードを1枚えらぶ。'));
-              choose(b2, f2, res.cards, '受け取る', function (id) { R.addCard(run, id); afterEvent('「' + G.CARDS[id].name + '」を手に入れた。'); });
+              choose(b2, f2, res.cards, '受け取る', function (id) { R.logPick(run, 'event', res.cards, id); R.addCard(run, id); afterEvent('「' + G.CARDS[id].name + '」を手に入れた。'); });
             });
           }
           afterEvent(res.msg, res.relic);
@@ -626,7 +632,8 @@ var G = window.G = window.G || {};
   function showShop() {
     music('shop');   // 商人だけは商人の曲（2026-10-22 オーナー指定）。マップを見てから戻っても、とぎれずに続く
     // 同じ商人のマスにいる間は、出た時と同じ品ぞろえ（売り切れも）で入り直せる
-    if (!run.shop || run.shop.node !== run.at) { var st0 = R.shopStock(run); run.shop = { node: run.at, cards: st0.cards, relic: st0.relic || null, used: { remove: false, heal: false } }; }
+    if (!run.shop || run.shop.node !== run.at) { var st0 = R.shopStock(run); run.shop = { node: run.at, cards: st0.cards, relic: st0.relic || null, used: { remove: false, heal: false } };
+      R.logSet(run, 'shop', { o: st0.cards.map(function (it) { return it.id; }), r: st0.relic ? st0.relic.id : null }); }
     var shop = run.shop, stock = shop.cards, P = G.RULES.shop, used = shop.used;
     function render() {
       save({ type: 'node' });
@@ -647,7 +654,7 @@ var G = window.G = window.G || {};
               return;
             }
             if (run.gold < it.price) { say('お金が足りません'); return; }
-            run.gold -= it.price; it.sold = true; R.addCard(run, it.id); render();
+            run.gold -= it.price; it.sold = true; R.logAdd(run, 'buy', it.id); R.addCard(run, it.id); render();
           });
           wrap.appendChild(c);
           wrap.appendChild(el('span', 'price' + (run.gold < it.price && !it.sold ? ' poor' : ''), it.sold ? '売り切れ' : '● ' + it.price));
@@ -660,7 +667,7 @@ var G = window.G = window.G || {};
           var rbtn = button('', 'choice relic-buy', function () {
             if (rl.sold) return;
             if (run.gold < rl.price) { say('お金が足りません'); return; }
-            run.gold -= rl.price; rl.sold = true; R.addRelic(run, rl.id); render();
+            run.gold -= rl.price; rl.sold = true; R.logAdd(run, 'buy', 'relic:' + rl.id); R.addRelic(run, rl.id); render();
           });
           rbtn.className += ' r-' + RD.rarity;
           var rline = el('b', 'relic-line'); rline.appendChild(UI.relicCanvas(rl.id)); rline.appendChild(el('span', 'relic-line-name', 'レリック：' + RD.name)); rline.appendChild(el('span', 'rar-label r-' + RD.rarity, UI.RARITY[RD.rarity]));
@@ -671,14 +678,14 @@ var G = window.G = window.G || {};
         var rm = button('', 'choice', function () {
           if (used.remove) return;
           if (run.gold < R.price(run, P.remove)) { say('お金が足りません'); return; }
-          pickFromDeck('手放すカードを選ぶ（●' + R.price(run, P.remove) + '）', function (idx) { run.gold -= R.price(run, P.remove); used.remove = true; R.removeCard(run, idx); render(); }, false, render);
+          pickFromDeck('手放すカードを選ぶ（●' + R.price(run, P.remove) + '）', function (idx) { run.gold -= R.price(run, P.remove); used.remove = true; R.logAdd(run, 'buy', 'remove'); R.removeCard(run, idx); render(); }, false, render);
         });
         rm.appendChild(el('b', '', 'カードを1枚手放す')); rm.appendChild(el('small', '', used.remove ? '利用済み' : '● ' + R.price(run, P.remove)));
         rm.disabled = used.remove;
         var hl = button('', 'choice', function () {
           if (used.heal) return;
           if (run.gold < R.price(run, P.heal)) { say('お金が足りません'); return; }
-          run.gold -= R.price(run, P.heal); used.heal = true; run.life = Math.min(run.maxLife, run.life + P.healAmount); render();
+          run.gold -= R.price(run, P.heal); used.heal = true; R.logAdd(run, 'buy', 'heal'); run.life = Math.min(run.maxLife, run.life + P.healAmount); render();
         });
         hl.appendChild(el('b', '', 'ライフを' + P.healAmount + '回復')); hl.appendChild(el('small', '', used.heal ? '利用済み' : '● ' + R.price(run, P.heal)));
         hl.disabled = used.heal || run.life >= run.maxLife;
@@ -704,12 +711,12 @@ var G = window.G = window.G || {};
       body.appendChild(el('h2', 'panel-title', 'たき火'));
       body.appendChild(el('p', 'panel-text', 'ひと休みできる。どれか1つを選ぶ。'));
       var list = el('div', 'choices');
-      var a = button('', 'choice', function () { var h = R.rest(run); done('ライフが' + h + '回復した。'); });
+      var a = button('', 'choice', function () { R.logSet(run, 'rest', 'heal'); var h = R.rest(run); done('ライフが' + h + '回復した。'); });
       a.appendChild(el('b', '', '休む')); a.appendChild(el('small', '', 'ライフ+' + G.RULES.restHeal + '（最大' + run.maxLife + '）'));
-      var u = button('', 'choice', function () { pickFromDeck('鍛えるカードを選ぶ', function (i) { var nm = G.CARDS[run.deck[i]].name; R.upgradeCard(run, i); done('「' + nm + '」を鍛えて「' + G.CARDS[run.deck[i]].name + '」にした。'); }, false, showRest, R.canUpgradeCard); });
+      var u = button('', 'choice', function () { pickFromDeck('鍛えるカードを選ぶ', function (i) { R.logSet(run, 'rest', 'up'); var nm = G.CARDS[run.deck[i]].name; R.upgradeCard(run, i); done('「' + nm + '」を鍛えて「' + G.CARDS[run.deck[i]].name + '」にした。'); }, false, showRest, R.canUpgradeCard); });
       u.appendChild(el('b', '', '鍛える')); u.appendChild(el('small', '', 'カードを1枚「＋」にする（タワーはLv2で置かれる・スキルは効果アップ）'));
       u.disabled = !run.deck.some(R.canUpgradeCard);
-      var b = button('', 'choice', function () { pickFromDeck('手放すカードを選ぶ', function (i) { R.removeCard(run, i); done('カードを手放した。'); }, false, showRest); });
+      var b = button('', 'choice', function () { pickFromDeck('手放すカードを選ぶ', function (i) { R.logSet(run, 'rest', 'rm'); R.removeCard(run, i); done('カードを手放した。'); }, false, showRest); });
       b.appendChild(el('b', '', '整理する')); b.appendChild(el('small', '', 'デッキからカードを1枚手放す'));
       list.appendChild(a); list.appendChild(u); list.appendChild(b);
       body.appendChild(list);
@@ -744,6 +751,8 @@ var G = window.G = window.G || {};
       body.appendChild(tiles);
       // 経験値（ランごとに1回だけ足す）
       if (!run.xpResult) run.xpResult = R.gainXp(run);
+      // 統計：ランの記録を送る（1回だけ。送れなければ次に開いた時に送り直す。js/stats.js）
+      if (!run.sent) { run.sent = true; if (G.Stats) { try { G.Stats.send(R.report(run, run.won ? 'win' : 'lose')); } catch (e) {} } }
       body.appendChild(xpBox(run.xpResult));
       foot.appendChild(button('新しく始める', 'go', chooseCommander));
       foot.appendChild(button('タイトルに戻る', '', backToTitle));

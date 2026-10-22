@@ -90,7 +90,9 @@ var G = window.G = window.G || {};
       phoenix: opts.phoenix || 0, freeTowers: 0,
       bpUsed: false, wallUsed: false, pendingSpawn: [], soldiers: [],
       spawnQueue: [], time: 0, nextId: 1, uid: 1,
-      stats: { killed: 0, leaked: 0, built: 0, goldEarned: 0 }
+      stats: { killed: 0, leaked: 0, built: 0, goldEarned: 0,
+               // 統計用（2026-10-22）：引いた枚数・お金で引いた枚数・使ったカード・敵の種類ごとに減ったライフ・ダメージの出どころごとの与えたダメージと倒した数
+               draws: 0, extraDraws: 0, played: {}, dmgBy: {}, srcDmg: {} }
     };
     s.totalTurns = s.waves.length;
     s.draw = shuffle((opts.deck || G.START_DECK).map(function (id) { return { uid: s.uid++, id: id }; }), s.rand);
@@ -119,7 +121,7 @@ var G = window.G = window.G || {};
       s.draw = shuffle(s.discard, s.rand); s.discard = [];
       ev(s, { k: 'reshuffle' });
     }
-    s.hand.push(s.draw.pop());
+    s.hand.push(s.draw.pop()); s.stats.draws++;
     return true;
   }
 
@@ -190,6 +192,7 @@ var G = window.G = window.G || {};
     s.energy -= cost;
     if (def.kind === 'tower' && s.freeTowers > 0) s.freeTowers--;
     s.hand.splice(handIndex, 1);
+    s.stats.played[card.id] = (s.stats.played[card.id] || 0) + 1;
     if (card.temp || def.exhaust) s.exhaust.push(card); else s.discard.push(card);
 
     if (def.kind === 'tower') {
@@ -235,7 +238,7 @@ var G = window.G = window.G || {};
       case 'architect': s.freeTowers += def.n; break;
       case 'meteor':
         // 隕石：今マップにいる敵すべてにダメージ（準備ターンに使うと、次の攻撃の最初の敵には当たらない）
-        s.enemies.forEach(function (e2) { if (e2.hp > 0) { hurt(s, e2, def.dmg, 'magic'); if (def.burn) applyOnHit(s, e2, { burn: def.burn, src: 'meteor' }); } });   // やけど（2026-10-22）
+        s.enemies.forEach(function (e2) { if (e2.hp > 0) { hurt(s, e2, def.dmg, 'magic', undefined, 'meteor'); if (def.burn) applyOnHit(s, e2, { burn: def.burn, src: 'meteor' }); } });   // やけど（2026-10-22）
         ev(s, { k: 'boom', x: 5.5, y: 7, r: 6 });
         break;
       case 'surprise': {   // びっくり箱：アンコモンかレアのタワーのカードを1枚、エネルギー0で（この戦闘だけ・使い切り）
@@ -349,7 +352,7 @@ var G = window.G = window.G || {};
     if (s.gold < G.RULES.extraDrawCost) return 'お金が足りません';
     if (!s.draw.length && !s.discard.length) return '引けるカードがありません';
     s.gold -= G.RULES.extraDrawCost;
-    drawOne(s);
+    if (drawOne(s)) s.stats.extraDraws++;
     return null;
   }
 
@@ -385,9 +388,13 @@ var G = window.G = window.G || {};
     if (Math.abs(p.dx) > 0.01) e.face = p.dx > 0 ? 1 : -1;
   }
 
+  // 統計：ダメージの出どころごとの記録（d＝与えたダメージ、k＝倒した数）
+  function srcStat(s, key) { key = key || 'other'; var o = s.stats.srcDmg[key]; if (!o) o = s.stats.srcDmg[key] = { d: 0, k: 0 }; return o; }
   // type：physical（よろいで減る）/ magic（魔法に強い敵で減る）/ burn（やけど、魔法と同じ）/ poison（何でも通る）
-  function hurt(s, e, dmg, type, src) {
+  // who：統計だけに使う「だれのダメージか」（タワーの種類など）。省略すると src と同じ。戦いの計算には使わない
+  function hurt(s, e, dmg, type, src, who) {
     if (e.hp <= 0) return;
+    var hpBefore = e.hp;
     var E = G.ENEMIES[e.type], cut = 0, combo = false;
     // 組み合わせのレリック
     var slowed = e.slowT > 0 || e.tarT > 0;
@@ -398,19 +405,21 @@ var G = window.G = window.G || {};
     else if ((type === 'magic' || type === 'burn') && E.magicResist) cut = E.magicResist;
     var real = dmg * (1 - cut);
     e.hp -= real; if (type !== 'poison' && type !== 'burn') e.flash = 0.12;
+    var sd = srcStat(s, who || src);
+    sd.d += Math.min(real, Math.max(0, hpBefore));
     var kind = type === 'poison' ? 'poison' : type === 'burn' ? 'burn' : combo ? 'combo' : cut > 0 ? 'resisted' : 'normal';
     ev(s, { k: 'hit', x: e.x, y: e.y, amount: real, kind: kind });
     if (e.hp <= 0) {
       // ガイコツ：一度だけ体力半分で起き上がる
       if (E.revive && !e.revived) { e.revived = true; e.hp = e.max * 0.5; e.poisonT = e.burnT = 0; ev(s, { k: 'revive', x: e.x, y: e.y }); return; }
       var gold = Math.round((E.gold + has(s, 'scale')) * (1 + 0.25 * has(s, 'magnet')) * ((s.buff && s.buff.goldMult) || 1) * (s.ascGold || 1));
-      s.gold += gold; s.stats.goldEarned += gold; s.stats.killed++;
+      s.gold += gold; s.stats.goldEarned += gold; s.stats.killed++; sd.k++;
       ev(s, { k: 'kill', x: e.x, y: e.y, type: e.type, gold: gold, boss: !!E.boss, big: E.life >= 3 });
       // 疫病の灰：毒の敵が倒れると周りに毒がうつる
       if (has(s, 'plague') && e.poisonT > 0) {
         s.enemies.forEach(function (o) {
           if (o === e || o.hp <= 0 || Math.hypot(o.x - e.x, o.y - e.y) > 1.2) return;
-          o.poisonDps = Math.max(o.poisonDps, e.poisonDps * has(s, 'plague')); o.poisonT = Math.max(o.poisonT, e.poisonT + 1);
+          o.poisonSrc = 'plague'; o.poisonDps = Math.max(o.poisonDps, e.poisonDps * has(s, 'plague')); o.poisonT = Math.max(o.poisonT, e.poisonT + 1);
         });
         ev(s, { k: 'plague', x: e.x, y: e.y });
       }
@@ -423,9 +432,10 @@ var G = window.G = window.G || {};
     if (e.hp <= 0) return;
     var E = G.ENEMIES[e.type];
     var imm = E.immune || [];
-    if (sh.poison) { e.poisonDps = Math.max(e.poisonDps, sh.poison.dps); e.poisonT = Math.max(e.poisonT, sh.poison.dur); }
+    if (sh.poison) { if (sh.poison.dps >= e.poisonDps) e.poisonSrc = sh.src; e.poisonDps = Math.max(e.poisonDps, sh.poison.dps); e.poisonT = Math.max(e.poisonT, sh.poison.dur); }
     if (sh.burn && imm.indexOf('burn') < 0) {
       var bd = sh.burn.dur * (sh.src === 'fire' && e.tarT > 0 ? Math.pow(2, has(s, 'oil')) : 1);
+      if (sh.burn.dps >= e.burnDps) e.burnSrc = sh.src;
       e.burnDps = Math.max(e.burnDps, sh.burn.dps); e.burnT = Math.max(e.burnT, bd);
     }
     if (sh.slow && imm.indexOf('slow') < 0) {
@@ -461,10 +471,10 @@ var G = window.G = window.G || {};
           e = s.enemies[j]; if (e.hp <= 0 || e.fly) continue;
           var on = Math.abs(e.x - tw.x) < 0.55 && Math.abs(e.y - tw.y) < 0.55;
           if (!on) continue;
-          if (st.trap.type === 'spike' && !tw.hitSet[e.id]) { tw.hitSet[e.id] = 1; hurt(s, e, st.trap.dmg, 'physical'); ev(s, { k: 'pin', x: e.x, y: e.y }); }
+          if (st.trap.type === 'spike' && !tw.hitSet[e.id]) { tw.hitSet[e.id] = 1; hurt(s, e, st.trap.dmg, 'physical', undefined, tw.type); ev(s, { k: 'pin', x: e.x, y: e.y }); }
           if (st.trap.type === 'tar') { e.tarT = 1.5; e.tarSlow = st.trap.slow; }
           if (st.trap.type === 'bomb') {
-            for (var k = 0; k < s.enemies.length; k++) { var be = s.enemies[k]; if (be.hp > 0 && !be.fly && Math.hypot(be.x - tw.x, be.y - tw.y) <= st.trap.splash) hurt(s, be, st.trap.dmg, 'physical'); }
+            for (var k = 0; k < s.enemies.length; k++) { var be = s.enemies[k]; if (be.hp > 0 && !be.fly && Math.hypot(be.x - tw.x, be.y - tw.y) <= st.trap.splash) hurt(s, be, st.trap.dmg, 'physical', undefined, tw.type); }
             ev(s, { k: 'boom', x: tw.x, y: tw.y, r: st.trap.splash });
             s.towers.splice(i, 1); break;
           }
@@ -519,7 +529,7 @@ var G = window.G = window.G || {};
         E = G.ENEMIES[tgt.type];
         if (!E.boss || ss.stopsBoss) tgt.blockedBy = 's' + u.id;   // 石の巨人はボスも止める
         u.cd -= dt;
-        if (u.cd <= 0) { u.cd = ss.rate; hurt(s, tgt, ss.dmg, 'physical'); u.swing = 0.2; }
+        if (u.cd <= 0) { u.cd = ss.rate; var utw = findTower(s, u.tower); hurt(s, tgt, ss.dmg, 'physical', undefined, utw ? utw.type : 'soldier'); u.swing = 0.2; }
         if (!E.boss || dd < 0.35) { u.hp -= enemyAtk(E) * dt; u.flash = 0.05; }
         if (u.hp <= 0) { u.dead = ss.respawn; u.eng = null; ev(s, { k: 'soldierDown', x: u.x, y: u.y }); }
       }
@@ -594,13 +604,13 @@ var G = window.G = window.G || {};
       if (e.flash > 0) e.flash -= dt;
       if (e.poisonT > 0) {
         e.poisonT -= dt; e.poisonTick += dt;
-        if (e.poisonTick >= 0.5) { e.poisonTick -= 0.5; hurt(s, e, e.poisonDps * 0.5, 'poison'); }
+        if (e.poisonTick >= 0.5) { e.poisonTick -= 0.5; hurt(s, e, e.poisonDps * 0.5, 'poison', undefined, e.poisonSrc); }
         if (e.poisonT <= 0) { e.poisonDps = 0; e.poisonTick = 0; }
         if (e.hp <= 0) continue;
       }
       if (e.burnT > 0) {
         e.burnT -= dt; e.burnTick += dt;
-        if (e.burnTick >= 0.5) { e.burnTick -= 0.5; hurt(s, e, e.burnDps * 0.5, 'burn'); }
+        if (e.burnTick >= 0.5) { e.burnTick -= 0.5; hurt(s, e, e.burnDps * 0.5, 'burn', undefined, e.burnSrc); }
         if (e.burnT <= 0) { e.burnDps = 0; e.burnTick = 0; }
         if (e.hp <= 0) continue;
       }
@@ -613,7 +623,7 @@ var G = window.G = window.G || {};
         if (e.atkT <= 0) {
           var BH = G.RULES.bossHit, hit = (E.final ? BH.finalDmg : BH.dmg) + (s.bossHitAdd || 0);
           e.atkT = BH.every; e.atkAnim = 0.45;
-          s.life = Math.max(0, s.life - hit); s.stats.bossHits = (s.stats.bossHits || 0) + hit;
+          s.life = Math.max(0, s.life - hit); s.stats.bossHits = (s.stats.bossHits || 0) + hit; s.stats.dmgBy[e.type] = (s.stats.dmgBy[e.type] || 0) + hit;
           ev(s, { k: 'bossHit', x: e.x, y: e.y + 0.6, life: hit, type: e.type });
         }
         continue;
@@ -624,7 +634,7 @@ var G = window.G = window.G || {};
         else {
           // アセンション8：ボス以外は、小型（ライフ1）+1・中型（ライフ2以上）+2 だけ、城に着いた時のダメージが増える
           var lk = E.life + (E.boss ? 0 : E.life >= 2 ? (s.leakM || 0) : (s.leakS || 0));
-          s.life = Math.max(0, s.life - lk); ev(s, { k: 'leak', x: e.x, y: e.y, life: lk, type: e.type });
+          s.life = Math.max(0, s.life - lk); s.stats.dmgBy[e.type] = (s.stats.dmgBy[e.type] || 0) + lk; ev(s, { k: 'leak', x: e.x, y: e.y, life: lk, type: e.type });
         }
       }
     }

@@ -109,28 +109,36 @@ function playRun(seed, log, cmdId) {
       G.Run.finishBattle(run, s);
       steps.push(n.floor + n.type[0] + '(-' + (lifeBefore - s.life) + ')');
       if (run.secondBoss) { run.secondBoss = false; var s2 = fight(G.Run.battleOpts(run)); G.Run.finishBattle(run, s2); steps.push('B2(-' + (lifeBefore - s2.life) + ')'); }   // A10：2体目の3層ボス
-      if (run.actClear) { var cs = G.Run.rollCards(run, 3, 'boss'); G.Run.addCard(run, cs[0]); G.Run.addRelic(run, G.Run.rollRelic(run, 'elite')); G.Run.nextAct(run); steps.push('| 第' + run.act + '層'); continue; }
+      if (run.actClear) { var cs = G.Run.rollCards(run, 3, 'boss'); G.Run.logPick(run, 'boss', cs, cs[0]); G.Run.addCard(run, cs[0]); G.Run.addRelic(run, G.Run.rollRelic(run, 'elite')); G.Run.nextAct(run); steps.push('| 第' + run.act + '層'); continue; }
       if (!run.over) {
         if (n.type === 'elite' || n.type === 'boss') G.Run.addRelic(run, G.Run.rollRelic(run, 'elite'));
         var cards = G.Run.rollCards(run, 3, n.type === 'boss' ? 'boss' : n.type === 'elite' ? 'elite' : 'battle');
-        G.Run.addCard(run, cards[0]);
+        G.Run.logPick(run, n.type, cards, cards[0]); G.Run.addCard(run, cards[0]);
       }
     } else if (n.type === 'rest') {
-      if (process.env.NOUP || run.life < run.maxLife * 0.6 || !upgradeBest(run)) { G.Run.rest(run); steps.push(n.floor + 'R'); }
-      else steps.push(n.floor + 'U');
+      if (process.env.NOUP || run.life < run.maxLife * 0.6 || !upgradeBest(run)) { G.Run.logSet(run, 'rest', 'heal'); G.Run.rest(run); steps.push(n.floor + 'R'); }
+      else { G.Run.logSet(run, 'rest', 'up'); steps.push(n.floor + 'U'); }
     }
     else if (n.type === 'shop') {
-      var st = G.Run.shopStock(run).cards.filter(function (x) { return x.price <= run.gold; })[0];
-      if (st) { run.gold -= st.price; G.Run.addCard(run, st.id); }
+      var stk = G.Run.shopStock(run), st = stk.cards.filter(function (x) { return x.price <= run.gold; })[0];
+      G.Run.logSet(run, 'shop', { o: stk.cards.map(function (x) { return x.id; }), r: stk.relic ? stk.relic.id : null });
+      if (st) { run.gold -= st.price; G.Run.logAdd(run, 'buy', st.id); G.Run.addCard(run, st.id); }
       steps.push(n.floor + 'S');
     } else {
       var e = G.Run.rollEvent(run), res = G.Run.eventChoice(run, e.choices[0]);
-      if (res.next === 'pickCard') G.Run.addCard(run, res.cards[0]);
+      G.Run.logSet(run, 'ev', { id: e.id, c: 0 });
+      if (res.next === 'pickCard') { G.Run.logPick(run, 'event', res.cards, res.cards[0]); G.Run.addCard(run, res.cards[0]); }
       if (res.next === 'pickCopy') G.Run.addCard(run, run.deck[run.deck.length - 1]);
       if (res.next === 'pickUpgrade') upgradeBest(run);
       if (res.next === 'pickRemove' && run.deck.length > 5) G.Run.removeCard(run, run.deck.indexOf('sling'));
       steps.push(n.floor + 'E');
     }
+  }
+  // 統計の形で書き出す（STATS_OUT=ファイル名。1行に1ラン。tools/sendstats.js で送れる。bot＝1 の印つき）
+  if (process.env.STATS_OUT) {
+    var rep = G.Run.report(run, run.won ? 'win' : 'lose');
+    rep.bot = 1; rep.pid = 'bot-' + cmdId; rep.ver = process.env.STATS_VER || 'sim'; rep.uid = 'sim-' + Date.now().toString(36) + '-' + cmdId + '-' + seed + '-' + (+process.env.ASC || 0);
+    require('fs').appendFileSync(process.env.STATS_OUT, JSON.stringify(rep) + '\n');
   }
   if (log) console.log((run.won ? '勝ち' : '負け') + ' レリック' + run.relics.length + ' ライフ' + run.life + ' お金' + run.gold + ' デッキ' + run.deck.length + '枚 | ' + steps.join(' '));
   return run;
