@@ -694,7 +694,7 @@ var G = window.G = window.G || {};
             hurt(s, nx, sh.dmg * sh.chainMul, sh.dmgType, sh.src); hit.push(nx.id); from = nx;
           }
         }
-        ev(s, { k: sh.kind === 'orb' ? 'zap' : sh.kind === 'ice' ? 'frost' : sh.kind === 'drip' ? 'splat' : sh.kind === 'flame' ? 'flame' : sh.kind === 'spark' ? 'zap' : 'pin', x: sh.tx, y: sh.ty, src: sh.src, kind: sh.kind });
+        ev(s, { k: sh.kind === 'orb' ? 'zap' : sh.kind === 'ice' ? 'frost' : sh.kind === 'drip' ? 'splat' : sh.kind === 'flame' ? 'flame' : sh.kind === 'spark' ? 'zap' : 'pin', x: sh.tx, y: sh.ty, src: sh.src, kind: sh.kind, x0: sh.sx, y0: sh.sy });   // x0,y0：撃った所（雷の線を塔から引くため。絵だけに使う）
         s.shots.splice(i, 1);
       } else { sh.x += dx / dist * step; sh.y += dy / dist * step; }
     }

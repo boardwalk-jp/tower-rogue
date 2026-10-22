@@ -349,6 +349,30 @@ var G = window.G = window.G || {};
   function tierOf(type) { var c = type && G.CARDS[type]; return !c ? 0 : c.rarity === 'rare' ? 2 : c.rarity === 'uncommon' ? 1 : 0; }
   function P2(x, y, w, h, col) { b.fillStyle = col; b.fillRect(Math.round(x), Math.round(y), w, h); }
   function glowDot(x, y, r, col, a) { b.globalCompositeOperation = 'lighter'; b.globalAlpha = a; DA.ell(b, Math.round(x), Math.round(y), r, Math.max(1, Math.round(r * 0.8)), col); b.globalAlpha = 1; b.globalCompositeOperation = 'source-over'; }
+  // 稲妻の線：点の並び pts を、毎回少しずつちがうジグザグでつなぐ。外に青い光（1ドットの十字）、芯は白い1ドット、先にうすい光の丸
+  // tier 2（嵐の塔）は紫。al：明るさ（0〜1、消えていく時に下げる）
+  function boltLine(pts, tier, al) {
+    var px = [], k, i;
+    for (k = 0; k < pts.length - 1; k++) {
+      var a = pts[k], c = pts[k + 1], len = Math.hypot(c[0] - a[0], c[1] - a[1]), n = Math.max(2, Math.round(len / 6)), prev = a;
+      for (i = 1; i <= n; i++) {
+        var u = i / n, cur = i === n ? c : [a[0] + (c[0] - a[0]) * u + (Math.random() - 0.5) * 6, a[1] + (c[1] - a[1]) * u + (Math.random() - 0.5) * 6];
+        bres(prev[0], prev[1], cur[0], cur[1], px); prev = cur;
+      }
+    }
+    b.fillStyle = tier === 2 ? 'rgba(150,100,255,' + (0.35 + 0.4 * al).toFixed(2) + ')' : 'rgba(45,155,255,' + (0.35 + 0.4 * al).toFixed(2) + ')';
+    for (i = 0; i < px.length; i += 2) { b.fillRect(px[i] - 1, px[i + 1], 3, 1); b.fillRect(px[i], px[i + 1] - 1, 1, 3); }
+    b.fillStyle = tier === 2 ? '#f4eeff' : '#eaffff';
+    for (i = 0; i < px.length; i += 2) b.fillRect(px[i], px[i + 1], 1, 1);
+    var last = pts[pts.length - 1];
+    b.globalAlpha = 0.5 * al; DA.disc(b, Math.round(last[0]), Math.round(last[1]), 3, tier === 2 ? '#e0d0ff' : '#b4f0ff'); b.globalAlpha = 1;
+  }
+  // 2点のあいだのドットを順に out に入れる（ブレゼンハムの線）
+  function bres(x0, y0, x1, y1, out) {
+    x0 = Math.round(x0); y0 = Math.round(y0); x1 = Math.round(x1); y1 = Math.round(y1);
+    var dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0), stx = x0 < x1 ? 1 : -1, sty = y0 < y1 ? 1 : -1, e = dx + dy;
+    for (;;) { out.push(x0, y0); if (x0 === x1 && y0 === y1) break; var e2 = 2 * e; if (e2 >= dy) { e += dy; x0 += stx; } if (e2 <= dx) { e += dx; y0 += sty; } }
+  }
   function trail(sh, x, y, n) { var tr = sh._tr || (sh._tr = []); tr.unshift([x, y]); if (tr.length > n) tr.length = n; return tr; }
   function drawShot(sh, t) {
     var x = sx(sh.x), y = sy(sh.y), tier = tierOf(sh.src), k, tr;
@@ -385,11 +409,9 @@ var G = window.G = window.G || {};
       DA.disc(b, Math.round(x), Math.round(y), 4, '#c8341a'); DA.disc(b, Math.round(x), Math.round(y), 3, '#ff7a24'); DA.disc(b, Math.round(x) - 1, Math.round(y) - 1, 1, '#ffe060');
       glowDot(x, y, 6, '#ff8a2a', 0.22);
       if (Math.random() < 0.7) parts.push({ x: x, y: y, vx: (Math.random() - 0.5) * 10, vy: -14, g: 0, life: 0.3, ml: 0.3, col: Math.random() < 0.5 ? '#ff8a2a' : '#ffd84a' });
-    } else if (sh.kind === 'spark') {   // 雷の玉：白い芯・まわりで小さな稲妻がはじける。レア（嵐）は大きく紫がかる
-      var rr = tier === 2 ? 4 : 3, c1 = tier === 2 ? '#c8b0ff' : '#9ae0ff';
-      glowDot(x, y, rr + 3, c1, 0.3);
-      DA.disc(b, Math.round(x), Math.round(y), rr, c1); DA.disc(b, Math.round(x), Math.round(y), rr - 1, '#ffffff');
-      for (k = 0; k < (tier === 2 ? 3 : 2); k++) { var an = Math.random() * 6.28, ln = rr + 2 + Math.random() * 3; P2(x + Math.cos(an) * ln, y + Math.sin(an) * ln, 1, 1, '#ffe14d'); P2(x + Math.cos(an) * (ln - 2), y + Math.sin(an) * (ln - 2), 1, 1, '#ffffff'); }
+    } else if (sh.kind === 'spark') {   // 雷：玉ではなく、塔の先から敵へ伸びていくジグザグの稲妻（試作「疑似3D 比較台」の描き方）。当たった後は beams が少し残る
+      boltLine([[sx(sh.sx), sy(sh.sy)], [x, y]], tier, 1);
+      glowDot(sx(sh.sx), sy(sh.sy), 3, tier === 2 ? '#c8b0ff' : '#9ae0ff', 0.35);   // 塔の先の光
     } else if (sh.kind === 'ice') {   // 氷のかけら：進む向きにとがった水晶。冷気の粒の尾
       var ia = Math.cos(sh.ang || 0), ib = Math.sin(sh.ang || 0) * 0.75;
       tr = trail(sh, x, y, 4);
@@ -472,7 +494,8 @@ var G = window.G = window.G || {};
       } else if (e.k === 'spawn') { // 入口（画面の上）から現れた時：ボスだけ衝撃を出す
         if (e.boss) { addShake(4); rings.push({ x: sx(e.x), y: sy(e.y), r: 4, max: 40, col: '#ff4d3a', life: 0.7, ml: 0.7 }); }
       } else if (e.k === 'chain') {
-        beams.push({ x0: sx(e.x0), y0: sy(e.y0), x1: sx(e.x1), y1: sy(e.y1), life: 0.18 + tierOf(e.src) * 0.06, tier: tierOf(e.src) });
+        beams.push({ pts: [[sx(e.x0), sy(e.y0)], [sx(e.x1), sy(e.y1)]], life: 0.2, ml: 0.2, tier: tierOf(e.src) });
+        sparks(e.x1, e.y1 + 0.4, 4, tierOf(e.src));
       } else if (e.k === 'flame') {
         burst(e.x, e.y, 15, ['#ff6a2a', '#ffd84a', '#ff3a1a'], 51, -45, 0.5);
         booms.push({ x: sx(e.x), y: sy(e.y), r: 7, life: 0.3, ml: 0.3, tier: 1 });
@@ -482,7 +505,9 @@ var G = window.G = window.G || {};
         if (pt === 2) rings.push({ x: sx(e.x), y: sy(e.y), r: 1, max: 9, col: '#ffe08a', life: 0.22, ml: 0.22 });
       } else if (e.k === 'fire') {   // 撃った時：砲口の光（アンコモン＝小さな光、レア＝光と輪）
         var ft = tierOf(e.type);
-        if (ft >= 1 && e.x !== undefined) {
+        if ((e.type === 'thunder' || e.type === 'storm') && e.x !== undefined) {   // 雷・嵐：塔の足もとに青い（嵐は紫の）輪が広がる（試作と同じ）
+          rings.push({ x: sx(e.x), y: sy(e.y + (G.TOWERS[e.type].muzzle || 0)), r: 3, max: 0.6 * TW, col: e.type === 'storm' ? '#a87aff' : '#58d4ff', life: 0.25, ml: 0.25 });
+        } else if (ft >= 1 && e.x !== undefined) {
           var mx = sx(e.x), my = sy(e.y);
           booms.push({ x: mx, y: my, r: 2 + ft, life: 0.12, ml: 0.12, muzzle: true });
           if (ft === 2) rings.push({ x: mx, y: my, r: 1, max: 7, col: '#fff0b0', life: 0.18, ml: 0.18 });
@@ -508,8 +533,13 @@ var G = window.G = window.G || {};
         burst(e.x, e.y - 0.3, 8, ['#c0c8d8', '#ff6b5b'], 26, 60, 0.5);
       } else if (e.k === 'zap') {   // 魔法・雷が当たった：光の粒と小さな輪（レアは大きく）
         var zt = tierOf(e.src);
-        burst(e.x, e.y, 9 + zt * 5, e.kind === 'spark' ? ['#ffffff', '#9ae0ff', '#ffe14d'] : ['#c79bff', '#ffffff', '#9be7ff'], 45, 0, 0.4);
-        rings.push({ x: sx(e.x), y: sy(e.y), r: 2, max: 8 + zt * 5, col: e.kind === 'spark' ? '#ffe14d' : '#c79bff', life: 0.25, ml: 0.25 });
+        if (e.kind === 'spark') {   // 雷：塔から敵への稲妻を少し残し、当たった所から青白い火花がはねる（試作と同じ雰囲気）
+          if (e.x0 !== undefined) beams.push({ pts: [[sx(e.x0), sy(e.y0)], [sx(e.x), sy(e.y)]], life: 0.2, ml: 0.2, tier: zt });
+          sparks(e.x, e.y, 4 + zt * 2, zt);
+        } else {
+          burst(e.x, e.y, 9 + zt * 5, ['#c79bff', '#ffffff', '#9be7ff'], 45, 0, 0.4);
+          rings.push({ x: sx(e.x), y: sy(e.y), r: 2, max: 8 + zt * 5, col: '#c79bff', life: 0.25, ml: 0.25 });
+        }
       } else if (e.k === 'leak') {
         floats.push({ x: sx(e.x), y: sy(e.y) - 20, text: '-' + e.life, col: '#ff5a5a', life: 1.2, heart: true });
         addShake(e.life >= 3 ? 3.5 : 1.5);
@@ -530,6 +560,12 @@ var G = window.G = window.G || {};
       parts.push({ x: sx(x), y: sy(y), vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.75 - spd * 0.4,
                    g: grav, life: life, ml: life, col: cols[(Math.random() * cols.length) | 0] });
     }
+  }
+  // 雷の火花：当たった所から上にはねて、重さで落ちる（青と白。嵐は紫と白）
+  function sparks(x, y, n, tier) {
+    for (var i = 0; i < n && parts.length < 400; i++)
+      parts.push({ x: sx(x), y: sy(y) - 6, vx: (Math.random() - 0.5) * 38, vy: -(20 + Math.random() * 50), g: 200, life: 0.3, ml: 0.3,
+                   col: i & 1 ? (tier === 2 ? '#f4eeff' : '#eaffff') : (tier === 2 ? '#a87aff' : '#58d4ff') });
   }
   function stepFx(dt) {
     for (var i = parts.length - 1; i >= 0; i--) {
@@ -841,16 +877,7 @@ var G = window.G = window.G || {};
       for (var k = 0; k < n; k++) { var a = k / n * Math.PI * 2; b.fillRect(Math.round(r.x + Math.cos(a) * rr), Math.round(r.y + Math.sin(a) * rr * 0.75), w, w); }
       b.globalAlpha = 1;
     });
-    beams.forEach(function (bm) {   // 雷が飛び移る線（ジグザグ）：外に青い光・中に白い線。レア（嵐）は紫で太い
-      var n = 7, pts = [], k;
-      for (k = 0; k <= n; k++) { var t2 = k / n, j2 = (k > 0 && k < n) ? (Math.random() - 0.5) * 7 : 0; pts.push([bm.x0 + (bm.x1 - bm.x0) * t2 + j2, bm.y0 + (bm.y1 - bm.y0) * t2 + j2 * 0.6]); }
-      var outer = bm.tier === 2 ? '#a87aff' : '#58d4ff', w = bm.tier === 2 ? 3 : 2;
-      [[outer, w, 0.55], ['#ffffff', 1, 1]].forEach(function (pass) {
-        b.globalAlpha = pass[2]; b.fillStyle = pass[0];
-        for (k = 0; k < n; k++) for (var q = 0; q <= 6; q++) { var u = q / 6; b.fillRect(Math.round(pts[k][0] + (pts[k + 1][0] - pts[k][0]) * u - (pass[1] >> 1)), Math.round(pts[k][1] + (pts[k + 1][1] - pts[k][1]) * u - (pass[1] >> 1)), pass[1], pass[1]); }
-      });
-      b.globalAlpha = 1;
-    });
+    beams.forEach(function (bm) { boltLine(bm.pts, bm.tier, bm.life / bm.ml); });   // 雷の稲妻（塔→敵、敵→次の敵）。毎回ジグザグが変わってちらつく
     parts.forEach(function (p) {   // 粒：はじめは2ドット、消えかけると1ドット
       var a = Math.min(1, p.life / p.ml * 1.6), sz = a > 0.55 ? 2 : 1;
       b.globalAlpha = a; b.fillStyle = p.col;
