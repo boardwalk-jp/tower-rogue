@@ -103,16 +103,18 @@ var G = window.G = window.G || {};
     order.forEach(function (id) {
       var R2 = G.RELICS[id], b = document.createElement('button');
       b.type = 'button'; b.className = 'relic-ico r-' + R2.rarity; b.setAttribute('aria-label', R2.name + (cnt[id] > 1 ? ' ×' + cnt[id] : ''));
-      var c = document.createElement('canvas'); c.width = 14; c.height = 14; c.getContext('2d').drawImage(G.relicIcon(id), 0, 0); b.appendChild(c);
+      var c = relicCv(id); b.appendChild(c);
       if (cnt[id] > 1) { var n = document.createElement('b'); n.className = 'relic-n'; n.textContent = '×' + cnt[id]; b.appendChild(n); }
       b.addEventListener('click', function () { if (G.Sound) G.Sound.play('tap'); showRelic(id, cnt[id]); });
       box.appendChild(b);
     });
   }
+  // レリックの絵を、絵と同じ大きさの canvas に写す（新しい絵は20×20、古い絵は14×14）
+  function relicCv(id) { var im = G.relicIcon(id), c = document.createElement('canvas'); c.width = im.width; c.height = im.height; c.getContext('2d').drawImage(im, 0, 0); return c; }
   // レリックのアイコン（枠の色＝レア度）
   function relicCanvas(id, cls) {
     var w = document.createElement('span'); w.className = 'relic-ico r-' + G.RELICS[id].rarity + (cls ? ' ' + cls : '');
-    var c = document.createElement('canvas'); c.width = 14; c.height = 14; c.getContext('2d').drawImage(G.relicIcon(id), 0, 0); w.appendChild(c);
+    var c = relicCv(id); w.appendChild(c);
     return w;
   }
   function showRelic(id, n) {
@@ -123,7 +125,7 @@ var G = window.G = window.G || {};
     $('p-note').appendChild(document.createTextNode('　' + R2.text + '（' + (R2.kind === 'commander' ? '指揮官の印・最初から持っている' : R2.kind === 'change' ? '遊び方が変わる' : R2.kind === 'combo' ? '組み合わせで強くなる' : '数値が上がる') + '）' + (n > 1 ? '　同じものを' + n + '個持っているので、効果が' + n + '回分重なる。' : '')));
     var ul = $('p-list'); ul.innerHTML = ''; ul.classList.remove('mini-cards');
     var li = document.createElement('li'); li.className = 'relic-big';
-    var c = document.createElement('canvas'); c.width = 14; c.height = 14; c.getContext('2d').drawImage(G.relicIcon(id), 0, 0); li.appendChild(c);
+    var c = relicCv(id); li.appendChild(c);
     ul.appendChild(li);
     $('pile').hidden = false;
   }

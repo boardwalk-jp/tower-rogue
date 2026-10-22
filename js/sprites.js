@@ -109,7 +109,8 @@ var G = window.G = window.G || {};
     }
     return g.outline(OUT).bake();
   }
-  G.relicIcon = function (id) { if (!G.SPR.relic[id]) G.SPR.relic[id] = relicIcon(id); return G.SPR.relic[id]; };
+  // 新しい絵（js/relicart.js・20×20）があればそちらを使う。無ければ古い14×14の絵
+  G.relicIcon = function (id) { if (!G.SPR.relic[id]) G.SPR.relic[id] = (G.RelicArt && G.RelicArt.draw(id)) || relicIcon(id); return G.SPR.relic[id]; };
 
   // ---- ワールドマップのマスの絵（14×14） ----
   function nodeIcon(kind) {
