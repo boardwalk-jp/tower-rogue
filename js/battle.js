@@ -203,6 +203,7 @@ var G = window.G = window.G || {};
       if (TD.soldiers) makeSoldiers(s, t);
       s.stats.built++;
       ev(s, { k: 'build', x: t.x, y: t.y });
+      for (var dw = 0; dw < (TD.drawOnBuild || 0); dw++) drawOne(s);   // 見張り小屋：置いた時にカードを引く（2026-10-22）
       if (s.bpUsed < has(s, 'blueprint')) { s.bpUsed++; drawOne(s); ev(s, { k: 'relic', id: 'blueprint' }); }
       // 見習いの金床：戦闘で最初に建てたタワーは強化1回分（持っている数だけ）
       if (s.stats.built === 1 && has(s, 'anvil')) { t.lv = Math.min(TD.up.length, t.lv + has(s, 'anvil')); var ab = baseStats(t.type, t.lv); if (ab.blocker) t.hp = t.maxHp = ab.blocker.hp; if (ab.soldiers) makeSoldiers(s, t); ev(s, { k: 'relic', id: 'anvil', x: t.x, y: t.y }); }
@@ -234,7 +235,7 @@ var G = window.G = window.G || {};
       case 'architect': s.freeTowers += def.n; break;
       case 'meteor':
         // 隕石：今マップにいる敵すべてにダメージ（準備ターンに使うと、次の攻撃の最初の敵には当たらない）
-        s.enemies.forEach(function (e2) { if (e2.hp > 0) hurt(s, e2, def.dmg, 'magic'); });
+        s.enemies.forEach(function (e2) { if (e2.hp > 0) { hurt(s, e2, def.dmg, 'magic'); if (def.burn) applyOnHit(s, e2, { burn: def.burn, src: 'meteor' }); } });   // やけど（2026-10-22）
         ev(s, { k: 'boom', x: 5.5, y: 7, r: 6 });
         break;
       case 'surprise': {   // びっくり箱：アンコモンかレアのタワーのカードを1枚、エネルギー0で（この戦闘だけ・使い切り）

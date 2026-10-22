@@ -238,9 +238,9 @@ G.TOWERS = {
   },
   // ---- 道中で手に入る ----
   watch: {
-    name: '見張り小屋', muzzle: 1.1, cost: 0, range: 2.0, dmg: 3, rate: 0.8, dmgType: 'physical', shot: 'arrow', speed: 9,
-    text: 'エネルギー0で建てられる小さな見張り。弱いが数を並べられる。',
-    up: [{ cost: 15, dmg: 5, range: 2.2, rate: 0.75 }, { cost: 30, dmg: 8, range: 2.4, rate: 0.7 }]
+    name: '見張り小屋', muzzle: 1.1, cost: 0, range: 2.0, dmg: 6, rate: 0.8, drawOnBuild: 1, dmgType: 'physical', shot: 'arrow', speed: 9,
+    text: 'エネルギー0で建てられる小さな見張り。置いた時にカードを1枚引く。',   // 2026-10-22 ダメージ3→6・置くと1枚引く（オーナー指定。強化のダメージも同じ上げ幅で 5→8・8→11）
+    up: [{ cost: 15, dmg: 8, range: 2.2, rate: 0.75 }, { cost: 30, dmg: 11, range: 2.4, rate: 0.7 }]
   },
   archer: {
     name: '弓兵の塔', cost: 1, range: 2.6, dmg: 6, rate: 0.8, dmgType: 'physical', shot: 'arrow', speed: 9,
@@ -264,7 +264,8 @@ G.TOWERS = {
     up: [{ cost: 30, dmg: 21, range: 2.6, rate: 1.75, splash: 1.1 }, { cost: 60, dmg: 32, range: 2.8, rate: 1.65, splash: 1.25 }]
   },
   frost: {
-    name: '氷の塔', muzzle: 1.7, cost: 2, range: 2.2, dmg: 4, rate: 1.2, dmgType: 'magic', shot: 'ice', speed: 6,
+    name: '氷の塔', muzzle: 1.7, cost: 1,   // 2026-10-22 コスト2→1（オーナー指定）
+    range: 2.2, dmg: 4, rate: 1.2, dmgType: 'magic', shot: 'ice', speed: 6,
     slow: { pct: 0.4, dur: 1.5 },
     text: '当たった敵を遅くする（1.5秒間）。ダメージは小さい。',
     up: [{ cost: 30, dmg: 6, range: 2.4, rate: 1.1, slow: { pct: 0.5, dur: 1.5 } }, { cost: 60, dmg: 9, range: 2.6, rate: 1.0, slow: { pct: 0.6, dur: 2 } }]
@@ -287,10 +288,11 @@ G.TOWERS = {
   },
   // ---- 道にだけ置ける物（place: 'path'）。攻撃はせず、上を通った敵に効く ----
   spikes: {
+    // 2026-10-22 ダメージ 20/32/48 → 16/25/45（オーナー指定）
     name: 'トゲの罠', place: 'path', muzzle: 0, cost: 1, range: 0, dmg: 0, rate: 1, dmgType: 'none', noAttack: true,
-    trap: { type: 'spike', dmg: 20 },
-    text: '道に置く。上を通った敵1体ずつに20ダメージ（物理）。何度でも使える。',
-    up: [{ cost: 20, trap: { type: 'spike', dmg: 32 } }, { cost: 40, trap: { type: 'spike', dmg: 48 } }]
+    trap: { type: 'spike', dmg: 16 },
+    text: '道に置く。上を通った敵1体ずつに16ダメージ（物理）。何度でも使える。',
+    up: [{ cost: 20, trap: { type: 'spike', dmg: 25 } }, { cost: 40, trap: { type: 'spike', dmg: 45 } }]
   },
   tar: {
     name: '粘着の沼', place: 'path', muzzle: 0, cost: 1, range: 0, dmg: 0, rate: 1, dmgType: 'none', noAttack: true,
@@ -435,8 +437,8 @@ G.CARDS = {
               text: 'すべてのタワーの攻撃速度をこのターンだけ2倍。' },
   architect: { kind: 'skill', name: '設計の天才', cost: 1, target: 'none', rarity: 'rare', icon: 'scroll', n: 2, unlock: true,
               text: 'このターン、次に使うタワーのカード2枚のエネルギーが0になる。' },
-  meteor:   { kind: 'skill', name: '隕石', cost: 2, target: 'none', rarity: 'rare', icon: 'meteor', dmg: 90, unlock: true,
-              text: '今マップにいるすべての敵に90ダメージ（魔法）。攻撃中に使う。' },
+  meteor:   { kind: 'skill', name: '隕石', cost: 1, target: 'none', rarity: 'rare', icon: 'meteor', dmg: 90, unlock: true, burn: { dps: 10, dur: 2 },   // 2026-10-22 コスト2→1・やけど追加（オーナー指定）
+              text: '今マップにいるすべての敵に90ダメージ（魔法）と、やけど（毎秒10・2秒）。攻撃中に使う。' },
   energize: { kind: 'skill', name: 'エナジー補給', cost: 0, target: 'none', rarity: 'uncommon', icon: 'energy', n: 1,
               text: 'エネルギー+1。' },
   workshop: { kind: 'skill', name: '急造工房', cost: 2, target: 'none', rarity: 'rare', icon: 'saw', exhaust: true,
@@ -473,7 +475,7 @@ G.PLUS_SKILL = {
   rally:    { mult: 2, text: 'すべてのタワーの攻撃力をこのターンだけ2倍。', plusNote: ['攻撃力の倍率', '1.6倍', '2倍'] },
   overclock: { cost: 0, text: 'すべてのタワーの攻撃速度をこのターンだけ2倍。', plusNote: ['エネルギー', '1', '0'] },
   architect: { n: 3, text: 'このターン、次に使うタワーのカード3枚のエネルギーが0になる。', plusNote: ['0になる枚数', '2枚', '3枚'] },
-  meteor:   { dmg: 140, text: '今マップにいるすべての敵に140ダメージ（魔法）。攻撃中に使う。', plusNote: ['ダメージ', '90', '140'] }
+  meteor:   { dmg: 140, text: '今マップにいるすべての敵に140ダメージ（魔法）と、やけど（毎秒10・2秒）。攻撃中に使う。', plusNote: ['ダメージ', '90', '140'] }
 };
 Object.keys(G.CARDS).forEach(function (id) {
   var c = G.CARDS[id], p = Object.assign({}, c, { id: id + '+', base: id, plus: true, name: c.name + '＋' });
