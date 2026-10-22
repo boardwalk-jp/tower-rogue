@@ -470,7 +470,7 @@ var G = window.G = window.G || {};
     // マスに入る時点で保存（途中でやめても、つづきからは同じマスに入り直す。戦闘は最初から）
     lastResume = { type: 'node' }; save(lastResume);
     if (n.type === 'battle' || n.type === 'elite' || n.type === 'boss') return startBattle(n);
-    if (n.type === 'event' || n.type === 'shop') music('w' + run.act);   // イベント・商人：ワールドマップの曲のまま（2026-10-22。前は専用の曲）
+    if (n.type === 'event') music('w' + run.act);   // イベント：ワールドマップの曲のまま（2026-10-22。前は専用の曲）
     if (n.type === 'event') return showEvent();
     if (n.type === 'shop') return showShop();
     if (n.type === 'rest') return showRest();
@@ -624,6 +624,7 @@ var G = window.G = window.G || {};
   // 商人：カード3枚、カードを手放す、ライフ回復
   // ============================================================
   function showShop() {
+    music('shop');   // 商人だけは商人の曲（2026-10-22 オーナー指定）。マップを見てから戻っても、とぎれずに続く
     // 同じ商人のマスにいる間は、出た時と同じ品ぞろえ（売り切れも）で入り直せる
     if (!run.shop || run.shop.node !== run.at) { var st0 = R.shopStock(run); run.shop = { node: run.at, cards: st0.cards, relic: st0.relic || null, used: { remove: false, heal: false } }; }
     var shop = run.shop, stock = shop.cards, P = G.RULES.shop, used = shop.used;

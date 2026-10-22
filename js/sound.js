@@ -257,6 +257,13 @@ var G = window.G = window.G || {};
                    'E5 - G5 - C6 - B5 A5 G5 - D5 - B4 - D5 - C5 - F5 - A5 - G5 F5 G5 - - - - - - - ' +
                    'E5 - A5 - G5 E5 C5 - F5 - A5 - C6 - A5 - G5 - E5 - C5 - E5 G5 D6 - B5 - G5 - - - ' +
                    'A5 - G5 F5 C5 - F5 - B5 - A5 G5 D5 - G5 - C6 - G5 - E5 - G5 - C6 - - - - - - -') },
+    // 商人（2026-10-22 オーナー指定）：にぎやかでちょっとおどけた店の曲（ヘ長調）。どの層でも同じ。飾りの音は「ズン・チャッ」と跳ねる形
+    shop: { style: 'map', bpm: 112, lead: 'square', vol: 0.45, arp: { pat: [0, 2, 1, 2, 0, 2, 1, 2], oct: 4, type: 'triangle', vol: 0.05 },
+          chords: 'F C Dm Bb F C Bb C Dm Bb F C Bb C F F'.split(' '),
+          mel: seq('F5 - A5 C6 A5 - F5 - G5 - E5 C5 E5 - G5 - A5 - F5 D5 F5 - A5 - Bb5 A5 G5 F5 D5 - - - ' +
+                   'F5 - A5 C6 A5 - F5 - G5 - E5 G5 C6 - Bb5 - A5 G5 F5 - D5 - F5 - E5 - G5 - C6 - - - ' +
+                   'D6 - C6 A5 F5 - A5 - Bb5 - A5 G5 F5 - D5 - C6 - A5 F5 A5 - C6 - Bb5 A5 G5 - E5 - C5 - ' +
+                   'D5 F5 Bb5 - A5 G5 F5 - E5 G5 C6 - Bb5 A5 G5 - A5 - F5 - C5 - F5 - F5 - - - - - - -') },
     // 第2層 雪山：静かで少しさみしい（短調から明るい所へ）。きらきらした鐘のような飾りの音
     w2: { style: 'calm', bpm: 84, lead: 'sine', vol: 0.95, arp: { pat: [0, -1, 2, -1, 1, -1, 2, -1], oct: 5, type: 'sine', vol: 0.06 },
           chords: 'Am F C G Am F E E F G Em Am Dm E Am Am'.split(' '),
