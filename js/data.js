@@ -481,7 +481,7 @@ Object.keys(G.CARDS).forEach(function (id) {
 });
 
 // 初期デッキ（8枚・3種類）：見習い弓兵×4、投石小屋×3、狙い撃ち×1
-G.START_DECK = ['bowman', 'bowman', 'bowman', 'sling', 'sling', 'warcry', 'barricade', 'recruit'];   // 隊長と同じ（指揮官を選ばない時の予備）
+G.START_DECK = ['bowman', 'bowman', 'bowman', 'sling', 'sling', 'warcry', 'barricade', 'recruit'];   // 騎士隊長と同じ（指揮官を選ばない時の予備）
 
 // ---- 指揮官（ランの最初に1人選ぶ）。初期デッキ・最大ライフ・固有の能力が違う ----
 // ============================================================
@@ -512,12 +512,12 @@ G.ascMods = function (a) {
   });
   return m;
 };
-G.COMMANDERS = {   // 2026-10-22 初期デッキ・ライフを変更（オーナー指定）
-  captain:  { name: '隊長', icon: 'bowman', life: 40, relic: 'cmd_captain', deck: ['bowman', 'bowman', 'bowman', 'sling', 'sling', 'warcry', 'barricade', 'recruit'],
+G.COMMANDERS = {   // 2026-10-22 初期デッキ・ライフを変更、名前を 隊長→騎士隊長・魔女→宮廷魔導師・工兵→工兵将校 に（オーナー指定）
+  captain:  { name: '騎士隊長', icon: 'bowman', life: 40, relic: 'cmd_captain', deck: ['bowman', 'bowman', 'bowman', 'sling', 'sling', 'warcry', 'barricade', 'recruit'],
               text: 'スキルのコストが1下がる。', sub: '指揮にすぐれ、スキルを使いこなす指揮官。ライフが多い。' },
-  witch:    { name: '魔女', icon: 'mage', life: 34, relic: 'cmd_witch', deck: ['bowman', 'bowman', 'poison', 'poison', 'thunder', 'sling', 'aim', 'recruit'],
+  witch:    { name: '宮廷魔導師', icon: 'mage', life: 34, relic: 'cmd_witch', deck: ['bowman', 'bowman', 'poison', 'poison', 'thunder', 'sling', 'aim', 'recruit'],
               text: '魔法のタワーの攻撃力+25%。毒とやけどが1秒長く続く。', sub: '魔法に長け、魔法攻撃力が高いがライフが少ない。' },
-  engineer: { name: '工兵', icon: 'barracks', life: 36, relic: 'cmd_engineer', deck: ['bowman', 'bowman', 'bowman', 'sling', 'sling', 'recruit', 'barricade', 'whet', 'barrel'],
+  engineer: { name: '工兵将校', icon: 'barracks', life: 36, relic: 'cmd_engineer', deck: ['bowman', 'bowman', 'bowman', 'sling', 'sling', 'recruit', 'barricade', 'whet', 'barrel'],
               text: 'タワーの強化の値段が30%安い。', sub: 'タワー建設・強化に特化した指揮官。' }
 };
 
@@ -745,8 +745,8 @@ G.RELICS = {
   phoenix:   { name: '不死鳥の羽', kind: 'change', rarity: 'rare',     unlock: true, text: 'ライフが0になった時、1回だけライフ10で立ち直る（使うと消える）。' },
   // ---- 指揮官のレリック（最初から1つだけ持っている。報酬・商人・イベントでは出ない） ----
   cmd_captain:  { name: '隊長の勲章',   kind: 'commander', rarity: 'starter', text: 'スキルのコストが1下がる。' },   // 2026-10-22 変更（前：勝つたびにお金+8）。0より下にはならない（説明には書かない）
-  cmd_witch:    { name: '魔女の杖',     kind: 'commander', rarity: 'starter', text: '魔法のタワーの攻撃力+25%。毒とやけどが1秒長く続く。' },
-  cmd_engineer: { name: '工兵の工具箱', kind: 'commander', rarity: 'starter', text: 'タワーの強化の値段が30%安い。' }
+  cmd_witch:    { name: '魔導師の杖',     kind: 'commander', rarity: 'starter', text: '魔法のタワーの攻撃力+25%。毒とやけどが1秒長く続く。' },
+  cmd_engineer: { name: '熟練工兵の工具箱', kind: 'commander', rarity: 'starter', text: 'タワーの強化の値段が30%安い。' }
 };
 Object.keys(G.RELICS).forEach(function (k) { G.RELICS[k].id = k; });
 

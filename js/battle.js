@@ -107,7 +107,7 @@ var G = window.G = window.G || {};
   function cardCost(card, s) {
     var c = card.cost !== undefined ? card.cost : cardDef(card).cost;
     if (s && s.freeTowers > 0 && cardDef(card).kind === 'tower') return 0;   // 設計の天才：タワーのカードが0
-    if (s && cardDef(card).kind === 'skill' && has(s, 'cmd_captain')) c = Math.max(0, c - has(s, 'cmd_captain'));   // 隊長の勲章：スキルのコスト-1（0より下にはならない）
+    if (s && cardDef(card).kind === 'skill' && has(s, 'cmd_captain')) c = Math.max(0, c - has(s, 'cmd_captain'));   // 隊長の勲章（騎士隊長）：スキルのコスト-1（0より下にはならない）
     return c;
   }
 
@@ -263,7 +263,7 @@ var G = window.G = window.G || {};
     // レリックの数値アップ
     if (T.dmgType === 'physical') st.dmg *= Math.pow(1.15, has(s, 'sharp'));
     if (T.dmgType === 'magic') st.dmg *= Math.pow(1.2, has(s, 'crystal'));
-    if (has(s, 'cmd_witch') && T.dmgType === 'magic') st.dmg *= 1.25;   // 魔女の杖
+    if (has(s, 'cmd_witch') && T.dmgType === 'magic') st.dmg *= 1.25;   // 魔導師の杖（宮廷魔導師）
     if (has(s, 'oldmap') && st.range > 0) st.range = Math.round((st.range + 0.3 * has(s, 'oldmap')) * 10) / 10;
     var plusDur = 2 * has(s, 'vial') + (has(s, 'cmd_witch') ? 1 : 0);
     if (plusDur) {
@@ -282,7 +282,7 @@ var G = window.G = window.G || {};
   function upgradeCost(tw, s) {
     var T = G.TOWERS[tw.type];
     if (tw.lv >= T.up.length) return null;
-    return has(s, 'cmd_engineer') ? Math.round(T.up[tw.lv].cost * 0.7) : T.up[tw.lv].cost;   // 工兵の工具箱（2026-10-22 に20%→30%引き）
+    return has(s, 'cmd_engineer') ? Math.round(T.up[tw.lv].cost * 0.7) : T.up[tw.lv].cost;   // 熟練工兵の工具箱（工兵将校。2026-10-22 に20%→30%引き）
   }
   function upgrade(s, towerId) {
     var tw = findTower(s, towerId);
