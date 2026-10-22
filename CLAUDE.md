@@ -9,4 +9,5 @@
 - 基準端末は iPhone の Safari（縦持ち）
 - 公開は Cloudflare Pages（プロジェクト名 `syoppaiya-td`、本番URL https://syoppaiya-td.pages.dev ）。GitHub の main ブランチに反映すると自動で公開される（ビルドなし・リポジトリの直下をそのまま公開）。旧URL https://boardwalk-jp.github.io/tower-rogue/ はテストプレイヤーのデータ引き継ぎが終わるまで残す
 - ほかのチャットも main に commit することがあるので、作業の前と push の前に `git pull` する
+- 公開する（main に push する）前に、毎回 `python3 tools/stamp.py` を実行する（読み込むファイルの番号とタイトル右下の版を新しくする。スマホが古いファイルを使わないように）
 - オーナーへの説明は日本語で、高校生が分かる言葉で書く
