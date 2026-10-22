@@ -526,3 +526,18 @@ button.go:disabled{filter:saturate(.5)}
 #panel .panel-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 100%;image-rendering:pixelated;z-index:0;pointer-events:none}
 #panel > :not(.panel-bg){position:relative;z-index:1}
 #panel .rest-bg ~ .panel-body .choice{background:linear-gradient(rgba(39,52,45,.86),rgba(30,40,35,.86));backdrop-filter:blur(1px)}
+
+/* ワールドマップの新デザイン（2026-10-22）：道すじは土の小道（暗いふち＋点線の足あと）、マスは石のメダル */
+.world-map canvas.world-bg{filter:brightness(.86) saturate(.95)}
+#world-lines line.under{stroke:rgba(20,14,8,.55);stroke-width:7;stroke-linecap:round}
+#world-lines line{stroke:#d8c8a0;stroke-width:3;stroke-dasharray:1 6;stroke-linecap:round}
+#world-lines line.open{stroke:#ffd84a;stroke-width:3.5;stroke-dasharray:6 5;animation:route-flow 1s linear infinite}
+#world-lines line.walked{stroke:#efe4c4;stroke-width:3;stroke-dasharray:none}
+@keyframes route-flow{to{stroke-dashoffset:-11}}
+@media (prefers-reduced-motion:reduce){#world-lines line.open{animation:none}}
+.world-map .node{background:radial-gradient(circle at 35% 30%,#3a4640 0%,#222c27 55%,#141a17 100%);border:2px solid #c9b98e;
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.12),inset 0 -3px 0 rgba(0,0,0,.45),0 3px 0 rgba(0,0,0,.55),0 0 0 2px rgba(0,0,0,.35)}
+.world-map .node.visited{border-color:#6a7268;background:radial-gradient(circle at 35% 30%,#2a312d,#151a17)}
+.world-map .node.reach{border-color:#ffd84a;box-shadow:inset 0 2px 0 rgba(255,255,255,.15),inset 0 -3px 0 rgba(0,0,0,.45),0 0 0 3px rgba(255,216,74,.35),0 0 14px rgba(255,216,74,.45)}
+.world-map .node.here{border-color:#ffffff;box-shadow:inset 0 2px 0 rgba(255,255,255,.15),0 0 0 3px rgba(255,255,255,.3),0 0 12px rgba(255,255,255,.35)}
+.world-map .node.pick{background:radial-gradient(circle at 35% 30%,#ffe89a,#e6b84a 60%,#a87a20)}

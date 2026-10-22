@@ -342,7 +342,7 @@ var G = window.G = window.G || {};
   var viewFrom = null;
   function showWorld(view) {
     view = view === true;
-    if (!view) { lastResume = { type: 'map' }; save(lastResume); music('m' + run.act); viewFrom = null; }
+    if (!view) { lastResume = { type: 'map' }; save(lastResume); music('w' + run.act); viewFrom = null; }   // ワールドマップ専用の曲（w1〜w3）
     G.showScreen('world');
     $('world-menu-btn').hidden = view; $('world-back').hidden = !view;
     pendingNode = null;

@@ -4,7 +4,7 @@
 'use strict';
 (function () {
   var G = window.G = window.G || {};
-  var P = 3;   // 背景の1ドット＝画面の3px
+  var P = 2;   // 背景の1ドット＝画面の2px（2026-10-22 に3→2。戦闘画面の細かさに近づけた）
 
   function hash(x, y, s) {
     var h = Math.imul(x | 0, 374761393) + Math.imul(y | 0, 668265263) + Math.imul(s | 0, 1442695041) | 0;
@@ -30,128 +30,150 @@
       tree: { dark: '#140e0c', mid: '#2e2420', light: '#4a3a32', trunk: '#ff6a2a' }, flower: ['#ff8a2a', '#ffd84a'] }
   };
 
-  // 背景を1枚作る（w,h：マップの画面上の大きさ、seed：層ごとに変える）
+  // ======================================================================
+  // 2026-10-22 新デザイン：戦闘画面と同じ「左上から光」「黒いふち取りなし」の描き方で、ドットを細かく（1ドット＝2px）
+  //   地面は戦闘画面と同じ色に、なめらかな起伏の明暗をつける。川・凍った川・溶岩の川は岸のふちに光と影。
+  //   木・雪の木・岩の柱・岩は小さな立体の絵を、上から順に並べて描く。いちばん上（ボスのあたり）に層ごとの目印
+  // ======================================================================
+  var GROUND = {
+    grass:   { c: ['#3f7a37', '#468338', '#4f8f40', '#5a9846'], hi: '#6aa852', lo: '#2f5e2a', tuft: '#2c5a28' },
+    snow:    { c: ['#d3dbe6', '#dde4ee', '#e7edf5', '#f1f5fa'], hi: '#ffffff', lo: '#b4c0d0', tuft: '#a8b4c4' },
+    volcano: { c: ['#2c2224', '#31272a', '#372c2e', '#3d3133'], hi: '#4a3c3e', lo: '#241a1c', tuft: '#171011' }
+  };
   function build(theme, w, h, seed) {
-    var T = THEMES[theme] || THEMES.grass, cw = Math.ceil(w / P), ch = Math.ceil(h / P);
+    var T = THEMES[theme] || THEMES.grass, GD = GROUND[theme] || GROUND.grass, cw = Math.ceil(w / P), ch = Math.ceil(h / P);
     var cv = document.createElement('canvas'); cv.width = cw; cv.height = ch;
-    var g = cv.getContext('2d'), img = g.createImageData(cw, ch), d = img.data;
-    var base = T.base.map(rgb), speck = T.speck.map(rgb), riv = T.river.map(rgb), bank = rgb(T.bank);
-    // 川（溶岩・凍った川）の中心：上から下へくねくね
-    function riverX(y) { return cw * (0.18 + 0.1 * Math.sin(y / 23 + seed) + 0.05 * Math.sin(y / 9.7 + seed * 2)); }
-    function river2X(y) { return cw * (0.82 + 0.08 * Math.sin(y / 31 + seed * 3)); }
-    for (var y = 0; y < ch; y++) for (var x = 0; x < cw; x++) {
-      var n = fbm(x / 16, y / 16, seed), c = base[n < 0.38 ? 0 : n < 0.5 ? 1 : n < 0.62 ? 2 : 3];
+    var g = cv.getContext('2d'), img = g.createImageData(cw, ch), d = img.data, x, y, k, i;
+    var gc = GD.c.map(rgb), ghi = rgb(GD.hi), glo = rgb(GD.lo);
+    // 川の通り道（上から下へくねくね）。草原は1本、雪山・火山は2本
+    function riverX(y) { return cw * (0.14 + 0.08 * Math.sin(y / 46 + seed) + 0.04 * Math.sin(y / 19 + seed * 2)); }
+    function river2X(y) { return cw * (0.86 + 0.06 * Math.sin(y / 62 + seed * 3)); }
+    function rdist(x, y) { var a = Math.abs(x - riverX(y)); return theme === 'grass' ? a : Math.min(a, Math.abs(x - river2X(y))); }
+    var RW = theme === 'volcano' ? 4.2 : 5.5;
+    var RV = theme === 'grass' ? ['#2a5a8a', '#3a78b0', '#5a9cd0', '#a8d4f0'] : theme === 'snow' ? ['#8ab4d4', '#a8cce4', '#c6e2f4', '#ffffff'] : ['#a82814', '#d84418', '#ff7a24', '#ffd060'];
+    var rv = RV.map(rgb), rimUp = rgb(theme === 'volcano' ? '#120a08' : theme === 'snow' ? '#7a8aa0' : '#3a4a24'), rimDn = rgb(theme === 'volcano' ? '#ff9a3a' : theme === 'snow' ? '#ffffff' : '#a8a070');
+    function H(x, y) { return fbm(x / 22, y / 22, seed); }
+    for (y = 0; y < ch; y++) for (x = 0; x < cw; x++) {
+      var hv = H(x, y), lit = hv - H(x + 1, y + 1), c = gc[hv < 0.4 ? 0 : hv < 0.5 ? 1 : hv < 0.6 ? 2 : 3];
+      var LT = theme === 'volcano' ? 0.022 : theme === 'grass' ? 0.017 : 0.012;   // 起伏の明暗が出すぎない強さ（地域ごと）
+      if (lit > LT) c = ghi; else if (lit < -LT * 1.2) c = glo;   // 起伏：左上を向いた面は明るく、右下を向いた面は暗い
       var r = hash(x, y, seed + 3);
-      if (r < 0.04) c = speck[r < 0.02 ? 0 : 1 % speck.length];
-      // 川
-      var rw = theme === 'volcano' ? 2.4 : 3.2;
-      var dx = Math.min(Math.abs(x - riverX(y)), theme === 'grass' ? 99 : Math.abs(x - river2X(y)) + (theme === 'snow' ? 99 : 0));
-      if (dx < rw + 1.2) c = bank;
-      if (dx < rw) c = riv[dx < rw * 0.35 ? 2 : dx < rw * 0.7 ? 1 : 0];
-      if (dx < rw && theme !== 'volcano' && hash(x, y, seed + 9) < 0.05) c = riv[2];
-      var i = (y * cw + x) * 4; d[i] = c[0]; d[i + 1] = c[1]; d[i + 2] = c[2]; d[i + 3] = 255;
+      if (r < 0.03) c = r < 0.015 ? ghi : glo;
+      var dd = rdist(x, y);
+      if (dd < RW + 1.6) {   // 川の岸：上（奥）のふちは暗く、下（手前）のふちは明るい
+        c = dd < RW + 0.6 ? (hash(x, y, 77) < 0.5 ? rimUp : rimDn) : glo;
+      }
+      if (dd < RW) {
+        var t2 = dd / RW; c = rv[t2 < 0.3 ? 2 : t2 < 0.65 ? 1 : 0];
+        if (theme !== 'volcano' && hash(x, y, seed + 9) < 0.04) c = rv[3];
+        if (theme === 'volcano' && t2 < 0.4 && fbm(x / 6, y / 10, 99) > 0.66) c = rv[3];
+      }
+      i = (y * cw + x) * 4; d[i] = c[0]; d[i + 1] = c[1]; d[i + 2] = c[2]; d[i + 3] = 255;
     }
     g.putImageData(img, 0, 0);
-    // 火山：溶岩のまわりのぼんやりした光
-    if (theme === 'volcano') {
-      g.globalCompositeOperation = 'lighter'; g.fillStyle = 'rgba(255,90,30,0.07)';
-      for (y = 0; y < ch; y += 2) { g.fillRect(riverX(y) - 7, y, 14, 2); g.fillRect(river2X(y) - 6, y, 12, 2); }
+    if (theme === 'volcano') {   // 溶岩の川のまわりの光と、地面のひび
+      g.globalCompositeOperation = 'lighter';
+      for (y = 0; y < ch; y += 2) { g.fillStyle = 'rgba(255,90,30,0.06)'; g.fillRect(riverX(y) - 12, y, 24, 2); g.fillRect(river2X(y) - 12, y, 24, 2); }
       g.globalCompositeOperation = 'source-over';
-      // ひび（細い線、ところどころ赤く光る）
-      for (var k = 0; k < Math.floor(ch / 14); k++) {
+      for (k = 0; k < Math.floor(ch / 10); k++) {
         var cx = hash(k, 1, seed) * cw, cy = hash(k, 2, seed) * ch, ang = hash(k, 3, seed) * Math.PI * 2;
-        for (var s = 0; s < 14; s++) { ang += (hash(k, s, seed + 5) - 0.5) * 1.1; cx += Math.cos(ang); cy += Math.sin(ang); g.fillStyle = hash(k, s, seed + 6) < 0.25 ? '#c8341a' : '#120c0a'; g.fillRect(Math.round(cx), Math.round(cy), 1, 1); }
+        for (var s2 = 0; s2 < 18; s2++) { ang += (hash(k, s2, seed + 5) - 0.5) * 1.1; cx += Math.cos(ang); cy += Math.sin(ang); px(g, hash(k, s2, seed + 6) < 0.3 ? '#ff5a1a' : '#120c0a', Math.round(cx), Math.round(cy)); }
       }
     }
-    // 雪山：凍った湖（だ円・ひび）
-    if (theme === 'snow') {
-      for (k = 0; k < Math.floor(ch / 70) + 1; k++) {
-        var lx = cw * (0.35 + hash(k, 4, seed) * 0.3), ly = ch * (0.12 + hash(k, 5, seed) * 0.8), rx = 9 + hash(k, 6, seed) * 6, ry = 5 + hash(k, 7, seed) * 3;
-        for (y = -ry - 1; y <= ry + 1; y++) for (x = -rx - 1; x <= rx + 1; x++) {
-          var e = (x * x) / (rx * rx) + (y * y) / (ry * ry);
-          if (e > 1.15) continue;
-          g.fillStyle = e > 0.85 ? '#e8f2fa' : hash(x, y, k + seed) < 0.05 ? '#ffffff' : (y < -ry * 0.3 ? '#b8dcf2' : '#9ccbe8');
-          g.fillRect(Math.round(lx + x), Math.round(ly + y), 1, 1);
+    if (theme === 'snow') {   // 凍った湖：角の丸い形・上のふちに雪・白いひび
+      for (k = 0; k < Math.floor(ch / 150) + 1; k++) {
+        var lx = cw * (0.32 + hash(k, 4, seed) * 0.36), ly = ch * (0.15 + hash(k, 5, seed) * 0.75), rx = 14 + hash(k, 6, seed) * 10, ry = 7 + hash(k, 7, seed) * 4;
+        for (y = -ry - 2; y <= ry + 2; y++) for (x = -rx - 2; x <= rx + 2; x++) {
+          var e = (x * x) / (rx * rx) + (y * y) / (ry * ry); if (e > 1.2) continue;
+          px(g, e > 0.9 ? (y < 0 ? '#ffffff' : '#9fb2c8') : (y < -ry * 0.3 ? '#c6e2f4' : '#a8d0ea'), Math.round(lx + x), Math.round(ly + y));
         }
+        for (i = 0; i < 3; i++) { var sx0 = lx - rx * 0.6 + i * rx * 0.5; for (var q = 0; q < 6; q++) px(g, '#ffffff', Math.round(sx0 + q), Math.round(ly - 2 + ((q + i) % 3))); }
       }
     }
-    // 木・山・岩（上から順に描いて重なりを自然に）
-    var things = [];
-    var cnt = Math.floor(cw * ch / 160);
+    // 木・岩などを並べる（集まって生える所＝ノイズの高い所）。まん中の道すじは少しまばらに（マスが見やすいように）
+    var things = [], cnt = Math.floor(cw * ch / (theme === 'grass' ? 125 : theme === 'snow' ? 95 : 105));
     for (k = 0; k < cnt; k++) {
       var tx = Math.floor(hash(k, 11, seed) * cw), ty = Math.floor(hash(k, 12, seed) * ch);
-      if (Math.abs(tx - riverX(ty)) < 6 || (theme !== 'grass' && Math.abs(tx - river2X(ty)) < 6)) continue;
-      // 木は集まって生える（ノイズの高い所）
-      var f = fbm(tx / 22, ty / 22, seed + 21);
-      var kind = theme === 'snow' && f > 0.66 ? 'mount' : theme === 'volcano' && f > 0.68 ? 'spire' : f > 0.52 ? 'tree' : hash(k, 13, seed) < 0.25 ? 'rock' : hash(k, 14, seed) < 0.5 ? 'flower' : null;
+      if (rdist(tx, ty) < RW + 5 || ty < 46) continue;
+      var f = fbm(tx / 26, ty / 26, seed + 21), mid = Math.abs(tx / cw - 0.5) < 0.3;
+      if (mid && hash(k, 16, seed) < 0.7) continue;
+      var kind = theme === 'snow' && f > 0.66 ? 'mount' : theme === 'volcano' && f > 0.64 ? 'spire' : f > 0.5 ? 'tree' : hash(k, 13, seed) < 0.18 ? 'rock' : hash(k, 14, seed) < 0.35 ? 'flower' : null;
       if (kind) things.push({ x: tx, y: ty, k: kind, v: hash(k, 15, seed) });
     }
     things.sort(function (a, b) { return a.y - b.y; });
-    things.forEach(function (o) { drawThing(g, T, theme, o); });
-    // 火山の層：一番上（ボスのあたり）に大きな火山
-    if (theme === 'volcano') drawVolcano(g, Math.round(cw / 2), 26);
-    if (theme === 'snow') drawBigMountain(g, Math.round(cw / 2), 28);
+    things.forEach(function (o) { thing2(g, T, theme, o); });
+    // いちばん上：層ごとの目印（ボスのいる所）
+    var mx = Math.round(cw / 2);
+    if (theme === 'volcano') volcano2(g, mx, 6); else if (theme === 'snow') mountain2(g, mx, 4); else ruins(g, mx, 8);
     return cv;
   }
   function px(g, c, x, y, w, h) { g.fillStyle = c; g.fillRect(x, y, w || 1, h || 1); }
-  function drawThing(g, T, theme, o) {
-    var x = o.x, y = o.y, t = T.tree;
+  function ellP(g, c, cx, cy, rx, ry) { for (var dy = -ry; dy <= ry; dy++) { var hw = Math.round(rx * Math.sqrt(Math.max(0, 1 - (dy * dy) / (ry * ry || 1)))); px(g, c, cx - hw, cy + dy, hw * 2 + 1, 1); } }
+  // 小さな立体の絵（左上から光）。(x,y)＝足もと
+  function thing2(g, T, theme, o) {
+    var x = o.x, y = o.y, v = o.v;
     if (o.k === 'tree') {
-      if (theme === 'grass') {      // 丸い木
-        px(g, t.trunk, x, y + 3, 1, 2);
-        px(g, t.dark, x - 2, y - 1, 5, 4); px(g, t.dark, x - 1, y - 2, 3, 1);
-        px(g, t.mid, x - 1, y - 1, 3, 2); px(g, t.light, x - 1, y - 1, 1, 1);
-        px(g, 'rgba(0,0,0,.3)', x - 1, y + 4, 4, 1);
-      } else if (theme === 'snow') { // 雪の針葉樹
-        px(g, t.trunk, x, y + 3, 1, 1);
-        px(g, t.dark, x, y - 3, 1, 1); px(g, t.dark, x - 1, y - 2, 3, 2); px(g, t.mid, x - 2, y, 5, 3);
-        px(g, t.light, x, y - 3, 1, 1); px(g, t.light, x - 1, y - 1, 1, 1); px(g, t.light, x - 2, y + 1, 2, 1);
-        px(g, 'rgba(60,80,110,.25)', x - 1, y + 4, 4, 1);
-      } else {                       // 火山：枯れた黒い木（先が赤い）
-        px(g, t.mid, x, y - 2, 1, 6); px(g, t.mid, x - 1, y - 1, 1, 1); px(g, t.mid, x + 1, y, 1, 1); px(g, t.mid, x - 2, y - 2, 1, 1);
-        if (o.v < 0.3) px(g, '#ff6a2a', x, y - 3, 1, 1);
+      if (theme === 'grass') {        // 丸い木：影・幹・3段の葉（奥は暗く、左上は明るい）
+        ellP(g, 'rgba(0,0,0,.28)', x + 1, y, 4, 1);
+        px(g, '#5a3a20', x, y - 4, 2, 4); px(g, '#3e2814', x + 1, y - 4, 1, 4);
+        ellP(g, '#2a5e28', x, y - 7, 5, 4); ellP(g, '#3c8436', x - 1, y - 8, 4, 3); ellP(g, '#56a046', x - 2, y - 9, 2, 2); px(g, '#8cd06a', x - 3, y - 10);
+      } else if (theme === 'snow') {  // 雪の針葉樹：3段の三角。上は雪、右は影
+        ellP(g, 'rgba(60,80,110,.25)', x + 1, y, 4, 1);
+        px(g, '#4a3220', x, y - 2, 1, 2);
+        [[0, 5, 4], [-4, 4, 3], [-7, 3, 3]].forEach(function (L) { for (var j = 0; j < L[2] + 1; j++) { var hw = Math.round(L[1] * (j + 1) / (L[2] + 1)); px(g, j < 1 ? '#ffffff' : '#2d6a5a', x - hw, y - 3 + L[0] - L[2] + j, hw + 1, 1); px(g, j < 1 ? '#c4d4e6' : '#1f4a44', x + 1, y - 3 + L[0] - L[2] + j, hw, 1); } });
+      } else {                         // 火山：枯れた黒い木
+        px(g, '#2e2420', x, y - 7, 1, 7); px(g, '#2e2420', x - 2, y - 6, 2, 1); px(g, '#2e2420', x + 1, y - 4, 2, 1); px(g, '#4a3a32', x - 1, y - 7, 1, 2);
+        if (v < 0.35) px(g, '#ff6a2a', x, y - 8);
       }
     } else if (o.k === 'rock') {
-      var rc = theme === 'snow' ? ['#7d8a9c', '#eef4fa'] : theme === 'volcano' ? ['#4a3a32', '#6a564a'] : ['#6e6e6a', '#9ca1a7'];
-      px(g, rc[0], x - 1, y, 3, 2); px(g, rc[1], x - 1, y, 2, 1);
+      var rc = theme === 'snow' ? ['#6c7686', '#8b95a5', '#ffffff'] : theme === 'volcano' ? ['#2f2523', '#463836', '#ff6a2a'] : ['#575a61', '#7b7e86', '#a0a3ab'];
+      ellP(g, 'rgba(0,0,0,.25)', x + 1, y, 3, 1); ellP(g, rc[0], x, y - 1, 3, 2); ellP(g, rc[1], x - 1, y - 2, 2, 1); px(g, rc[2], x - 2, y - 3, 2, 1);
     } else if (o.k === 'flower') {
-      px(g, T.flower[Math.floor(o.v * T.flower.length)], x, y, 1, 1);
-      if (theme === 'volcano' && o.v < 0.5) px(g, 'rgba(255,120,40,.35)', x - 1, y - 1, 3, 3);
-    } else if (o.k === 'mount') {    // 雪山：小さな山（三角・上が白い・右側が影）
-      var hh = 6 + Math.round(o.v * 5);
-      for (var i = 0; i < hh; i++) {
-        var hw = Math.round(i * 0.9), cap = i < hh * 0.4;
-        px(g, cap ? '#ffffff' : '#8692a6', x - hw, y - hh + i, hw + 1, 1);
-        px(g, cap ? '#d2deec' : '#5f6b80', x + 1, y - hh + i, hw, 1);
-        px(g, '#4a5468', x - hw - 1, y - hh + i, 1, 1); px(g, '#4a5468', x + hw + 1, y - hh + i, 1, 1);
-      }
-    } else if (o.k === 'spire') {    // 火山：とがった岩
-      var sh = 5 + Math.round(o.v * 6);
-      for (i = 0; i < sh; i++) px(g, i % 3 === 0 ? '#3a2c26' : '#2a201c', x - Math.floor(i / 3), y - sh + i, Math.floor(i / 3) * 2 + 1, 1);
-      if (o.v < 0.4) px(g, '#ff6a2a', x, y - 2, 1, 1);
+      if (theme === 'grass') { px(g, T.flower[Math.floor(v * T.flower.length)], x, y); px(g, '#2c5a28', x, y + 1); }
+      else if (theme === 'volcano') { px(g, '#ff8a2a', x, y); g.globalAlpha = 0.3; px(g, '#ff6a2a', x - 1, y - 1, 3, 3); g.globalAlpha = 1; }
+      else { px(g, '#ffffff', x, y, 2, 1); px(g, '#b4c0d0', x, y + 1, 2, 1); }
+    } else if (o.k === 'mount') {     // 雪山：小さな山（左は明るく右は影・上は雪）
+      var hh = 9 + Math.round(v * 7);
+      for (var i = 0; i < hh; i++) { var hw2 = Math.round(i * 0.95), cap = i < hh * 0.4 + Math.sin(i * 2) ; px(g, cap ? '#ffffff' : '#8592a6', x - hw2, y - hh + i, hw2 + 1, 1); px(g, cap ? '#c4d0e0' : '#5f6b80', x + 1, y - hh + i, hw2, 1); }
+      px(g, '#4e586c', x - hh + 1, y - 1, hh * 2 - 1, 1);
+    } else if (o.k === 'spire') {     // 火山：とがった岩の柱（左は明るく右は影・すき間に赤い光）
+      var sh = 8 + Math.round(v * 8);
+      for (i = 0; i < sh; i++) { var hw3 = 1 + Math.floor(i / 2.5); px(g, '#4a3c38', x - hw3, y - sh + i, hw3, 1); px(g, '#2e2220', x, y - sh + i, hw3, 1); }
+      if (v < 0.5) px(g, '#ff6a2a', x, y - Math.round(sh * 0.5), 1, 2);
     }
   }
-  function drawVolcano(g, cx, top) {
-    var H = 22;
-    for (var i = 0; i < H; i++) {
-      var w = 6 + i * 2.2;
-      px(g, '#2a1e1a', Math.round(cx - w / 2), top + i, Math.round(w), 1);
-      px(g, '#4e382c', Math.round(cx - w / 2), top + i, Math.round(w * 0.35), 1);
-      px(g, '#9a4a26', Math.round(cx - w / 2), top + i, 1, 1); px(g, '#9a4a26', Math.round(cx + w / 2) - 1, top + i, 1, 1);
-    }
-    // 火口と流れ出す溶岩
-    px(g, '#ffc04a', cx - 2, top, 5, 1); px(g, '#ff6a2a', cx - 3, top + 1, 7, 1);
-    for (i = 2; i < H; i++) { var lx = Math.round(cx + Math.sin(i / 3) * 2); px(g, i < 8 ? '#ffb347' : '#ff6a2a', lx, top + i, 1, 1); if (i > 10) px(g, '#c8341a', lx + 1, top + i, 1, 1); }
-    g.globalCompositeOperation = 'lighter'; g.fillStyle = 'rgba(255,100,30,0.12)'; g.fillRect(cx - 12, top - 8, 24, 10); g.globalCompositeOperation = 'source-over';
+  // 草原の目印：丘の上の石の遺跡（くずれた城壁・アーチ・旗）
+  function ruins(g, cx, top) {
+    ellP(g, '#3a7032', cx, top + 34, 46, 10); ellP(g, '#4a8a3e', cx - 6, top + 31, 36, 7);
+    var S = { t: '#b3aea2', f: '#87827a', s: '#66625b', hi: '#cdc8bc', d: '#42403b' };
+    function blk(bx, by, w, h) { px(g, S.f, bx, by - h, w, h); px(g, S.s, bx + w - 2, by - h, 2, h); px(g, S.hi, bx, by - h, 1, h); px(g, S.t, bx, by - h - 2, w, 2); px(g, S.d, bx, by - 1, w, 1); for (var r = by - 3; r > by - h; r -= 3) px(g, S.s, bx + 1, r, w - 2, 1); }
+    blk(cx - 30, top + 32, 12, 18); blk(cx - 18, top + 32, 36, 12); blk(cx + 18, top + 32, 12, 22); blk(cx - 6, top + 26, 12, 20);
+    px(g, '#1a1410', cx - 3, top + 18, 6, 8); ellP(g, '#1a1410', cx, top + 18, 3, 2);        // アーチの入口
+    for (var i = 0; i < 4; i++) px(g, S.t, cx - 29 + i * 3, top + 12 - (i % 2) * 2, 2, 2);  // くずれたぎざぎざ
+    px(g, '#5b4632', cx + 23, top + 2, 1, 9); px(g, '#c8341a', cx + 24, top + 2, 5, 3); px(g, '#8a2414', cx + 24, top + 4, 5, 1);   // 旗
   }
-  function drawBigMountain(g, cx, top) {
-    var H = 26;
+  // 雪山の目印：大きな雪山（左は明るく右は影・雪の帽子・岩のすじ）
+  function mountain2(g, cx, top) {
+    var H = 40;
     for (var i = 0; i < H; i++) {
-      var hw = Math.round(i * 1.25), cap = i < 9 + Math.round(Math.sin(i * 1.7) * 1.5);
+      var hw = Math.round(i * 1.35), cap = i < 15 + Math.round(Math.sin(i * 1.7) * 2);
       px(g, cap ? '#ffffff' : '#7a869a', cx - hw, top + i, hw + 1, 1);
-      px(g, cap ? '#cfdbea' : '#56627a', cx + 1, top + i, hw, 1);
-      px(g, '#4a5468', cx - hw - 1, top + i, 1, 1); px(g, '#4a5468', cx + hw + 1, top + i, 1, 1);   // ふち（雪の地面と見分ける）
+      px(g, cap ? '#c8d4e4' : '#56627a', cx + 1, top + i, hw, 1);
+      if (!cap && i % 5 === 0) px(g, '#9aa6ba', cx - hw + 3, top + i, Math.round(hw * 0.4), 1);
     }
+    px(g, '#4e586c', cx - 54, top + H, 109, 1);
+  }
+  // 火山の目印：大きな火山（左は少し明るく右は影・火口と流れる溶岩・光）
+  function volcano2(g, cx, top) {
+    var H = 38;
+    for (var i = 0; i < H; i++) {
+      var w = 8 + i * 2.6, l = Math.round(cx - w / 2);
+      px(g, '#3a2c2a', l, top + i, Math.round(w / 2), 1); px(g, '#241a1a', l + Math.round(w / 2), top + i, Math.round(w / 2), 1);
+      px(g, '#5a4642', l, top + i, 2, 1);
+    }
+    px(g, '#ffd060', cx - 3, top, 7, 1); px(g, '#ff7a24', cx - 4, top + 1, 9, 1);
+    for (i = 2; i < H; i++) { var lx = Math.round(cx + Math.sin(i / 3.5) * 3); px(g, i < 10 ? '#ffb040' : '#ff6a2a', lx, top + i, 2, 1); if (i > 14) px(g, '#c8341a', lx + 2, top + i, 1, 1); }
+    g.globalCompositeOperation = 'lighter'; g.fillStyle = 'rgba(255,100,30,0.14)'; g.fillRect(cx - 18, top - 10, 36, 14); g.globalCompositeOperation = 'source-over';
   }
   // ---- 上に重ねる小さな動き ----
   var fxCv = null, fxT = null, parts = [], fxTheme = null;

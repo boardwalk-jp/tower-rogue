@@ -516,7 +516,7 @@ G.COMMANDERS = {   // 2026-10-22 初期デッキ・ライフを変更（オー�
   captain:  { name: '隊長', icon: 'bowman', life: 40, relic: 'cmd_captain', deck: ['bowman', 'bowman', 'bowman', 'sling', 'sling', 'warcry', 'barricade', 'recruit'],
               text: 'スキルのコストが1下がる。', sub: 'バランス型。弓・投石・号令で戦う。ライフは多め' },
   witch:    { name: '魔女', icon: 'mage', life: 34, relic: 'cmd_witch', deck: ['bowman', 'bowman', 'poison', 'poison', 'thunder', 'sling', 'aim', 'recruit'],
-              text: '魔法のタワーの攻撃力+25%。毒とやけどが1秒長く続く。', sub: '毒と雷から始まる。ライフは少なめ' },
+              text: '魔法のタワーの攻撃力+25%。毒とやけどが1秒長く続く。', sub: '毒と氷から始まる。ライフは少なめ' },
   engineer: { name: '工兵', icon: 'barracks', life: 36, relic: 'cmd_engineer', deck: ['bowman', 'bowman', 'bowman', 'sling', 'sling', 'recruit', 'barricade', 'whet', 'barrel'],
               text: 'タワーの強化の値段が20%安い。', sub: 'バリケード・爆弾樽・研ぎ石から始まる' }
 };

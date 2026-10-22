@@ -202,7 +202,32 @@ var G = window.G = window.G || {};
   }
   function seq(str) { return str.trim().split(/\s+/).map(function (x) { return x === '-' ? 0 : freq(x); }); }
   function roots(str) { return seq(str.trim().split(/\s+/).map(function (n) { return n + ' - - -'; }).join(' ')); }   // 1小節の頭だけ鳴らすベース
+  // 和音の名前（'C' 'Am' 'F#m' 'Bb' など）→ 根の音からの半音の数 [根, 3度, 5度] と、根の音の名前
+  function chord(name) { var m = /^([A-G][#b]?)(m?)$/.exec(name); return { root: m[1], iv: [0, m[2] ? 3 : 4, 7] }; }
+  function semi(f, n) { return f * Math.pow(2, n / 12); }
   var TRACKS = {
+    // ---- ワールドマップ専用の曲（2026-10-22）。16小節。chords：小節ごとの和音、arp：和音の音を順にならす飾りの音 ----
+    // 第1層 草原：明るく冒険に出る感じ（長調）
+    w1: { style: 'map', bpm: 104, lead: 'triangle', vol: 0.85, arp: { pat: [0, 1, 2, 1, 0, 1, 2, 1], oct: 4, type: 'triangle', vol: 0.05 },
+          chords: 'C G Am F C G F G Am F C G F G C C'.split(' '),
+          mel: seq('G4 - C5 - E5 - G5 - F5 - E5 D5 - B4 - - A4 - C5 - E5 - A5 - G5 F5 E5 - C5 - - - ' +
+                   'E5 - G5 - C6 - B5 A5 G5 - D5 - B4 - D5 - C5 - F5 - A5 - G5 F5 G5 - - - - - - - ' +
+                   'E5 - A5 - G5 E5 C5 - F5 - A5 - C6 - A5 - G5 - E5 - C5 - E5 G5 D6 - B5 - G5 - - - ' +
+                   'A5 - G5 F5 C5 - F5 - B5 - A5 G5 D5 - G5 - C6 - G5 - E5 - G5 - C6 - - - - - - -') },
+    // 第2層 雪山：静かで少しさみしい（短調から明るい所へ）。きらきらした鐘のような飾りの音
+    w2: { style: 'calm', bpm: 84, lead: 'sine', vol: 0.95, arp: { pat: [0, -1, 2, -1, 1, -1, 2, -1], oct: 5, type: 'sine', vol: 0.06 },
+          chords: 'Am F C G Am F E E F G Em Am Dm E Am Am'.split(' '),
+          mel: seq('E5 - - - A4 - C5 - F5 - - - C5 - A4 - G5 - - - E5 - C5 - D5 - - - B4 - G4 - ' +
+                   'A4 - C5 - E5 - A5 - G5 - F5 - E5 - C5 - B4 - - - G#4 - B4 - E5 - - - - - - - ' +
+                   'A5 - - - F5 - C5 - B5 - - - G5 - D5 - G5 - E5 - B4 - E5 - C6 - - - A5 - E5 - ' +
+                   'F5 - - - D5 - A4 - G#4 - B4 - E5 - D5 - C5 - - - E5 - - - A4 - - - - - - -') },
+    // 第3層 火山：緊張感のある短調。低い音で刻む飾りの音
+    w3: { style: 'battleSoft', bpm: 112, lead: 'triangle', vol: 0.8, arp: { pat: [0, 0, 1, 0, 2, 0, 1, 0], oct: 3, type: 'square', vol: 0.035 },
+          chords: 'Em C D Em Em C B B Am C Em Em C D B Em'.split(' '),
+          mel: seq('E4 - G4 - B4 - E5 - G5 - E5 - C5 - E5 - F#5 - A5 - D5 - F#5 - G5 - - - E5 - - - ' +
+                   'B4 - E5 - G5 - B5 - C6 - B5 - G5 - E5 - D#5 - F#5 - B5 - A5 - B5 - - - - - - - ' +
+                   'A5 - C6 - B5 - A5 - G5 - E5 - C5 - E5 - B4 - - - E5 - G5 - B5 - - - - - - - ' +
+                   'C6 - B5 - G5 - E5 - F#5 - A5 - D6 - C6 - B5 - F#5 - D#5 - B4 - E5 - - - - - - -') },
     // ---- ワールドマップ・イベント・商人・休憩の曲（戦闘よりゆったり） ----
     m1: { style: 'calm', bpm: 92, lead: 'triangle', vol: 0.75,
           mel: seq('G4 - C5 - E5 - D5 C5 D5 - - - G4 - - - A4 - C5 - F5 - E5 D5 C5 - - - - - - - ' +
@@ -262,12 +287,27 @@ var G = window.G = window.G || {};
     var calm = T.style === 'calm', soft = T.style === 'battleSoft';
     var cut = T.lead === 'sawtooth' ? 1800 : T.lead === 'square' ? 2600 : 4200;
     while (nextT < ac.currentTime + 0.25) {
-      var i = pos % len, m = T.mel[i], bs = T.bass[pos % T.bass.length];
+      var i = pos % len, m = T.mel[i], bs = T.bass ? T.bass[pos % T.bass.length] : 0;
       if (m) {
         var n = 1; while (n < 4 && T.mel[(i + n) % len] === 0 && (i + n) % 8 !== 0) n++;   // 後ろが休みなら、その分のばす（小節はまたがない）
         voice(nextT, { f: m, dur: step * (n - 0.15), type: T.lead, vol: T.vol * 0.42, bus: bgmBus, cut: cut, cutEnd: cut * 0.6, sus: calm ? 0.75 : 0.55, rel: calm ? 0.18 : 0.06 });
       }
-      if (bs) {
+      if (T.chords) {   // 和音つきの曲：ベース・うすい和音・飾りの音を、小節ごとの和音から作る
+        var C = chord(T.chords[Math.floor(pos / 8) % T.chords.length]), rf = freq(C.root + '2');
+        if (pos % 4 === 0) {
+          voice(nextT, { f: rf, dur: step * 3.8, type: 'triangle', vol: 0.48, bus: bgmBus, cut: 1200, sus: 0.7, det: [0] });
+          voice(nextT, { f: rf / 2, dur: step * 3.8, type: 'sine', vol: 0.3, bus: bgmBus, cut: 500, sus: 0.8, det: [0] });
+        }
+        if (pos % 8 === 0) C.iv.forEach(function (n, j) {
+          voice(nextT, { f: semi(rf * 2, n), dur: step * 7.8, type: calm ? 'sine' : 'triangle', vol: 0.055 - j * 0.008, bus: bgmBus, cut: 1500, att: 0.12, sus: 0.85, rel: 0.4, det: [-5, 5] });
+        });
+        var A = T.arp, ai = A && A.pat[pos % A.pat.length];
+        if (A && ai >= 0) {
+          var base = freq(C.root + A.oct), n2 = ai < 3 ? C.iv[ai] : 12;
+          voice(nextT, { f: semi(base, n2), dur: step * 0.9, type: A.type, vol: A.vol, bus: bgmBus, cut: A.type === 'square' ? 900 : 3500, sus: 0.4, rel: 0.12, det: [0] });
+        }
+      }
+      if (bs && !T.chords) {
         var bl = 1; while (bl < 4 && !T.bass[(pos + bl) % T.bass.length]) bl++;
         voice(nextT, { f: bs, dur: step * (bl - 0.2), type: 'triangle', vol: 0.5, bus: bgmBus, cut: 1400, sus: 0.7, det: [0] });
         voice(nextT, { f: bs / 2, dur: step * (bl - 0.2), type: 'sine', vol: 0.32, bus: bgmBus, cut: 600, sus: 0.8, det: [0] });
@@ -276,6 +316,7 @@ var G = window.G = window.G || {};
         });
       }
       if (calm) { if (pos % 2 === 1) drum(nextT, 'hat', 0.5, bgmBus); }
+      else if (T.style === 'map') { if (pos % 8 === 0 || pos % 8 === 5) drum(nextT, 'kick', 0.55, bgmBus); if (pos % 8 === 4) drum(nextT, 'snare', 0.35, bgmBus); if (pos % 2 === 1) drum(nextT, 'hat', 0.55, bgmBus); }
       else if (soft) { if (pos % 8 === 0) drum(nextT, 'kick', 0.7, bgmBus); if (pos % 8 === 4) drum(nextT, 'snare', 0.5, bgmBus); if (pos % 2 === 0) drum(nextT, 'hat', 0.6, bgmBus); }
       else { if (pos % 4 === 0) drum(nextT, 'kick', 1, bgmBus); if (pos % 8 === 4) drum(nextT, 'snare', 0.9, bgmBus); drum(nextT, 'hat', pos % 2 ? 0.5 : 0.9, bgmBus); }
       pos++; nextT += step;
