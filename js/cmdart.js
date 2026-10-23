@@ -96,37 +96,46 @@ function drawTile(cv, id){
   // ---- 背景：指揮官の色（acc＝暗い→明るい5色）の光とうず。火の粉は動かす ----
   G.CMD_ACC = { captain:['#06081a','#0e1838','#1c3470','#3a6ad0','#9ac4ff'], witch:['#0c0618','#1e0e34','#3e1e6a','#8a5ad8','#d8b0ff'], engineer:['#140804','#2a1206','#5a2a0e','#e07a30','#ffd08a'] };
   var BW = 90, BH = 195;
-  const NEUTRAL = ['#08070c','#121018','#22202a','#4a4652','#c8c0d0'];
+  const NEUTRAL = ['#08070c','#110f16','#1c1a24','#2e2b38','#4e4a5a'];   // 選ぶ前：暗い灰色の炎
 function hash(a,b){ const s=Math.sin(a*127.1+b*311.7)*43758.5453; return s-Math.floor(s); }
-function buildBg(acc){
-  const c = document.createElement('canvas'); c.width=BW; c.height=BH; const g=c.getContext('2d');
-  const cx = 62, cy = 62;   // 光の中心＝指揮官の胸のあたり（右上）
-  for (let y=0;y<BH;y++) for (let x=0;x<BW;x++){
-    const dx=x-cx, dy=(y-cy)*0.8, d=Math.sqrt(dx*dx+dy*dy), a=Math.atan2(dy,dx);
-    // うず：角度と距離で帯を作る（ゆるいらせん）
-    const sw = Math.sin(a*2 + d*0.09) * 0.5 + 0.5;
-    let v = Math.max(0, 1 - d/95) * 3.2 + sw*0.9 - 0.25 + (hash(x,y)-0.5)*0.5;
-    if (d < 26) v += (26-d)/26*1.2;
-    const k = Math.max(0, Math.min(4, Math.floor(v)));
-    // 2つの色の間はまだら（ディザー）にして、ドット絵らしく
-    const f = v - Math.floor(v), kk = (f > .55 && ((x+y)&1)) ? Math.min(4,k+1) : k;
-    g.fillStyle = acc[Math.min(3,kk)]; g.fillRect(x,y,1,1);
+// ---- 炎のモヤ：なめらかなノイズを下から上へ流し、横にうねらせて炎の舌のように揺らす（2026-10-23 オーナー指定） ----
+  var PERM = new Uint8Array(512); (function () { var p = [], i, k, t; for (i = 0; i < 256; i++) p[i] = i; for (i = 255; i > 0; i--) { k = Math.floor(hash(i, 7) * (i + 1)); t = p[i]; p[i] = p[k]; p[k] = t; } for (i = 0; i < 512; i++) PERM[i] = p[i & 255]; })();
+  function vnoise(x, y) {
+    var xi = Math.floor(x), yi = Math.floor(y), xf = x - xi, yf = y - yi, u = xf * xf * (3 - 2 * xf), v = yf * yf * (3 - 2 * yf);
+    xi &= 255; yi &= 255;
+    var a = PERM[PERM[xi] + yi] / 255, b = PERM[PERM[xi + 1] + yi] / 255, c = PERM[PERM[xi] + yi + 1] / 255, d = PERM[PERM[xi + 1] + yi + 1] / 255;
+    return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
   }
-  // 黒い大きなうずの帯（左下から右上へ流れる）
-  for (let y=0;y<BH;y++) for (let x=0;x<BW;x++){
-    const u = Math.sin((x*0.06 - y*0.035) + Math.sin(y*0.05)*1.3);
-    if (u > 0.78 + (hash(x+3,y)-0.5)*0.12) { g.fillStyle = '#050407'; g.fillRect(x,y,1,1); }
-    else if (u > 0.68 && ((x+y)&1)) { g.fillStyle = acc[0]; g.fillRect(x,y,1,1); }
+  function fbm(x, y) { return vnoise(x, y) * .55 + vnoise(x * 2.1, y * 2.1) * .3 + vnoise(x * 4.3, y * 4.3) * .15; }
+  function rgb(h) { return [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)]; }
+  // 1枚分を描く。t＝秒。光の中心＝指揮官の胸のあたり（右上）
+  function drawFlame(im, pal, t) {
+    var D = im.data, x, y, o = 0, cx = 62, cy = 62;
+    for (y = 0; y < BH; y++) {
+      var yy = y / BH, rise = y * .022 + t * 1.15;
+      for (x = 0; x < BW; x++, o += 4) {
+        var w = fbm(x * .03 + 3, y * .02 + t * .45) - .5;                 // 横へのうねり（ゆっくり）
+        var n = fbm(x * .11 + w * 3.2, rise);                                  // 立ちのぼる炎の模様（縦に長い舌）
+        var dx = x - cx, dy = (y - cy) * .8, d = Math.sqrt(dx * dx + dy * dy);
+        var glow = Math.max(0, 1 - d / 80);
+        // 下ほど強く燃え、上ほど細い舌になって暗く消える。指揮官の後ろはうっすら明るく
+        var p = Math.min(1, yy / .62); p = p * Math.sqrt(p);                // 炎の根もとは画面の中ほど（文字の暗い膜より上で見えるように）
+        var heat = n * (.22 + p * 1.15) + glow * .3;
+        var v = (heat - .2) * 9;
+        var k = Math.floor(v), f = v - k;
+        if (f > .5 && ((x + y + (t * 8 | 0)) & 1)) k++;                     // 色の間はまだら（ドット絵らしく）
+        k = k < 0 ? 0 : k > 4 ? 4 : k;
+        var c = pal[k]; D[o] = c[0]; D[o + 1] = c[1]; D[o + 2] = c[2]; D[o + 3] = 255;
+      }
+    }
   }
-  return c;
-}
-  // 背景のキャンバスを作る。set(id) で指揮官の色に変える（null＝選ぶ前の灰色）。画面から外れたら火の粉は止まる
+  // 背景のキャンバスを作る。set(id) で指揮官の色に変える（null＝選ぶ前の灰色）。画面から外れたら止まる
   G.cmdBg = function () {
     var cv = document.createElement('canvas'); cv.width = BW; cv.height = BH; cv.className = 'cs-bg'; cv.setAttribute('aria-hidden', 'true');
-    var g = cv.getContext('2d'), base = buildBg(NEUTRAL), acc = NEUTRAL, embers = [];
+    var g = cv.getContext('2d'), im = g.createImageData(BW, BH), acc = NEUTRAL, pal = NEUTRAL.map(rgb), embers = [], t0 = performance.now();
     for (var i = 0; i < 46; i++) embers.push({ x: Math.random() * BW, y: Math.random() * BH, s: .15 + Math.random() * .45, w: Math.random() * 6.28, big: Math.random() < .25 });
     function tick() {
-      g.drawImage(base, 0, 0);
+      drawFlame(im, pal, (performance.now() - t0) / 1000); g.putImageData(im, 0, 0);
       embers.forEach(function (e) {
         e.y -= e.s; e.w += .05; var x = e.x + Math.sin(e.w) * 2.2;
         if (e.y < -2) { e.y = BH + 2; e.x = Math.random() * BW; }
@@ -135,7 +144,7 @@ function buildBg(acc){
       });
     }
     var timer = setInterval(function () { if (!cv.isConnected) { clearInterval(timer); return; } if (cv.offsetParent) tick(); }, 66);
-    cv.set = function (id) { acc = id ? G.CMD_ACC[id] : NEUTRAL; base = buildBg(acc); tick(); };
+    cv.set = function (id) { acc = id ? G.CMD_ACC[id] : NEUTRAL; pal = acc.map(rgb); tick(); };
     tick();
     return cv;
   };

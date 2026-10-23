@@ -704,9 +704,8 @@ html.skin-classic .rampart{display:none}
 /* 全身の絵：右上に大きく。足元は文字の下に溶かす */
 #cs-hero{position:absolute;z-index:1;right:-8%;top:1%;width:84%;aspect-ratio:144/288;image-rendering:pixelated;pointer-events:none;opacity:0;
   -webkit-mask-image:linear-gradient(to bottom,#000 66%,transparent 96%);mask-image:linear-gradient(to bottom,#000 66%,transparent 96%)}
-#cs-hero.on{opacity:1;animation:cs-don .55s cubic-bezier(.2,1.4,.4,1) both, cs-breathe 3.6s ease-in-out .55s infinite}
+#cs-hero.on{opacity:1;animation:cs-don .55s cubic-bezier(.2,1.4,.4,1) both}   /* 出た後は動かさない（2026-10-23 オーナー指定） */
 @keyframes cs-don{0%{opacity:0;transform:translateX(18%) scale(1.22);filter:brightness(3) saturate(0)}35%{opacity:1;filter:brightness(1.8) saturate(.6)}100%{opacity:1;transform:none;filter:none}}
-@keyframes cs-breathe{0%,100%{transform:none}50%{transform:translateY(-.6%)}}
 #cs-flash{position:absolute;inset:0;z-index:2;pointer-events:none;opacity:0;mix-blend-mode:screen}
 #cs-flash.go{animation:cs-flash .45s ease-out}
 @keyframes cs-flash{0%{opacity:.85}100%{opacity:0}}
