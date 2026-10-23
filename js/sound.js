@@ -292,6 +292,8 @@ var G = window.G = window.G || {};
       [523, 659, 784, 1047].forEach(function (f, i) { voice(t2, { f: f, dur: 0.95, type: i ? 'square' : 'triangle', vol: 0.05, cut: 2600, cutEnd: 1200, sus: 0.7, rel: 0.4 }); });
       voice(t2, { f: 131, dur: 1.0, type: 'triangle', vol: 0.22, cut: 900, sus: 0.8, rel: 0.4, det: [0] });
     },
+    flak:   function (t) { noise(t, { dur: 0.1, vol: 0.2, f: 700, bp: true }); tone(t, { f: 520, f2: 180, dur: 0.09, type: 'square', vol: 0.07 }); },   // 対空炸裂弾：ポンと撃つ
+    flakboom: function (t) { noise(t, { dur: 0.16, vol: 0.2, f: 900 }); tone(t, { f: 200, f2: 70, dur: 0.14, type: 'sine', vol: 0.16 }); },   // 対空炸裂弾：空でパンと炸裂（大きな爆発より小さい）
     boom:   function (t) { noise(t, { dur: 0.3, vol: 0.35, f: 400 }); tone(t, { f: 90, f2: 35, dur: 0.25, type: 'sine', vol: 0.3 }); },
     boss:   function (t) { tone(t, { f: 82, dur: 0.9, type: 'sawtooth', vol: 0.18 }); tone(t, { f: 110, dur: 0.9, type: 'sawtooth', vol: 0.12, delay: 0.05 }); noise(t, { dur: 0.6, vol: 0.2, f: 300 }); },
     // ボスが砦をたたく：重い一撃＋石がくだける音
@@ -306,7 +308,7 @@ var G = window.G = window.G || {};
     lose:   function (t) { notes(t, [392, 330, 262, 196], { type: 'triangle', dur: 0.25, vol: 0.14, step: 0.22 }); }
   };
   // 同じ音が続けて鳴りすぎないように、最短の間隔（秒）
-  var GAP = { hit: 0.07, arrow: 0.05, stone: 0.06, kill: 0.05, coin: 0.08, drip: 0.08, flame: 0.08, spark: 0.06, orb: 0.06, ice: 0.06, heal: 0.2, warp: 0.25 };
+  var GAP = { hit: 0.07, arrow: 0.05, stone: 0.06, kill: 0.05, coin: 0.08, drip: 0.08, flame: 0.08, flak: 0.06, flakboom: 0.06, spark: 0.06, orb: 0.06, ice: 0.06, heal: 0.2, warp: 0.25 };
   var lastAt = {};
   function play(name) {
     if (!cfg.se || !ready() || !SFX[name]) return;

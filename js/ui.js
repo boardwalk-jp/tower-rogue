@@ -522,6 +522,7 @@ var G = window.G = window.G || {};
     // 鍛えたカード：何がどう良くなったか（前 → 後）。後ろの値はアップの色
     if (def.plus && def.plusNote) h += '<dt>鍛えた効果</dt><dd>' + def.plusNote[0] + '：' + def.plusNote[1] + ' → <b class="d-up">' + def.plusNote[2] + '</b></dd>';
     if (def.kind === 'tower' && G.TOWERS[def.tower].noAir) h += '<dt>空の敵</dt><dd>当たらない</dd>';
+    if (def.kind === 'tower' && G.TOWERS[def.tower].airOnly) h += '<dt>地上の敵</dt><dd>当たらない</dd>';
     if (def.kind === 'tower') {
       var T = G.TOWERS[def.tower], L0 = def.startLv || 0, st = B.baseStats(def.tower, L0), R = G.Rank.ofStats(st), UPS = T.up.slice(L0);
       if (T.place === 'path') h += '<dt>置ける場所</dt><dd>道の上だけ</dd>';
@@ -691,7 +692,7 @@ var G = window.G = window.G || {};
         case 'build': SND.play('build'); break;
         case 'upgrade': SND.play('upgrade'); break;
         case 'skill': SND.play('skill'); break;
-        case 'boom': SND.play(e.small ? 'stone' : 'boom'); break;
+        case 'boom': SND.play(e.flak ? 'flakboom' : e.small ? 'stone' : 'boom'); break;
         case 'broken': SND.play('boom'); break;
         case 'spawn': if (e.boss) { SND.play('boss'); if (SND.bossTheme) SND.bossTheme(true); } break;
         case 'summon': SND.play('summon'); break;

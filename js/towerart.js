@@ -626,6 +626,47 @@ var G = window.G = window.G || {};
     return trim(s);
   }
 
+  // ================= 対空炸裂弾（flak）：石の台の上で、空へ斜めに傾けた太い鉄の砲（右向きを描き、左は反転）。段階0＝1門／段階1・2＝2門 =================
+  function flakR(lv, fire) {
+    var s = sheet(), c = s.c, cx = 12, bh = [4, 5, 6][lv], bw = lv === 2 ? 21 : 20, Pb = lv === 0 ? P.stone : P.rock, i;
+    var cy = base(c, cx, bw, ds(10), hs(bh), Pb);
+    masonry(c, cx, BY, bw, hs(bh), Pb, 3);
+    if (lv >= 1) { R(c, cx - (bw >> 1), BY - hs(bh), 2, hs(bh) - 1, P.iron.f); R(c, cx + (bw >> 1) - 2, BY - hs(bh), 2, hs(bh) - 1, P.iron.s); }   // 角の鉄の補強
+    if (lv === 2) band(c, cx, BY - hs(bh), bw, GOLD, GOLD_HI);
+    // 木の回転台
+    var wy = cy + 3;
+    R(c, cx - 7, wy - 3, 14, 3, P.wood.f); R(c, cx - 7, wy - 3, 14, 1, P.wood.t); R(c, cx + 3, wy - 3, 4, 3, P.wood.s); R(c, cx - 7, wy - 1, 14, 1, P.wood.d);
+    // 砲のうしろ（尾栓）：鉄の箱。左は明るく右は影
+    var px = cx - 3, py = wy - 4;
+    R(c, px - 4, py - 3, 9, 4, P.iron.f); R(c, px - 4, py - 3, 9, 1, P.iron.t); R(c, px - 4, py - 3, 1, 4, P.iron.hi); R(c, px + 3, py - 2, 2, 3, P.iron.s); R(c, px - 4, py, 9, 1, P.iron.d);
+    if (lv === 2) { R(c, px - 1, py - 2, 3, 2, GOLD); R(c, px - 1, py - 2, 1, 1, GOLD_HI); }   // 金の軸受け
+    // 砲身：右上へ斜めにのびる（2段で1ドット右へ）。2門のときは、うしろ（左）が太い砲・手前（右）が少し短い砲
+    var L = [9, 10, 11][lv], tips = [];
+    function barrel(ox, len) {
+      for (var k = 0; k < len; k++) {
+        var x = px + ox + (k >> 1), y = py - 3 - k;
+        R(c, x - 1, y, 1, 1, P.iron.hi); R(c, x, y, 1, 1, P.iron.t); R(c, x + 1, y, 1, 1, k & 1 ? P.iron.f : P.iron.s);
+        if (lv >= 1 && (k === 3 || k === len - 3)) R(c, x - 1, y, 3, 1, lv === 2 ? GOLD : P.iron.hi);   // 補強の帯（段階1＝鉄、段階2＝金）
+      }
+      var tx = px + ox + ((len - 1) >> 1), ty = py - 3 - (len - 1);
+      R(c, tx - 2, ty, 5, 1, lv === 2 ? GOLD : P.iron.hi);                              // 砲口のふち
+      R(c, tx - 1, ty - 1, 3, 1, fire ? '#ffb347' : '#0c0a0e');                           // 砲口の穴（攻撃中は光る）
+      tips.push([tx, ty]);
+    }
+    barrel(lv === 0 ? 1 : 0, L);
+    if (lv >= 1) barrel(5, L - 2);
+    // 攻撃中：砲口の先に炎と煙
+    if (fire) tips.forEach(function (t, n) {
+      R(c, t[0], t[1] - 4, 1, 3, '#ffe27a'); R(c, t[0] - 1, t[1] - 3, 3, 2, '#ff9a2a'); R(c, t[0] - 2, t[1] - 2, 1, 1, '#ffb347'); R(c, t[0] + 2, t[1] - 2, 1, 1, '#ffb347');
+      R(c, t[0] - 1 + (n ? 2 : -1), t[1] - 6, 2, 1, '#d8d4cc');
+    });
+    // 砲弾の山（手前）：黒い鉄の玉に赤い信管
+    R(c, cx + 6, cy + 2, 2, 2, P.iron.f); R(c, cx + 6, cy + 1, 2, 1, '#d94a3a'); R(c, cx + 9, cy + 3, 2, 2, P.iron.f); R(c, cx + 9, cy + 2, 2, 1, '#d94a3a');
+    R(c, cx + 6, cy + 2, 1, 1, P.iron.hi); R(c, cx + 9, cy + 3, 1, 1, P.iron.hi);
+    flag(c, cx - (bw >> 1) + 2, cy - 1, lv === 0 ? 9 : 11, lv, true);
+    return trim(s);
+  }
+
   // ================= 大型弩砲（ballista）：石台の上の大きな弓（右向きを描き、左は反転） =================
   function ballistaR(lv, fire) {
     var s = sheet(), c = s.c, cx = 12, bh = [7, 8, 9][lv], bw = lv === 2 ? 21 : 20, Pb = lv === 0 ? P.stone : P.rock, i;
@@ -959,6 +1000,7 @@ var G = window.G = window.G || {};
     mage: mage,
     storm: storm,
     mortar: mortar,
+    flak: function (lv, fire) { var r = flakR(lv, fire); return { r: r, l: flip(r) }; },
     ballista: function (lv, fire) { var r = ballistaR(lv, fire); return { r: r, l: flip(r) }; },
     blizzard: blizzard,
     barracks: barracks,

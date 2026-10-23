@@ -540,7 +540,7 @@ var G = window.G = window.G || {};
   // ---- 報酬：カード3枚から1枚（取らなくてもよい） ----
   function showReward(n, bonus, s, savedCards) {
     var big = n.type === 'elite' || n.type === 'boss';
-    var cards = savedCards || R.rollCards(run, 3, n.type === 'boss' ? 'boss' : big ? 'elite' : 'battle');
+    var cards = savedCards || R.rollReward(run, 3, n.type === 'boss' ? 'boss' : big ? 'elite' : 'battle');
     // ボスに勝った後は、報酬を選んだら次の層の案内へ
     var after = function () { runDismiss(function () { if (run.actClear) showActClear(); else showWorld(); }); };   // 王の解任状を取った時は、先に手放すカードを選ぶ
     lastResume = { type: 'reward', cards: cards, bonus: bonus, stats: { killed: s.stats.killed, leaked: s.stats.leaked, goldEarned: s.stats.goldEarned } };

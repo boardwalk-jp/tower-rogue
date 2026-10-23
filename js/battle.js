@@ -672,7 +672,7 @@ var G = window.G = window.G || {};
       var tw = s.towers[i], T = G.TOWERS[tw.type];
       if (T.noAttack) continue;
       if (tw.frozenT > 0) { tw.frozenT -= dt; continue; }   // 吹雪の魔女に止められている間は撃たない
-      var st = towerStats(tw, s), noAir = !!T.noAir;
+      var st = towerStats(tw, s), noAir = !!T.noAir, airOnly = !!T.airOnly;   // airOnly：飛ぶ敵だけを狙い、飛ぶ敵にだけダメージ（対空炸裂弾）
       // 吹雪の塔：弾を撃たず、射程の中の敵すべてにダメージと遅くする効果
       if (T.aura) {
         tw.cd -= dt; if (tw.fire > 0) tw.fire -= dt;
@@ -690,7 +690,7 @@ var G = window.G = window.G || {};
       var best = null, bestScore = 0, score = TARGET_SCORE[tw.target] || TARGET_SCORE.first;
       for (var j = 0; j < s.enemies.length; j++) {
         var en = s.enemies[j];
-        if (en.hp <= 0 || en.y < 0 || (noAir && en.fly)) continue;
+        if (en.hp <= 0 || en.y < 0 || (noAir && en.fly) || (airOnly && !en.fly)) continue;
         var dist = Math.hypot(en.x - tw.x, en.y - tw.y);
         if (dist > st.range) continue;
         var sc = score(en, dist);
@@ -702,7 +702,7 @@ var G = window.G = window.G || {};
         var sy = tw.y - (T.muzzle !== undefined ? T.muzzle : 1.5);
         s.shots.push({ kind: T.shot, x: tw.x, y: sy, sx: tw.x, sy: sy, target: best.id,
                        tx: best.x, ty: best.y, speed: T.speed, dmg: st.dmg, dmgType: T.dmgType,
-                       splash: st.splash, poison: st.poison, slow: st.slow, burn: st.burn, chain: st.chain, t: 0, src: tw.type, noAir: noAir, vsBoss: T.vsBoss || 0, chainMul: T.chainFull ? 1 : 0.7 });
+                       splash: st.splash, poison: st.poison, slow: st.slow, burn: st.burn, chain: st.chain, t: 0, src: tw.type, noAir: noAir, airOnly: airOnly, vsBoss: T.vsBoss || 0, chainMul: T.chainFull ? 1 : 0.7 });
         ev(s, { k: 'fire', type: tw.type, x: tw.x, y: sy });
       }
     }
@@ -735,7 +735,7 @@ var G = window.G = window.G || {};
         if (sh.splash) {   // 炎：当たった所の周りにもダメージとやけど
           for (j = 0; j < s.enemies.length; j++) {
             var se = s.enemies[j];
-            if (se.hp > 0 && Math.hypot(se.x - sh.tx, se.y - (sh.ty + 0.3)) <= sh.splash) { hurt(s, se, sh.dmg, sh.dmgType, sh.src); applyOnHit(s, se, sh); }
+            if (se.hp > 0 && !(sh.airOnly && !se.fly) && Math.hypot(se.x - sh.tx, se.y - (sh.ty + 0.3)) <= sh.splash) { hurt(s, se, sh.dmg, sh.dmgType, sh.src); applyOnHit(s, se, sh); }
           }
         } else if (tgt && tgt.hp > 0) { hurt(s, tgt, sh.dmg * (sh.vsBoss && G.ENEMIES[tgt.type].boss ? sh.vsBoss : 1), sh.dmgType, sh.src); applyOnHit(s, tgt, sh); }
         // 雷：近くの敵へ順に飛び移る（70%のダメージ）
@@ -753,7 +753,8 @@ var G = window.G = window.G || {};
             hurt(s, nx, sh.dmg * sh.chainMul, sh.dmgType, sh.src); hit.push(nx.id); from = nx;
           }
         }
-        ev(s, { k: sh.kind === 'orb' ? 'zap' : sh.kind === 'ice' ? 'frost' : sh.kind === 'drip' ? 'splat' : sh.kind === 'flame' ? 'flame' : sh.kind === 'spark' ? 'zap' : 'pin', x: sh.tx, y: sh.ty, src: sh.src, kind: sh.kind, x0: sh.sx, y0: sh.sy });   // x0,y0：撃った所（雷の線を塔から引くため。絵だけに使う）
+        if (sh.kind === 'flak') ev(s, { k: 'boom', x: sh.tx, y: sh.ty + 0.3, r: sh.splash, flak: true, src: sh.src });   // 対空炸裂弾：軽い爆発（画面はゆらさない）
+        else ev(s, { k: sh.kind === 'orb' ? 'zap' : sh.kind === 'ice' ? 'frost' : sh.kind === 'drip' ? 'splat' : sh.kind === 'flame' ? 'flame' : sh.kind === 'spark' ? 'zap' : 'pin', x: sh.tx, y: sh.ty, src: sh.src, kind: sh.kind, x0: sh.sx, y0: sh.sy });   // x0,y0：撃った所（雷の線を塔から引くため。絵だけに使う）
         s.shots.splice(i, 1);
       } else { sh.x += dx / dist * step; sh.y += dy / dist * step; }
     }

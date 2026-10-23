@@ -129,10 +129,10 @@ function playRun(seed, log, cmdId) {
       G.Run.finishBattle(run, s);
       steps.push(n.floor + n.type[0] + '(-' + (lifeBefore - s.life) + ')');
       if (run.secondBoss) { run.secondBoss = false; var s2 = fight(G.Run.battleOpts(run)); G.Run.finishBattle(run, s2); steps.push('B2(-' + (lifeBefore - s2.life) + ')'); }   // A10：2体目の3層ボス
-      if (run.actClear) { var cs = G.Run.rollCards(run, 3, 'boss'); G.Run.logPick(run, 'boss', cs, cs[0]); G.Run.addCard(run, cs[0]); G.Run.addRelic(run, G.Run.rollRelic(run, 'elite')); G.Run.nextAct(run); steps.push('| 第' + run.act + '層'); continue; }
+      if (run.actClear) { var cs = G.Run.rollReward(run, 3, 'boss'); G.Run.logPick(run, 'boss', cs, cs[0]); G.Run.addCard(run, cs[0]); G.Run.addRelic(run, G.Run.rollRelic(run, 'elite')); G.Run.nextAct(run); steps.push('| 第' + run.act + '層'); continue; }
       if (!run.over) {
         if (n.type === 'elite' || n.type === 'boss') G.Run.addRelic(run, G.Run.rollRelic(run, 'elite'));
-        var cards = G.Run.rollCards(run, 3, n.type === 'boss' ? 'boss' : n.type === 'elite' ? 'elite' : 'battle');
+        var cards = G.Run.rollReward(run, 3, n.type === 'boss' ? 'boss' : n.type === 'elite' ? 'elite' : 'battle');
         G.Run.logPick(run, n.type, cards, cards[0]); G.Run.addCard(run, cards[0]);
       }
     } else if (n.type === 'rest') {

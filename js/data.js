@@ -372,6 +372,12 @@ G.TOWERS = {
     name: '大型弩砲', muzzle: 0.9, cost: 3, range: 3.6, dmg: 40, rate: 2.4, dmgType: 'physical', shot: 'bolt', speed: 14,
     text: '遠くまで届く重い矢。1発が大きい。',
     up: [{ cost: 40, dmg: 62, range: 3.9, rate: 2.3 }, { cost: 80, dmg: 90, range: 4.2, rate: 2.2 }]
+  },
+  // 2026-10-24 新カード（オーナー指定：物理・アンコモン・コスト1・飛んでいる敵だけを攻撃・1秒に1発・爆発1.5マス・威力25）。射程と強化の値はこちらで決めた（アンコモンの弓兵の塔と同じ形）
+  flak: {
+    name: '対空炸裂弾', airOnly: true, muzzle: 1.0, cost: 1, range: 2.6, dmg: 25, rate: 1.0, dmgType: 'physical', shot: 'flak', speed: 10, splash: 1.5,
+    text: '空を飛ぶ敵だけを狙い、当たった所で爆発して、近くの飛ぶ敵もまとめて攻撃する。地上の敵にはダメージが入らない。',
+    up: [{ cost: 25, dmg: 36, range: 2.9, rate: 0.9, splash: 1.6 }, { cost: 50, dmg: 50, range: 3.2, rate: 0.8, splash: 1.7 }]
   }
 };
 
@@ -403,6 +409,7 @@ G.CARDS = {
   blizzard: { kind: 'tower', tower: 'blizzard', rarity: 'rare' },
   golem:    { kind: 'tower', tower: 'golem', rarity: 'rare' },
   dart:     { kind: 'tower', tower: 'dart', rarity: 'common' },
+  flak:     { kind: 'tower', tower: 'flak', rarity: 'uncommon' },
   fire:     { kind: 'tower', tower: 'fire', rarity: 'uncommon' },
   thunder:  { kind: 'tower', tower: 'thunder', rarity: 'uncommon' },
   mine:     { kind: 'tower', tower: 'mine', rarity: 'common' },
@@ -838,6 +845,7 @@ G.RULES = {
   battleGold: { battle: 10, elite: 30 },   // 戦闘に勝った時のおまけのお金
   restHealPct: 0.5,   // たき火の「休む」で回復するライフ＝最大ライフの何割か（2026-10-24 オーナー指定。前：固定で12→20。端数は四捨五入）
   bossHit: { every: 2.5, dmg: 7, finalDmg: 10 },   // 砦の前で止まったボスの攻撃（間隔の秒・1回で減るライフ。ラスボスは finalDmg）
+  plusRewardChance: 0.03,   // カード報酬（戦闘・エリート・ボスの勝利後の3択）で、1枚ごとに鍛えた状態（＋）で出る確率（2026-10-24 オーナー指定）
   bossHp: 0.7,        // ボスの体力の倍率（階が進む分の倍率はボスにはかけず、層の倍率×これ）
   easyBattles: 3,     // 各層の最初の3回の通常戦闘は、その層で弱い方の攻撃のひな形から選ぶ
   easyPool: 3,        // 弱い順に何個のひな形から選ぶか

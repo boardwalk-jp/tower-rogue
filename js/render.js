@@ -471,6 +471,14 @@ var G = window.G = window.G || {};
     } else if (sh.kind === 'drip') {   // 毒のしずく：こい緑のふち・明るい緑・白い光。しずくが落ちる
       DA.disc(b, Math.round(x), Math.round(y), 3, '#2e6a1e'); DA.disc(b, Math.round(x), Math.round(y), 2, '#7ac84a'); P2(x - 1, y - 1, 1, 1, '#e8ffd0');
       if (Math.random() < 0.3) parts.push({ x: x, y: y + 2, vx: 0, vy: 10, g: 40, life: 0.3, ml: 0.3, col: '#7ac84a' });
+    } else if (sh.kind === 'flak') {   // 対空炸裂弾：黒い鉄の小さな砲弾。後ろにけむりの尾、うしろに導火線の火花
+      var fka = Math.cos(sh.ang || 0), fkb = Math.sin(sh.ang || 0) * 0.75;
+      tr = trail(sh, x, y, 6);
+      for (k = 1; k < tr.length; k++) { b.globalAlpha = 0.55 * (1 - k / tr.length); DA.disc(b, Math.round(tr[k][0]), Math.round(tr[k][1]), k < 3 ? 2 : 1, k < 3 ? '#e8e4dc' : '#a8a49c'); }
+      b.globalAlpha = 1;
+      DA.disc(b, Math.round(x), Math.round(y), 2, '#2a2c34'); P2(x - 1, y - 1, 1, 1, '#8a8e9a');
+      P2(x - fka * 3, y - fkb * 3, 1, 1, Math.random() < 0.5 ? '#ffcf5a' : '#ff8a2a');
+      glowDot(x, y, 3, '#ffcf6a', 0.18);
     } else if (sh.kind === 'orb') {   // 魔法の玉：紫の光の輪と、きらきらの尾
       tr = trail(sh, x, y, 6);
       for (k = 1; k < tr.length; k++) { b.globalAlpha = 0.6 * (1 - k / tr.length); P2(tr[k][0] + (k % 2 ? 1 : -1), tr[k][1], 1, 1, k % 2 ? '#e8d0ff' : '#9a6ad8'); }
@@ -533,13 +541,16 @@ var G = window.G = window.G || {};
       } else if (e.k === 'boom') {   // 爆発：レア度が高いほど大きな火の玉・二重の輪・がれき・ゆれ
         var bt = tierOf(e.src);
         if (e.small) burst(e.x, e.y, 9, ['#9ca1a7', '#cfc2ab', '#6b5235'], 39, 90, 0.4);
-        else {
+        else if (e.flak) {   // 対空炸裂弾：白〜オレンジの丸い炸裂とけむり。1秒に1回ほど起きるので、画面はゆらさない
+          burst(e.x, e.y, 12, ['#fff2c0', '#ffcf6a', '#ff9a3a', '#8a8680'], 55, 20, 0.4);
+          booms.push({ x: sx(e.x), y: sy(e.y), r: Math.round(e.r * TW * 0.4), life: 0.3, ml: 0.3, tier: 1 });
+        } else {
           burst(e.x, e.y, 14 + bt * 8, ['#ffb347', '#ffe08a', '#ff6b3a', '#5a5048'], 60 + bt * 15, 40, 0.5 + bt * 0.1);
           booms.push({ x: sx(e.x), y: sy(e.y), r: Math.round(e.r * TW * (0.45 + bt * 0.1)), life: 0.35 + bt * 0.1, ml: 0.35 + bt * 0.1, tier: bt });
           if (bt === 2) { burst(e.x, e.y, 10, ['#3a3430', '#5a5048', '#2a2420'], 50, 120, 0.8); rings.push({ x: sx(e.x), y: sy(e.y), r: 4, max: e.r * TW * 1.25, col: '#ffffff', life: 0.25, ml: 0.25 }); }
           addShake(e.r >= 1.4 ? 2.5 + bt : 1 + bt * 0.5);
         }
-        rings.push({ x: sx(e.x), y: sy(e.y), r: 2, max: e.r * TW, col: e.small ? '#cfc2ab' : '#ffcf6a', life: 0.3, ml: 0.3, w: e.small ? 1 : 2 });
+        rings.push({ x: sx(e.x), y: sy(e.y), r: 2, max: e.r * TW, col: e.small ? '#cfc2ab' : e.flak ? '#fff2c0' : '#ffcf6a', life: 0.3, ml: 0.3, w: e.small || e.flak ? 1 : 2 });
       } else if (e.k === 'spawn') { // 入口（画面の上）から現れた時：ボスだけ衝撃を出す
         if (e.boss) { addShake(4); rings.push({ x: sx(e.x), y: sy(e.y), r: 4, max: 40, col: '#ff4d3a', life: 0.7, ml: 0.7 }); }
       } else if (e.k === 'chain') {

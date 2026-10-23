@@ -295,6 +295,10 @@ var G = window.G = window.G || {};
                  shop: { common: 50, uncommon: 35, rare: 15 }, rare: { common: 0, uncommon: 40, rare: 60 } };
   // shop：true なら商人だけで出るカード（shopOnly：びっくり箱）も入れる
   function cardPool(shop) { return Object.keys(G.CARDS).filter(function (id) { var c = G.CARDS[id]; return c.rarity !== 'starter' && !c.plus && unlocked('card', id) && (shop || !c.shopOnly); }); }
+  // カード報酬（戦闘・エリート・ボスの勝利後の3択）：1枚ごとに G.RULES.plusRewardChance（3%）の確率で、鍛えた状態（＋）で出る（2026-10-24 オーナー指定）。商人・イベントのカードには使わない
+  function rollReward(run, n, table) {
+    return rollCards(run, n, table).map(function (id) { return G.CARDS[id + '+'] && run.rand() < G.RULES.plusRewardChance ? id + '+' : id; });
+  }
   function rollCards(run, n, table) {
     // ボスの報酬：レアのカードだけから選ぶ。足りない時はアンコモンで埋める
     if (table === 'boss') {
@@ -475,7 +479,7 @@ var G = window.G = window.G || {};
 
   G.Run = {
     create: create, reachable: reachable, enter: enter, node: node, battleOpts: battleOpts, finishBattle: finishBattle,
-    rollCards: rollCards, addCard: addCard, choiceBlocked: choiceBlocked, removeCard: removeCard, shopStock: shopStock,
+    rollCards: rollCards, rollReward: rollReward, addCard: addCard, choiceBlocked: choiceBlocked, removeCard: removeCard, shopStock: shopStock,
     rollEvent: rollEvent, eventChoice: eventChoice, gainXp: gainXp, nextUnlock: nextUnlock, unlocked: unlocked, metaLoad: metaLoad, metaSave: metaSave, count: count, easyTemplates: easyTemplates, tplScore: tplScore, upgradeCard: upgradeCard, canUpgradeCard: canUpgradeCard, bossName: bossName, bossType: bossType, nextAct: nextAct, allRoutes: allRoutes, rest: rest, restAmount: restAmount, rollRelic: rollRelic, addRelic: addRelic, price: price, toSave: toSave, fromSave: fromSave, logPick: logPick, logSet: logSet, logAdd: logAdd, report: report
   };
 })();
