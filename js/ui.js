@@ -85,7 +85,12 @@ var G = window.G = window.G || {};
     d.className = 'card ' + (def.kind === 'skill' ? 'skill' : 'tower') + ' r-' + def.rarity + (def.plus ? ' plus' : '');
     d.setAttribute('role', 'button'); d.setAttribute('aria-label', def.name + ' エネルギー' + cost);
     d.innerHTML = '<span class="top"><span class="cost">' + cost + '</span><span class="nm"></span></span>';
-    d.querySelector('.nm').textContent = def.name;
+    // 名前が長いとカードからはみ出すので、「＋」は小さい記号にして、文字の大きさは名前の長さに合わせて縮める（css の .nm .t）。2026-10-24
+    var nmEl = d.querySelector('.nm'), base = def.name.replace(/＋$/, ''), isPlus = base !== def.name;
+    var t = document.createElement('span'); t.className = 't'; t.textContent = base;
+    if (isPlus) { var pl = document.createElement('i'); pl.textContent = '＋'; t.appendChild(pl); }
+    nmEl.style.setProperty('--n', String(base.length + (isPlus ? 0.6 : 0)));
+    nmEl.appendChild(t);
     d.appendChild(cardArt(card.id));
     if (card.temp || def.exhaust) { var tg = document.createElement('span'); tg.className = 'tag'; tg.textContent = '使い切り'; d.appendChild(tg); }
     return d;
