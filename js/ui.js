@@ -609,6 +609,10 @@ var G = window.G = window.G || {};
 
   // ---- ボタン ----
   $('btn-go').addEventListener('click', function () {
+    // ボスが出てくる攻撃（ボス戦の最後の攻撃）を始める時は、速度を一度 ×1 に戻す（2026-10-24 オーナー指定。始まった後は、また自由に変えられる）
+    if (s.phase === 'prep' && speed !== 1 && (s.waves[s.turn] || []).some(function (g) { return G.ENEMIES[g.type].boss; })) {
+      speed = 1; $('speed').value = 1; $('speed-val').textContent = '×1';
+    }
     closeGateInfo(); B.startAttack(s); renderInfo(); renderHud(true);
   });
   $('btn-draw').addEventListener('click', function () {
