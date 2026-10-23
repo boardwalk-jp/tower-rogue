@@ -27,7 +27,7 @@ var G = window.G = window.G || {};
     var X = G.XP_RULES, n = node(run), bosses = (run.won ? G.RULES.acts : run.act - 1) + (run.boss2Fight ? 1 : 0);   // A10 の1体目に勝っていれば+1
     var elites = run.stats.elites, normal = Math.max(0, run.stats.battles - elites - bosses);
     var floors = (run.act - 1) * (G.RULES.floors + 1) + (n ? (n.type === 'boss' ? G.RULES.floors + 1 : n.floor + 1) : 0);
-    var rows = [['通常戦闘の勝利', normal, X.battle], ['エリートの勝利', elites, X.elite], ['ボスの撃破', bosses, X.boss], ['進んだ日数', floors, X.floor]];
+    var rows = [['通常戦闘の勝利', normal, X.battle], ['エリートの勝利', elites, X.elite], ['ボスの撃破', bosses, X.boss], ['戦った日数', floors, X.floor]];
     if (run.won) rows.push(['全地域クリア', 1, X.clear]);
     if (run.asc) rows.push(['アセンション' + run.asc + 'のおまけ（+' + run.asc * 10 + '%）', 1, 0]);
     var add = rows.reduce(function (a, r) { return a + r[1] * r[2]; }, 0);
