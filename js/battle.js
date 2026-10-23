@@ -109,7 +109,7 @@ var G = window.G = window.G || {};
   function cardCost(card, s) {
     var c = card.cost !== undefined ? card.cost : cardDef(card).cost;
     if (s && s.freeTowers > 0 && cardDef(card).kind === 'tower') return 0;   // 設計の天才：タワーのカードが0
-    if (s && cardDef(card).kind === 'skill' && has(s, 'cmd_captain')) c = Math.max(0, c - has(s, 'cmd_captain'));   // 隊長の勲章（騎士隊長）：スキルのコスト-1（0より下にはならない）
+    if (s && cardDef(card).kind === 'skill' && cardDef(card).buff && has(s, 'cmd_captain')) c = Math.max(0, c - has(s, 'cmd_captain'));   // 隊長の勲章（騎士隊長）：攻撃力・攻撃速度を上げるスキル（buff: true）のコスト-1（0より下にはならない）
     return c;
   }
 
@@ -136,7 +136,7 @@ var G = window.G = window.G || {};
     s.soldiers.forEach(function (u) { u.dead = 0; u.hp = u.max; u.eng = null; u.x = u.hx; u.y = u.hy; });
     // 前のターンの手札は捨て札へ（使い切りの一時カードは消える）
     while (s.hand.length) { var c = s.hand.pop(); if (c.temp) s.exhaust.push(c); else s.discard.push(c); }
-    for (var i = 0; i < G.RULES.drawPerTurn + has(s, 'crown'); i++) drawOne(s);
+    for (var i = 0; i < G.RULES.drawPerTurn + has(s, 'crown') + (s.turn === 0 && has(s, 'cmd_engineer') ? 2 : 0); i++) drawOne(s);   // 熟練工兵の工具箱（工兵将校）：バトル最初のドロー+2
     ev(s, { k: 'prep', turn: s.turn });
   }
 
@@ -309,7 +309,7 @@ var G = window.G = window.G || {};
   function upgradeCost(tw, s) {
     var T = G.TOWERS[tw.type];
     if (tw.lv >= T.up.length) return null;
-    return has(s, 'cmd_engineer') ? Math.round(T.up[tw.lv].cost * 0.7) : T.up[tw.lv].cost;   // 熟練工兵の工具箱（工兵将校。2026-10-22 に20%→30%引き）
+    return T.up[tw.lv].cost;   // 2026-10-24 工具箱の値引きは廃止（最初のドロー+2に変更）
   }
   function upgrade(s, towerId) {
     var tw = findTower(s, towerId);

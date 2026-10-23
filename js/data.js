@@ -384,7 +384,7 @@ G.CARDS = {
   bowman:   { kind: 'tower', tower: 'bowman', rarity: 'starter' },
   sling:    { kind: 'tower', tower: 'sling', rarity: 'starter' },
   recruit:  { kind: 'tower', tower: 'recruit', rarity: 'starter' },   // 初期デッキ用（報酬・商人には出ない）
-  aim:      { kind: 'skill', name: '狙い撃ち', cost: 0, target: 'tower', rarity: 'starter', icon: 'eye', mult: 1.5,
+  aim:      { kind: 'skill', buff: true, name: '狙い撃ち', cost: 0, target: 'tower', rarity: 'starter', icon: 'eye', mult: 1.5,
               text: 'タワー1つの攻撃力をこのターンだけ1.5倍。' },
 
   watch:    { kind: 'tower', tower: 'watch', rarity: 'common' },
@@ -412,28 +412,28 @@ G.CARDS = {
 
   supply:   { kind: 'skill', name: '補給', cost: 1, target: 'none', rarity: 'uncommon', icon: 'bag', n: 2,   // 2026-10-22 コスト0→1（オーナー指定）
               text: 'カードを2枚引く。' },
-  whet:     { kind: 'skill', name: '研ぎ石', cost: 0, target: 'tower', rarity: 'common', icon: 'stone', amount: 3,
+  whet:     { kind: 'skill', buff: true, name: '研ぎ石', cost: 0, target: 'tower', rarity: 'common', icon: 'stone', amount: 3,
               text: 'タワー1つの攻撃力を+3（この戦闘中ずっと）。' },
   tax:      { kind: 'skill', name: '臨時徴税', cost: 0, target: 'none', rarity: 'common', icon: 'coin', exhaust: true, gold: 50,   // 2026-10-22 +20→+50（オーナー指定）
               text: 'お金+50。使い切り（この戦闘中は戻らない）。' },
   forge:    { kind: 'skill', name: '鍛冶仕事', cost: 1, target: 'tower', rarity: 'uncommon', icon: 'hammer',
               text: 'タワー1つをお金を使わずにLv+1（この戦闘中ずっと）。' },
-  warcry:   { kind: 'skill', name: '号令', cost: 1, target: 'none', rarity: 'uncommon', icon: 'horn', mult: 1.5,
+  warcry:   { kind: 'skill', buff: true, name: '号令', cost: 1, target: 'none', rarity: 'uncommon', icon: 'horn', mult: 1.5,
               text: 'すべてのタワーの攻撃速度をこのターンだけ1.5倍。' },
   timestop: { kind: 'skill', name: 'ストップ', cost: 1, target: 'none', rarity: 'rare', icon: 'hourglass', sec: 3,   // 2026-10-22 名前「時止め」→「ストップ」・コスト2→1（オーナー指定）
               text: '次の3秒間（攻撃中）、すべての敵が止まる。ボスは半分の速さになる。' },
   masterwork: { kind: 'skill', name: '名匠の技', cost: 1, target: 'tower', rarity: 'rare', icon: 'star', exhaust: true,
               text: 'タワー1つを、お金を使わずに最大レベルまで強化（この戦闘中ずっと）。使い切り。' },
   patch:    { kind: 'skill', name: '応急手当', cost: 0, target: 'none', rarity: 'common', icon: 'bandage', exhaust: true, heal: 3,
-              text: 'ライフ+3（最大ライフまで）。使い切り。' },
-  focus:    { kind: 'skill', name: '集中', cost: 0, target: 'tower', rarity: 'common', icon: 'target', mult: 1.5,
+              text: '砦の耐久値+3（砦の最大耐久値まで）。使い切り。' },
+  focus:    { kind: 'skill', buff: true, name: '集中', cost: 0, target: 'tower', rarity: 'common', icon: 'target', mult: 1.5,
               text: 'タワー1つの攻撃速度をこのターンだけ1.5倍。' },
   bounty:   { kind: 'skill', name: '懸賞金', cost: 1, target: 'none', rarity: 'uncommon', icon: 'poster', mult: 2,
               text: 'このターン、敵を倒した時のお金が2倍。' },
-  rally:    { kind: 'skill', name: '総攻撃', cost: 1, target: 'none', rarity: 'rare', icon: 'sword', mult: 1.6,
+  rally:    { kind: 'skill', buff: true, name: '総攻撃', cost: 1, target: 'none', rarity: 'rare', icon: 'sword', mult: 1.6,
               text: 'すべてのタワーの攻撃力をこのターンだけ1.6倍。' },
   // ---- ここから下は、経験値をためると解放されるカード（unlock: true） ----
-  overclock: { kind: 'skill', name: '過負荷', cost: 1, target: 'none', rarity: 'rare', icon: 'gear', mult: 2, unlock: true,
+  overclock: { kind: 'skill', buff: true, name: '過負荷', cost: 1, target: 'none', rarity: 'rare', icon: 'gear', mult: 2, unlock: true,
               text: 'すべてのタワーの攻撃速度をこのターンだけ2倍。' },
   architect: { kind: 'skill', name: '設計の天才', cost: 1, target: 'none', rarity: 'rare', icon: 'scroll', n: 2, unlock: true,
               text: 'このターン、次に使うタワーのカード2枚のエネルギーが0になる。' },
@@ -474,7 +474,7 @@ G.PLUS_SKILL = {
   timestop: { sec: 4, text: '次の4秒間（攻撃中）、すべての敵が止まる。ボスは半分の速さになる。', plusNote: ['止める時間', '3秒', '4秒'] },
   surprise: { cost: 0, text: 'ランダムなアンコモンかレアのタワーを1枚、エネルギー0で手札に加える（この戦闘だけ）。使い切り。', plusNote: ['エネルギー', '1', '0'] },
   masterwork: { cost: 0, text: 'タワー1つを、お金を使わずに最大レベルまで強化（この戦闘中ずっと）。使い切り。', plusNote: ['エネルギー', '1', '0'] },
-  patch:    { heal: 5, text: 'ライフ+5（最大ライフまで）。使い切り。', plusNote: ['回復', '+3', '+5'] },
+  patch:    { heal: 5, text: '砦の耐久値+5（砦の最大耐久値まで）。使い切り。', plusNote: ['回復', '+3', '+5'] },
   focus:    { mult: 2, text: 'タワー1つの攻撃速度をこのターンだけ2倍。', plusNote: ['攻撃速度の倍率', '1.5倍', '2倍'] },
   bounty:   { cost: 0, text: 'このターン、敵を倒した時のお金が2倍。', plusNote: ['エネルギー', '1', '0'] },
   rally:    { mult: 2, text: 'すべてのタワーの攻撃力をこのターンだけ2倍。', plusNote: ['攻撃力の倍率', '1.6倍', '2倍'] },
@@ -503,7 +503,7 @@ G.ASCENSION = [
   // 文のきまり（2026-10-22 オーナー指定）：お金・速さ・ライフだけ数字を書き、ほかは「増える」「上がる」とざっくり書く
   // 指揮官を選ぶ画面には、選んだ段の文だけを「さらに、」をつけて出す（A1 だけ「さらに」なし）。文の中に「さらに」はつけない。tag は「さらに、」の前に出す
   { lv: 1, text: 'エリートの体力が増える', elite: 1.15 },
-  { lv: 2, text: '最大ライフ-4', life: 4 },
+  { lv: 2, text: '砦の最大耐久値-4', life: 4 },
   { lv: 3, text: '通常の敵の体力が増える', hp: 1.05 },
   { lv: 4, text: 'ボスの体力が増える', boss: 1.06 },
   { lv: 5, text: '戦闘で手に入るお金が15%減る', gold: 0.85 },
@@ -530,12 +530,12 @@ G.ascMods = function (a) {
   return m;
 };
 G.COMMANDERS = {   // 2026-10-22 初期デッキ・ライフを変更、名前を 隊長→騎士隊長・魔女→宮廷魔導師・工兵→工兵将校 に（オーナー指定）
-  captain:  { name: '騎士隊長', icon: 'bowman', life: 40, relic: 'cmd_captain', deck: ['bowman', 'bowman', 'bowman', 'sling', 'sling', 'warcry', 'barricade', 'recruit'],
-              text: 'スキルのコストが1下がる。', sub: '指揮にすぐれ、スキルを使いこなす指揮官。ライフが多い。' },
+  captain:  { name: '騎士隊長', icon: 'bowman', life: 36, relic: 'cmd_captain', deck: ['bowman', 'bowman', 'bowman', 'sling', 'sling', 'warcry', 'barricade', 'recruit'],
+              text: '攻撃力・攻撃速度を上げるスキルのコストが1下がる。', sub: '指揮にすぐれ、スキルを使いこなす指揮官。' },
   witch:    { name: '宮廷魔導師', icon: 'mage', life: 34, relic: 'cmd_witch', deck: ['bowman', 'bowman', 'poison', 'poison', 'thunder', 'sling', 'aim', 'recruit'],
-              text: '魔法のタワーの攻撃力+25%。毒とやけどが1秒長く続く。', sub: '魔法に長け、魔法攻撃力が高いがライフが少ない。' },
-  engineer: { name: '工兵将校', icon: 'barracks', life: 36, relic: 'cmd_engineer', deck: ['bowman', 'bowman', 'bowman', 'sling', 'sling', 'recruit', 'barricade', 'whet', 'barrel'],
-              text: 'タワーの強化の値段が30%安い。', sub: 'タワー建設・強化に特化した指揮官。' }
+              text: '魔法のタワーの攻撃力+25%。毒とやけどが1秒長く続く。', sub: '魔法に長け、魔法攻撃力が高いが砦の耐久値が低い。' },
+  engineer: { name: '工兵将校', icon: 'barracks', life: 40, relic: 'cmd_engineer', deck: ['bowman', 'bowman', 'bowman', 'sling', 'sling', 'recruit', 'barricade', 'whet'],
+              text: 'バトルごとの最初のドローが2枚増える。', sub: 'タワー建設に特化した指揮官。砦の耐久値が高い。' }
 };
 
 // ============================================================
@@ -696,49 +696,49 @@ G.EVENTS = [
               { label: 'カードを1枚手放す', note: '-●30', effect: 'removeCard', gold: -30 },
               { label: '立ち去る', effect: 'none' }] },
   { id: 'spring', acts: [1], title: '不思議な泉', text: '澄んだ水がわき出ている。底には金貨が光っている。',
-    choices: [{ label: '水を飲む', note: 'ライフ+8', effect: 'heal', amount: 8 },
+    choices: [{ label: '水を飲む', note: '砦の耐久値+8', effect: 'heal', amount: 8 },
               { label: '金貨を投げ入れる', note: '-●10、ランダムなカードを1枚得る', effect: 'randomCard', gold: -10 }] },
   { id: 'fallen', acts: [1, 2], title: '倒れた冒険者', text: '冒険者が倒れている。荷物は手つかずのようだ。',
-    choices: [{ label: '荷物を探す', note: '+●40、ライフ-4', effect: 'goldLife', gold: 40, life: -4 },
-              { label: '弔う', note: 'ライフ+3', effect: 'heal', amount: 3 }] },
+    choices: [{ label: '荷物を探す', note: '+●40、砦の耐久値-4', effect: 'goldLife', gold: 40, life: -4 },
+              { label: '弔う', note: '砦の耐久値+3', effect: 'heal', amount: 3 }] },
   { id: 'gambler', acts: [1, 2, 3], title: '賭け好きの商人', text: '「コインの裏表、当てたら3倍だ」',
     choices: [{ label: '●20を賭ける', note: '50%で+●60', effect: 'gamble', gold: -20, win: 60 },
               { label: '断る', effect: 'none' }] },
   { id: 'altar', acts: [3], title: '古い祭壇', text: '赤い石の祭壇。ささげ物をすれば力を授けるという。',
-    choices: [{ label: '血をささげる', note: 'ライフ-6、珍しいカードを3枚から1枚選ぶ', effect: 'rareCard', life: -6 },
+    choices: [{ label: '血をささげる', note: '砦の耐久値-6、珍しいカードを3枚から1枚選ぶ', effect: 'rareCard', life: -6 },
               { label: '立ち去る', effect: 'none' }] },
   { id: 'child', acts: [1], title: '迷子の子ども', text: '泣いている子どもがいる。家まで送ると遠回りになりそうだ。',
-    choices: [{ label: '家まで送る', note: 'ライフ-3、お礼にレリックを1つ', effect: 'relic', life: -3 },
+    choices: [{ label: '家まで送る', note: '砦の耐久値-3、お礼にレリックを1つ', effect: 'relic', life: -3 },
               { label: '道だけ教える', note: '+●15（親からのお礼）', effect: 'goldLife', gold: 15 }] },
   { id: 'box', acts: [1, 2, 3], title: '謎の宝箱', text: '古びた宝箱。鍵はかかっていないが、何かの気配がする。',
-    choices: [{ label: '開ける', note: '50%でレリック、50%でライフ-6', effect: 'box' },
+    choices: [{ label: '開ける', note: '50%でレリック、50%で砦の耐久値-6', effect: 'box' },
               { label: '開けない', effect: 'none' }] },
   { id: 'forge', acts: [3], title: '溶岩の鍛冶場', text: '溶岩の熱を使う鍛冶場。「同じ道具をもう1つ作ってやろう」',
     choices: [{ label: 'カードを1枚複製する', note: '-●40、選んだカードと同じものをデッキに追加', effect: 'copyCard', gold: -40 },
               { label: '立ち去る', effect: 'none' }] },
   { id: 'hut', acts: [2], title: '雪山の小屋', text: '暖炉のある無人の小屋。薪が積んである。',
-    choices: [{ label: '暖まって休む', note: 'ライフ+6', effect: 'heal', amount: 6 },
+    choices: [{ label: '暖まって休む', note: '砦の耐久値+6', effect: 'heal', amount: 6 },
               { label: '薪を売りに持っていく', note: '+●25', effect: 'goldLife', gold: 25 }] },
   { id: 'shrine', acts: [2], title: '氷の祠', text: '氷に閉じ込められた祠。中に何かが光っている。',
-    choices: [{ label: '素手で氷を割る', note: 'ライフ-5、レリックを1つ', effect: 'relic', life: -5 },
-              { label: '祈るだけにする', note: 'ライフ+4', effect: 'heal', amount: 4 }] },
+    choices: [{ label: '素手で氷を割る', note: '砦の耐久値-5、レリックを1つ', effect: 'relic', life: -5 },
+              { label: '祈るだけにする', note: '砦の耐久値+4', effect: 'heal', amount: 4 }] },
   { id: 'stranded', acts: [2], title: '遭難した旅人', text: '雪に埋もれかけた旅人がいる。「食べ物を分けてくれないか」',
-    choices: [{ label: '食料を分ける', note: '-●20、最大ライフ+4', effect: 'maxLife', gold: -20, amount: 4 },
+    choices: [{ label: '食料を分ける', note: '-●20、砦の最大耐久値+4', effect: 'maxLife', gold: -20, amount: 4 },
               { label: '道を急ぐ', effect: 'none' }] },
   { id: 'firespring', acts: [3], title: '火の泉', text: '煮えたぎる泉。浴びれば体がきたえられるという。',
-    choices: [{ label: '泉を浴びる', note: 'ライフ-8、最大ライフ+6', effect: 'maxLife', life: -8, amount: 6 },
+    choices: [{ label: '泉を浴びる', note: '砦の耐久値-8、砦の最大耐久値+6', effect: 'maxLife', life: -8, amount: 6 },
               { label: '立ち去る', effect: 'none' }] },
   // 傭兵団の野営地（2026-10-23 オーナー指定・全層）。say：選んだ後に出る文。se：選んだ時の効果音
   //   needLife：ライフがこの数より少ないと選べない（ライフ15以下では稽古を選べない）。お金が足りない時も選べない
   { id: 'mercs', acts: [1, 2, 3], title: '傭兵団の野営地', text: '道の脇で傭兵たちが野営している。たき火の向こうから、傷だらけの団長が声をかけてきた。\n「ここらは危ないぜ？ あんたら、訓練は十分か？」',
-    choices: [{ label: '厳しい稽古をつけてもらう', note: 'ライフ-15、カードを1枚手放す', effect: 'drill', life: -15, needLife: 16, se: 'drill',
+    choices: [{ label: '厳しい稽古をつけてもらう', note: '砦の耐久値-15、カードを1枚手放す', effect: 'drill', life: -15, needLife: 16, se: 'drill',
                 say: '稽古は夜明けまで続いた。翌朝、隊の一部が書き置きを残して姿を消していた。\n団長は笑った。「ついて来られないやつが抜けただけさ。残ったのは本物だ」' },
               { label: '物資を売ってもらう', note: '-●20、ランダムなスキル3枚から1枚選ぶ', effect: 'skillCard', gold: -20, se: 'supplies',
                 say: '団長が荷車の布をめくった。「戦場で拾った物ばかりだが、まだ使えるぜ」' },
               { label: '無視する', effect: 'none', se: 'walkaway',
                 say: '団長は肩をすくめた。「忠告はしたぜ」\n背中に笑い声を聞きながら、先へ進んだ。' }] },
   { id: 'lavatreasure', acts: [3], title: '溶岩の中の宝', text: '溶岩の流れの向こうに金貨の山が見える。',
-    choices: [{ label: '手を伸ばす', note: '50%で+●80、50%でライフ-8', effect: 'risk', win: 80, lose: 8 },
+    choices: [{ label: '手を伸ばす', note: '50%で+●80、50%で砦の耐久値-8', effect: 'risk', win: 80, lose: 8 },
               { label: 'やめておく', effect: 'none' }] }
 ];
 
@@ -754,10 +754,10 @@ G.RELICS = {
   vial:      { name: '毒の小瓶',   kind: 'number', rarity: 'common',   text: '毒とやけどの時間+2秒。' },
   frostbell: { name: '氷の鈴',     kind: 'number', rarity: 'uncommon', text: 'すべての敵の速さ-10%。' },
   banner:    { name: '戦旗',       kind: 'number', rarity: 'uncommon', text: '戦闘の最初の準備ターンだけ、エネルギー+2。' },
-  spring:    { name: '泉の水',     kind: 'number', rarity: 'uncommon', text: '戦闘に勝つとライフ+3。' },
+  spring:    { name: '泉の水',     kind: 'number', rarity: 'uncommon', text: '戦闘に勝つと砦の耐久値+3。' },
   seal:      { name: '商人の印',   kind: 'number', rarity: 'uncommon', text: '商人の値段が25%安くなる。' },
   blueprint: { name: '設計図の束', kind: 'change', rarity: 'uncommon', text: 'タワーを建てると、1ターンに1回だけカードを1枚引く。' },
-  wall:      { name: '応急の石壁', kind: 'change', rarity: 'rare',     text: '攻撃1回ごとに、砦に着いた最初の敵ではライフが減らない。' },
+  wall:      { name: '応急の石壁', kind: 'change', rarity: 'rare',     text: '攻撃1回ごとに、砦に着いた最初の敵では砦の耐久値が減らない。' },
   stone:     { name: 'エネルギー石', kind: 'change', rarity: 'rare',   text: '毎ターンのエネルギー+1。' },
   // ---- 組み合わせのレリック（2つの効果が重なると強くなる） ----
   conductor: { name: '導電の氷',   kind: 'combo', rarity: 'uncommon', text: '遅くなっている敵（氷・沼）が受ける雷のダメージが2倍。' },
@@ -770,11 +770,11 @@ G.RELICS = {
   crown:     { name: '小さな王冠', kind: 'number', rarity: 'rare',     unlock: true, text: '毎ターン引くカード+1枚。' },
   // 王の解任状（2026-10-23 オーナー指定）：手に入れた時、デッキからカードを2枚まで手放せる（1回きり。run.dismiss に残りの枚数）
   dismiss:   { name: '王の解任状', kind: 'change', rarity: 'rare', text: '手に入れた時、デッキからカードを2枚まで手放せる。' },
-  phoenix:   { name: '不死鳥の羽', kind: 'change', rarity: 'rare',     unlock: true, text: 'ライフが0になった時、1回だけライフ10で立ち直る（使うと消える）。' },
+  phoenix:   { name: '不死鳥の羽', kind: 'change', rarity: 'rare',     unlock: true, text: '砦の耐久値が0になった時、1回だけ砦の耐久値10で立ち直る（使うと消える）。' },
   // ---- 指揮官のレリック（最初から1つだけ持っている。報酬・商人・イベントでは出ない） ----
-  cmd_captain:  { name: '隊長の勲章',   kind: 'commander', rarity: 'starter', text: 'スキルのコストが1下がる。' },   // 2026-10-22 変更（前：勝つたびにお金+8）。0より下にはならない（説明には書かない）
+  cmd_captain:  { name: '隊長の勲章',   kind: 'commander', rarity: 'starter', text: '攻撃力・攻撃速度を上げるスキルのコストが1下がる。' },   // 2026-10-24 対象を絞った（buff: true のスキルだけ）。2026-10-22 変更（前：勝つたびにお金+8）。0より下にはならない（説明には書かない）
   cmd_witch:    { name: '魔導師の杖',     kind: 'commander', rarity: 'starter', text: '魔法のタワーの攻撃力+25%。毒とやけどが1秒長く続く。' },
-  cmd_engineer: { name: '熟練工兵の工具箱', kind: 'commander', rarity: 'starter', text: 'タワーの強化の値段が30%安い。' }
+  cmd_engineer: { name: '熟練工兵の工具箱', kind: 'commander', rarity: 'starter', text: 'バトルごとの最初のドローが2枚増える。' }   // 2026-10-24 変更（前：タワーの強化の値段が30%安い）
 };
 Object.keys(G.RELICS).forEach(function (k) { G.RELICS[k].id = k; });
 

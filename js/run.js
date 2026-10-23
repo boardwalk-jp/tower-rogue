@@ -348,7 +348,7 @@ var G = window.G = window.G || {};
   // 選択肢を選べない理由（選べるなら null）。お金が足りない・ライフが足りない（needLife 未満）
   function choiceBlocked(run, choice) {
     if (choice.gold && choice.gold < 0 && run.gold + choice.gold < 0) return 'お金が足りません';
-    if (choice.needLife && run.life < choice.needLife) return 'ライフが足りません';
+    if (choice.needLife && run.life < choice.needLife) return '砦の耐久値が足りません';
     return null;
   }
   // ランダムなスキルのカードを n 枚（重ならない）。初期用・商人だけの物・未解放は出ない
@@ -363,17 +363,17 @@ var G = window.G = window.G || {};
     if (choice.gold && choice.effect !== 'gamble') run.gold += choice.gold;
     if (choice.life) run.life = Math.max(1, run.life + choice.life);
     switch (choice.effect) {
-      case 'heal': run.life = Math.min(run.maxLife, run.life + choice.amount); return { msg: 'ライフが' + choice.amount + '回復した。' };
+      case 'heal': run.life = Math.min(run.maxLife, run.life + choice.amount); return { msg: '砦の耐久値が' + choice.amount + '回復した。' };
       case 'goldLife': return { msg: 'お金を' + choice.gold + '手に入れた。' };
       case 'gamble':
         run.gold += choice.gold;
         if (run.rand() < 0.5) { run.gold += choice.win; return { msg: '当たり！ お金を' + choice.win + '受け取った。' }; }
         return { msg: 'はずれ。お金を20失った。' };
       case 'randomCard': var id = pick(cardPool(), run.rand); addCard(run, id); return { msg: '「' + G.CARDS[id].name + '」を手に入れた。' };
-      case 'maxLife': run.maxLife += choice.amount; run.life = Math.min(run.maxLife, run.life + choice.amount); return { msg: '最大ライフが' + choice.amount + '増えた。' };
+      case 'maxLife': run.maxLife += choice.amount; run.life = Math.min(run.maxLife, run.life + choice.amount); return { msg: '砦の最大耐久値が' + choice.amount + '増えた。' };
       case 'risk':
         if (run.rand() < 0.5) { run.gold += choice.win; return { msg: 'うまく取れた！ +' + choice.win + 'G。' }; }
-        run.life = Math.max(1, run.life - choice.lose); return { msg: 'やけどをした。ライフ-' + choice.lose + '。' };
+        run.life = Math.max(1, run.life - choice.lose); return { msg: 'やけどをした。砦の耐久値-' + choice.lose + '。' };
       case 'removeCard': return { msg: '手放すカードを選んでください。', next: 'pickRemove' };
       case 'drill': return { msg: choice.say, next: 'pickRemove' };   // 傭兵団の稽古：ライフを払ってから手放すカードを選ぶ
       case 'skillCard': return { msg: choice.say, next: 'pickCard', cards: skillCards(run, 3), noSuffix: true };
@@ -382,7 +382,7 @@ var G = window.G = window.G || {};
       case 'relic': var rl = rollRelic(run, 'event'); addRelic(run, rl); return { msg: rl ? 'レリック「' + G.RELICS[rl].name + '」を手に入れた。' + G.RELICS[rl].text : 'お礼を言われた。', relic: rl };
       case 'box':
         if (run.rand() < 0.5) { var rb = rollRelic(run, 'event'); addRelic(run, rb); return { msg: rb ? 'レリック「' + G.RELICS[rb].name + '」が入っていた！ ' + G.RELICS[rb].text : '空っぽだった。', relic: rb }; }
-        run.life = Math.max(1, run.life - 6); return { msg: '罠だった！ ライフ-6。' };
+        run.life = Math.max(1, run.life - 6); return { msg: '罠だった！ 砦の耐久値-6。' };
       case 'rareCard': return { msg: '祭壇が光った。', next: 'pickCard', cards: rollCards(run, 3, 'rare') };
       default: return { msg: choice.say || 'その場を後にした。' };
     }

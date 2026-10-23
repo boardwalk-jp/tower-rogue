@@ -179,7 +179,7 @@ var G = window.G = window.G || {};
       var r = d.run, n = r.at ? r.world.nodes[r.at] : null;
       var where = G.ACTS[(r.act || 1) - 1].area + ' ' + (!n ? 'スタート地点' : G.dayOf(r.act || 1, n.floor, n.type === 'boss') + '日目' + (n.type === 'boss' ? 'ボス' : ''));
       var dt = new Date(d.at);
-      $('t-cont-info').textContent = (G.COMMANDERS[r.cmd] || G.COMMANDERS.captain).name + (r.asc ? '・A' + r.asc : '') + '・' + where + '・ライフ' + r.life + '/' + r.maxLife + '・デッキ' + r.deck.length + '枚・' + (dt.getMonth() + 1) + '/' + dt.getDate() + ' ' + dt.getHours() + ':' + String(dt.getMinutes()).padStart(2, '0');
+      $('t-cont-info').textContent = (G.COMMANDERS[r.cmd] || G.COMMANDERS.captain).name + (r.asc ? '・A' + r.asc : '') + '・' + where + '・砦の耐久値' + r.life + '/' + r.maxLife + '・デッキ' + r.deck.length + '枚・' + (dt.getMonth() + 1) + '/' + dt.getDate() + ' ' + dt.getHours() + ':' + String(dt.getMinutes()).padStart(2, '0');
     } else $('t-cont-info').textContent = '保存されたデータはありません';
     var m = R.metaLoad(), nx = R.nextUnlock(m.xp), got = G.UNLOCKS.filter(function (u) { return u.xp <= m.xp; }).length;
     $('t-meta').textContent = '経験値 ' + m.xp + '　解放 ' + got + '/' + G.UNLOCKS.length + (nx ? '（次まで あと' + (nx.xp - m.xp) + '）' : '');
@@ -532,7 +532,7 @@ var G = window.G = window.G || {};
     openPanel('ラスボス戦', function (body, foot) {
       body.appendChild(el('h2', 'panel-title lose', 'もう1体のボスが現れた！'));
       body.appendChild(el('p', 'panel-text', (first ? first + 'を倒した。' : '') + 'だが、その奥から「' + R.bossName(run) + '」が姿を現した。'));
-      body.appendChild(el('p', 'panel-text', 'タワーはすべてくずれてしまった。もう一度、はじめから守りを固めよう（ライフ ' + run.life + '/' + run.maxLife + '）。'));
+      body.appendChild(el('p', 'panel-text', 'タワーはすべてくずれてしまった。もう一度、はじめから守りを固めよう（砦の耐久値 ' + run.life + '/' + run.maxLife + '）。'));
       foot.appendChild(button('戦う', 'go', function () { startBattle(n); }));
     });
   }
@@ -572,7 +572,7 @@ var G = window.G = window.G || {};
     lastResume = { type: 'actclear' }; save(lastResume);
     openPanel(A.area + 'クリア', function (body, foot) {
       body.appendChild(el('h2', 'panel-title win', A.area + ' クリア！'));
-      body.appendChild(el('p', 'panel-text', R.bossName(run) + 'を倒した。次は' + N.area + '。敵が強くなる。' + (G.RULES.actHeal >= 99 ? '進む時にライフが全回復する。' : '進む時にライフが' + G.RULES.actHeal + '回復する。')));
+      body.appendChild(el('p', 'panel-text', R.bossName(run) + 'を倒した。次は' + N.area + '。敵が強くなる。' + (G.RULES.actHeal >= 99 ? '進む時に砦の耐久値が全回復する。' : '進む時に砦の耐久値が' + G.RULES.actHeal + '回復する。')));
       foot.appendChild(button(N.area + 'へ進む', 'go', function () { R.nextAct(run); showWorld(); }));
     });
   }
@@ -721,7 +721,7 @@ var G = window.G = window.G || {};
           if (run.gold < R.price(run, P.heal)) { say('お金が足りません'); return; }
           run.gold -= R.price(run, P.heal); used.heal = true; R.logAdd(run, 'buy', 'heal'); run.life = Math.min(run.maxLife, run.life + P.healAmount); render();
         });
-        hl.appendChild(el('b', '', 'ライフを' + P.healAmount + '回復')); hl.appendChild(el('small', '', used.heal ? '利用済み' : '● ' + R.price(run, P.heal)));
+        hl.appendChild(el('b', '', '砦の耐久値を' + P.healAmount + '回復')); hl.appendChild(el('small', '', used.heal ? '利用済み' : '● ' + R.price(run, P.heal)));
         hl.disabled = used.heal || run.life >= run.maxLife;
         sv.appendChild(rm); sv.appendChild(hl);
         body.appendChild(sv);
@@ -745,8 +745,8 @@ var G = window.G = window.G || {};
       body.appendChild(el('h2', 'panel-title', 'たき火'));
       body.appendChild(el('p', 'panel-text', 'ひと休みできる。どれか1つを選ぶ。'));
       var list = el('div', 'choices');
-      var a = button('', 'choice', function () { R.logSet(run, 'rest', 'heal'); var h = R.rest(run); done('ライフが' + h + '回復した。'); });
-      a.appendChild(el('b', '', '休む')); a.appendChild(el('small', '', 'ライフ+' + G.RULES.restHeal + '（最大' + run.maxLife + '）'));
+      var a = button('', 'choice', function () { R.logSet(run, 'rest', 'heal'); var h = R.rest(run); done('砦の耐久値が' + h + '回復した。'); });
+      a.appendChild(el('b', '', '休む')); a.appendChild(el('small', '', '砦の耐久値+' + G.RULES.restHeal + '（最大' + run.maxLife + '）'));
       var u = button('', 'choice', function () { pickFromDeck('鍛えるカードを選ぶ', function (i) { R.logSet(run, 'rest', 'up'); var nm = G.CARDS[run.deck[i]].name; R.upgradeCard(run, i); done('「' + nm + '」を鍛えて「' + G.CARDS[run.deck[i]].name + '」にした。'); }, false, showRest, R.canUpgradeCard); });
       u.appendChild(el('b', '', '鍛える')); u.appendChild(el('small', '', 'カードを1枚「＋」にする（タワーはLv2で置かれる・スキルは効果アップ）'));
       u.disabled = !run.deck.some(R.canUpgradeCard);
@@ -778,7 +778,7 @@ var G = window.G = window.G || {};
       var n = R.node(run), cmd = (G.COMMANDERS[run.cmd] || G.COMMANDERS.captain).name;
       body.appendChild(el('p', 'panel-text end-lead', cmd + '：' + (run.won ? 'ラスボスの' + (run.boss2Fight ? R.bossName(run, run.act, run.boss || 0) + 'と' : '') + R.bossName(run) + 'を倒した。' : G.ACTS[run.act - 1].area + 'の' + (n ? (n.type === 'boss' ? 'ボス戦' : G.dayOf(run.act, n.floor) + '日目') : '') + 'で力つきた。')));
       var tiles = el('div', 'end-stats');
-      [['勝った戦闘', run.stats.battles + '回'], ['エリート', run.stats.elites + '回'], ['手に入れたカード', run.stats.cardsTaken + '枚'], ['最後のデッキ', run.deck.length + '枚'], ['レリック', run.relics.length + '個'], ['ライフ', Math.max(0, run.life) + '/' + run.maxLife]].forEach(function (q) {
+      [['勝った戦闘', run.stats.battles + '回'], ['エリート', run.stats.elites + '回'], ['手に入れたカード', run.stats.cardsTaken + '枚'], ['最後のデッキ', run.deck.length + '枚'], ['レリック', run.relics.length + '個'], ['砦の耐久値', Math.max(0, run.life) + '/' + run.maxLife]].forEach(function (q) {
         var d = el('div', 'end-stat'); d.appendChild(el('small', '', q[0])); d.appendChild(el('b', '', q[1])); tiles.appendChild(d);
       });
       body.appendChild(tiles);
