@@ -697,3 +697,54 @@ html.skin-classic .rampart{display:none}
 .upd-grp.new li::before{background:#7fd36a}.upd-grp.adj li::before{background:#e6b84a}.upd-grp.fix li::before{background:#6fb4ff}
 .upd-grp li small{display:block;color:var(--muted);font-size:12.5px;line-height:1.5}
 @media (prefers-reduced-motion:reduce){.upd-arrow{transition:none}}
+
+/* ===== 指揮官を選ぶ画面（2026-10-23 新デザイン・確認用ブランチ） ===== */
+#cmdsel{background:#0c0a10;overflow:hidden}
+#cmdsel .cs-bg{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated;z-index:0}
+/* 全身の絵：右上に大きく。足元は文字の下に溶かす */
+#cs-hero{position:absolute;z-index:1;right:-8%;top:1%;width:84%;aspect-ratio:144/288;image-rendering:pixelated;pointer-events:none;opacity:0;
+  -webkit-mask-image:linear-gradient(to bottom,#000 66%,transparent 96%);mask-image:linear-gradient(to bottom,#000 66%,transparent 96%)}
+#cs-hero.on{opacity:1;animation:cs-don .55s cubic-bezier(.2,1.4,.4,1) both, cs-breathe 3.6s ease-in-out .55s infinite}
+@keyframes cs-don{0%{opacity:0;transform:translateX(18%) scale(1.22);filter:brightness(3) saturate(0)}35%{opacity:1;filter:brightness(1.8) saturate(.6)}100%{opacity:1;transform:none;filter:none}}
+@keyframes cs-breathe{0%,100%{transform:none}50%{transform:translateY(-.6%)}}
+#cs-flash{position:absolute;inset:0;z-index:2;pointer-events:none;opacity:0;mix-blend-mode:screen}
+#cs-flash.go{animation:cs-flash .45s ease-out}
+@keyframes cs-flash{0%{opacity:.85}100%{opacity:0}}
+#cmdsel.shake{animation:cs-shake .28s linear}
+@keyframes cs-shake{0%,100%{transform:none}20%{transform:translate(-5px,3px)}40%{transform:translate(4px,-3px)}60%{transform:translate(-3px,2px)}80%{transform:translate(2px,-1px)}}
+#cs-shade{position:absolute;left:0;right:0;bottom:0;height:62%;z-index:2;pointer-events:none;background:linear-gradient(to bottom,transparent,rgba(6,4,8,.78) 38%,rgba(6,4,8,.94))}
+#cmdsel .cs-ui{position:relative;z-index:3;flex:1 1 auto;width:100%;max-width:480px;margin:0 auto;display:flex;flex-direction:column;padding:max(14px,env(safe-area-inset-top)) 16px max(14px,env(safe-area-inset-bottom))}
+#cmdsel .cs-spacer{flex:1 1 auto}
+#cs-info{min-height:176px;display:flex;flex-direction:column;gap:6px;text-shadow:0 2px 0 #000,0 0 6px #000}
+#cs-info > *{opacity:0;transform:translateX(-14px)}
+#cs-info.on > *{animation:cs-in .35s ease-out forwards}
+#cs-info.on > :nth-child(2){animation-delay:.06s} #cs-info.on > :nth-child(3){animation-delay:.12s} #cs-info.on > :nth-child(4){animation-delay:.18s}
+@keyframes cs-in{to{opacity:1;transform:none}}
+#cs-name{margin:0;font-weight:400;font-size:38px;line-height:1.1;color:#ffd86a;letter-spacing:.04em;text-shadow:0 3px 0 #3a2a10,0 0 12px rgba(0,0,0,.9)}
+#cs-life{font-size:17px;color:#ff7b6b;display:flex;align-items:center;gap:6px}
+#cs-life canvas{width:18px;height:18px;image-rendering:pixelated}
+#cs-sub{margin:2px 0 0;font-size:15px;line-height:1.6;color:#ece6da}
+#cs-relic{display:flex;gap:10px;align-items:center;margin-top:4px}
+#cs-relic .relic-ico{width:40px;height:40px;min-height:40px;flex:0 0 auto}
+#cs-relic .relic-ico canvas{width:30px;height:30px}
+#cs-relic b{display:block;font-weight:400;color:#ffd86a;font-size:15px}
+#cs-relic span{display:block;font-size:14px;line-height:1.5;color:#fff}
+/* 象徴マークのボタン（石の板） */
+#cs-tiles{display:flex;justify-content:center;gap:26px;margin:22px 0 18px}
+#cs-tiles .tile{width:56px;height:56px;min-height:0;padding:0;border:0;background:none;box-shadow:none;position:relative;transition:transform .15s, filter .15s}
+#cs-tiles .tile canvas{width:100%;height:100%;image-rendering:pixelated;display:block}
+#cs-tiles .tile::after{content:"";position:absolute;inset:-4px;border:2px solid transparent;border-radius:5px;transition:border-color .15s, box-shadow .15s}
+#cs-tiles.has-sel .tile:not(.sel){filter:brightness(.6) saturate(.7)}
+#cs-tiles .tile.sel{transform:translateY(-3px) scale(1.08)}
+#cs-tiles .tile.sel::after{border-color:#ffd86a;box-shadow:0 0 0 1px #6a4a10,0 0 16px rgba(255,210,90,.75),inset 0 0 10px rgba(255,210,90,.35)}
+#cs-tiles:not(.has-sel) .tile{animation:cs-pulse 1.6s ease-in-out infinite}
+#cs-tiles:not(.has-sel) .tile:nth-child(2){animation-delay:.2s} #cs-tiles:not(.has-sel) .tile:nth-child(3){animation-delay:.4s}
+@keyframes cs-pulse{0%,100%{filter:brightness(.85)}50%{filter:brightness(1.15)}}
+#cs-foot{display:flex;flex-direction:column;gap:8px}
+#cs-foot .asc-note{margin:0 0 2px;text-align:center}
+#cs-foot .cs-btns{display:flex;gap:10px}
+#cs-foot .cs-btns button{min-height:50px}
+#cs-foot .cs-back{flex:0 0 96px}
+#cs-foot .cs-btns .go{flex:1 1 auto}
+@media (prefers-reduced-motion:reduce){#cs-hero.on,#cs-flash.go,#cmdsel.shake,#cs-info.on > *,#cs-tiles:not(.has-sel) .tile{animation-duration:.01s!important;animation-iteration-count:1!important}}
+#cs-foot .asc-pick .asc-arrow{width:auto;min-height:40px;min-width:56px;padding:0 12px;font-size:16px}

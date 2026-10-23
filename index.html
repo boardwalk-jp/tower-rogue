@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap">
-<link rel="stylesheet" href="css/style.css?v=20261023172107">
+<link rel="stylesheet" href="css/style.css?v=20261023215746">
 </head>
 <body>
 
@@ -102,6 +102,19 @@
     </div>
   </div>
 </main>
+
+<!-- 指揮官を選ぶ（2026-10-23 新デザイン：象徴マークをタップすると、その指揮官の全身の絵が背景にドンと出る） -->
+<section id="cmdsel" class="screen" data-screen hidden>
+  <canvas id="cs-hero" aria-hidden="true"></canvas>
+  <div id="cs-flash"></div>
+  <div id="cs-shade"></div>
+  <div class="cs-ui">
+    <div class="cs-spacer"></div>
+    <div id="cs-info"><h2 id="cs-name"></h2><div id="cs-life"></div><p id="cs-sub"></p><div id="cs-relic"></div></div>
+    <div id="cs-tiles"></div>
+    <div id="cs-foot"></div>
+  </div>
+</section>
 
 <!-- 報酬・イベント・商人・たき火・ランの終わり（中身は screens.js が作る） -->
 <section id="panel" class="screen" data-screen hidden>
@@ -223,25 +236,26 @@
 <div id="tap-sound" hidden>♪ 画面をタップすると音が出ます</div>
 <div id="rotate"><p>画面を縦にしてください</p></div>
 
-<script src="js/data.js?v=20261023172107"></script>
-<script src="js/battle.js?v=20261023172107"></script>
-<script src="js/run.js?v=20261023172107"></script>
-<script src="js/sprites.js?v=20261023172107"></script>
-<script src="js/relicart.js?v=20261023172107"></script>
-<script src="js/battleskin.js?v=20261023172107"></script>
-<script src="js/hudicons.js?v=20261023172107"></script>
-<script src="js/dotart.js?v=20261023172107"></script>
-<script src="js/towerart.js?v=20261023172107"></script>
-<script src="js/enemyart.js?v=20261023172107"></script>
-<script src="js/render.js?v=20261023172107"></script>
-<script src="js/sound.js?v=20261023172107"></script>
-<script src="js/bossbgm.js?v=20261023172107"></script>
-<script src="js/ui.js?v=20261023172107"></script>
-<script src="js/stats.js?v=20261023172107"></script>
-<script src="js/updates.js?v=20261023172107"></script>
-<script src="js/screens.js?v=20261023172107"></script>
-<script src="js/logo.js?v=20261023172107"></script>
-<script src="js/worldbg.js?v=20261023172107"></script>
-<script src="js/eventart.js?v=20261023172107"></script>
+<script src="js/data.js?v=20261023215746"></script>
+<script src="js/battle.js?v=20261023215746"></script>
+<script src="js/run.js?v=20261023215746"></script>
+<script src="js/sprites.js?v=20261023215746"></script>
+<script src="js/relicart.js?v=20261023215746"></script>
+<script src="js/battleskin.js?v=20261023215746"></script>
+<script src="js/hudicons.js?v=20261023215746"></script>
+<script src="js/dotart.js?v=20261023215746"></script>
+<script src="js/towerart.js?v=20261023215746"></script>
+<script src="js/enemyart.js?v=20261023215746"></script>
+<script src="js/render.js?v=20261023215746"></script>
+<script src="js/sound.js?v=20261023215746"></script>
+<script src="js/bossbgm.js?v=20261023215746"></script>
+<script src="js/ui.js?v=20261023215746"></script>
+<script src="js/stats.js?v=20261023215746"></script>
+<script src="js/updates.js?v=20261023215746"></script>
+<script src="js/screens.js?v=20261023215746"></script>
+<script src="js/logo.js?v=20261023215746"></script>
+<script src="js/worldbg.js?v=20261023215746"></script>
+<script src="js/eventart.js?v=20261023215746"></script>
+<script src="js/cmdart.js?v=20261023215746"></script>
 </body>
 </html>

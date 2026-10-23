@@ -219,63 +219,73 @@ var G = window.G = window.G || {};
     if (d) continueRun(d); else chooseCommander();
   }
   // ---- 指揮官を選ぶ（はじめから） ----
+  // 2026-10-23 新デザイン（確認用ブランチ cmd-select-preview）：
+  //   下の象徴マーク（剣・水晶の杖・スパナ）をタップすると、その指揮官の全身の絵が背景に「ドン」と出る。
+  //   出す文字は 名前・ライフ・ざっくり概要・最初のレリック だけ（最初のデッキは見せない。SPEC 13.67）
   function chooseCommander() {
     // はじめての人には、指揮官を選ぶ前に遊び方を1回だけ出す
     var seen = false; try { seen = !!localStorage.getItem('towerRogue.helpSeen'); } catch (e) { seen = true; }
     if (!seen) setTimeout(showHelp, 50);
     music('cmd');   // 指揮官を選ぶ画面の曲
-    openPanel('指揮官', function (body, foot) {
-      if (G.cmdBg) $('panel').insertBefore(G.cmdBg(), $('panel').firstChild);   // 背景：砦の中庭（いちばん下の層）
-      body.appendChild(el('h2', 'panel-title', '指揮官を選ぶ'));
-      var list = el('div', 'choices cmd-list'), picked = null;
-      // 始める時：BGMをいったん止めて、出陣のファンファーレ。ワールドマップの曲は、ファンファーレが終わってから始まる
-      var ok = button('この指揮官で始める', 'go', function () { if (!picked) return; if (G.Sound) { G.Sound.music(null); G.Sound.play('start'); G.Sound.hold(1.5); } newRun(picked, ascPick); }, true);
-      ok.disabled = true;
-      Object.keys(G.COMMANDERS).forEach(function (id) {
-        var C = G.COMMANDERS[id], b = button('', 'choice cmd', function () {
-          list.querySelectorAll('.cmd').forEach(function (x) { x.classList.remove('sel'); });
-          b.classList.add('sel'); list.classList.add('has-sel'); picked = id; ok.disabled = false;
-        });
-        // 指揮官の全身の絵（2026-10-22 新デザイン。前はタワーの絵）
-        var cv = G.cmdPortrait ? G.cmdPortrait(id) : null;
-        if (cv) b.appendChild(cv);
-        var tx = el('span', 'cmd-txt');
-        var hd = el('span', 'cmd-head'); hd.appendChild(el('b', 'cmd-name', C.name)); hd.appendChild(el('span', 'cmd-life', '♥ ' + C.life)); tx.appendChild(hd);
-        // 能力＝指揮官のレリック（最初から持っている。レリックを見ればどの指揮官か分かる）
-        if (C.relic) {
-          var rl = el('small', 'cmd-relic'); rl.appendChild(UI.relicCanvas(C.relic));
-          rl.appendChild(el('span', '', G.RELICS[C.relic].name + '：' + G.RELICS[C.relic].text)); tx.appendChild(rl);
-        }
-        // 初期デッキ：小さなカードの絵を並べる（同じカードは×枚数）。名前は下の1行に
-        var cnt = {}, ord = []; C.deck.forEach(function (k) { if (!cnt[k]) ord.push(k); cnt[k] = (cnt[k] || 0) + 1; });
-        var dk = el('span', 'cmd-deck-icons'); dk.setAttribute('aria-label', 'デッキ ' + C.deck.length + '枚');
-        ord.forEach(function (k) { var it = el('span', 'cmd-dk'); it.appendChild(UI.cardArt(k)); if (cnt[k] > 1) it.appendChild(el('b', '', '×' + cnt[k])); dk.appendChild(it); });
-        tx.appendChild(dk);
-        tx.appendChild(el('small', 'cmd-deck', 'デッキ' + C.deck.length + '枚：' + ord.map(function (k) { return G.CARDS[k].name + (cnt[k] > 1 ? '×' + cnt[k] : ''); }).join('・')));
-        tx.appendChild(el('small', 'cmd-sub', C.sub));
-        b.appendChild(tx);
-        list.appendChild(b);
-      });
-      body.appendChild(list);
-      // ---- アセンション（難易度）：1回クリアすると出てくる。◀ ▶ で A0〜 を切りかえる。下の固定欄に置く（スクロールなしで見える） ----
-      var maxA = Math.min(G.ASC_MAX, R.metaLoad().ascMax || 0), ascPick = maxA;   // 初めは、いちばん上の解放ずみアセンションを選んでおく（2026-10-22 オーナー指定）
-      if (maxA > 0) {
-        var row = el('div', 'asc-pick'), note = el('p', 'asc-note'), lbl = el('b', 'asc-label'), prev = button('◀', 'asc-arrow', function () { setAsc(ascPick - 1); }), next = button('▶', 'asc-arrow', function () { setAsc(ascPick + 1); });
-        var setAsc = function (v) {
-          ascPick = Math.max(0, Math.min(maxA, v));
-          lbl.textContent = 'アセンション ' + ascPick; prev.disabled = ascPick <= 0; next.disabled = ascPick >= maxA;
-          note.innerHTML = '';
-          if (!ascPick) { note.textContent = 'A0：追加のルールなし。'; return; }
-          // 選んだ段の効果だけを出す（前の段の分はのせない）。A1 以外は頭に「さらに、」（2026-10-22 オーナー指定）
-          var cur = G.ASCENSION.filter(function (a) { return a.lv === ascPick; })[0];
-          if (cur) { if (cur.tag) note.appendChild(el('b', '', cur.tag)); if (ascPick > 1) note.appendChild(document.createTextNode('さらに、')); note.appendChild(el('b', '', cur.text)); }
-          note.appendChild(document.createTextNode('。経験値+' + ascPick * 10 + '%'));
-        };
-        row.appendChild(prev); row.appendChild(lbl); row.appendChild(next);
-        foot.appendChild(row); foot.appendChild(note); setAsc(ascPick);
-      }
-      foot.appendChild(ok);
+    G.showScreen('cmdsel');
+    var scr = $('cmdsel'), hero = $('cs-hero'), info = $('cs-info'), tiles = $('cs-tiles'), foot = $('cs-foot'), flash = $('cs-flash');
+    var oldBg = scr.querySelector('.cs-bg'); if (oldBg) oldBg.remove();
+    var bg = G.cmdBg(); scr.insertBefore(bg, scr.firstChild);
+    hero.classList.remove('on'); info.classList.remove('on'); tiles.classList.remove('has-sel');
+    ['cs-name', 'cs-life', 'cs-sub', 'cs-relic'].forEach(function (k) { $(k).innerHTML = ''; });
+    tiles.innerHTML = ''; foot.innerHTML = '';
+    var picked = null;
+    // 始める時：BGMをいったん止めて、出陣のファンファーレ。ワールドマップの曲は、ファンファーレが終わってから始まる
+    var ok = button('この指揮官で始める', 'go', function () { if (!picked) return; if (G.Sound) { G.Sound.music(null); G.Sound.play('start'); G.Sound.hold(1.5); } newRun(picked, ascPick); }, true);
+    ok.disabled = true;
+    function restart(e, c) { e.classList.remove(c); void e.offsetWidth; e.classList.add(c); }
+    function pick(id) {
+      if (picked === id) return;
+      picked = id; ok.disabled = false;
+      var C = G.COMMANDERS[id], acc = G.CMD_ACC[id];
+      tiles.classList.add('has-sel'); tiles.querySelectorAll('.tile').forEach(function (t) { t.classList.toggle('sel', t.dataset.id === id); });
+      bg.set(id);
+      G.cmdHero(hero, id); restart(hero, 'on');
+      flash.style.background = 'radial-gradient(circle at 68% 34%, ' + acc[4] + ', ' + acc[3] + ' 40%, transparent 75%)';
+      restart(flash, 'go'); restart(scr, 'shake');
+      $('cs-name').textContent = C.name;
+      var lf = $('cs-life'); lf.innerHTML = ''; lf.appendChild(G.cmdHeart()); lf.appendChild(document.createTextNode(C.life));
+      $('cs-sub').textContent = C.sub;
+      var rl = $('cs-relic'); rl.innerHTML = '';
+      if (C.relic) { rl.appendChild(UI.relicCanvas(C.relic)); var tx = el('div'); tx.appendChild(el('b', '', G.RELICS[C.relic].name)); tx.appendChild(el('span', '', G.RELICS[C.relic].text)); rl.appendChild(tx); }
+      restart(info, 'on');
+      if (G.Sound) G.Sound.play('cmdpick');
+    }
+    Object.keys(G.COMMANDERS).forEach(function (id) {
+      var b = button('', 'tile', function () { pick(id); }, true);
+      b.dataset.id = id; b.setAttribute('aria-label', G.COMMANDERS[id].name);
+      b.appendChild(G.cmdEmblem(id)); tiles.appendChild(b);
     });
+    // ---- アセンション（難易度）：1回クリアすると出てくる。◀ ▶ で A0〜 を切りかえる ----
+    var maxA = Math.min(G.ASC_MAX, R.metaLoad().ascMax || 0), ascPick = maxA;   // 初めは、いちばん上の解放ずみアセンションを選んでおく（2026-10-22 オーナー指定）
+    if (maxA > 0) {
+      var row = el('div', 'asc-pick'), note = el('p', 'asc-note'), lbl = el('b', 'asc-label'), prev = button('◀', 'asc-arrow', function () { setAsc(ascPick - 1); }), next = button('▶', 'asc-arrow', function () { setAsc(ascPick + 1); });
+      var setAsc = function (v) {
+        ascPick = Math.max(0, Math.min(maxA, v));
+        lbl.textContent = 'アセンション ' + ascPick; prev.disabled = ascPick <= 0; next.disabled = ascPick >= maxA;
+        note.innerHTML = '';
+        if (!ascPick) { note.textContent = 'A0：追加のルールなし。'; return; }
+        // 選んだ段の効果だけを出す（前の段の分はのせない）。A1 以外は頭に「さらに、」（2026-10-22 オーナー指定）
+        var cur = G.ASCENSION.filter(function (a) { return a.lv === ascPick; })[0];
+        if (cur) { if (cur.tag) note.appendChild(el('b', '', cur.tag)); if (ascPick > 1) note.appendChild(document.createTextNode('さらに、')); note.appendChild(el('b', '', cur.text)); }
+        note.appendChild(document.createTextNode('。経験値+' + ascPick * 10 + '%'));
+      };
+      row.appendChild(prev); row.appendChild(lbl); row.appendChild(next);
+      foot.appendChild(row); foot.appendChild(note); setAsc(ascPick);
+    }
+    // 戻る：タイトルへ（ランはまだ始まっていないので、保存の中身は変わらない）
+    var back = button('戻る', 'cs-back', function () {
+      G.started = false;
+      document.querySelectorAll('[data-screen]').forEach(function (e) { e.hidden = true; });
+      G.currentScreen = 'start';
+      $('start').hidden = false; refreshTitle(); window.scrollTo(0, 0);
+    });
+    var btns = el('div', 'cs-btns'); btns.appendChild(back); btns.appendChild(ok); foot.appendChild(btns);
   }
   function lastAsc() { try { return +localStorage.getItem('towerRogue.lastAsc') || 0; } catch (e) { return 0; } }
   // ユーザーが自分でスクロールした時だけアドレスバーが縮むので、スクロールを合図に始める

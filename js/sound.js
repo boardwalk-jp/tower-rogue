@@ -203,6 +203,11 @@ var G = window.G = window.G || {};
       tone(t, { f: 150, f2: 60, dur: 0.18, type: 'sine', vol: 0.38, delay: 0.1 }); noise(t, { dur: 0.1, vol: 0.22, f: 450, delay: 0.1 });
       tone(t, { f: 900, f2: 700, dur: 0.04, type: 'triangle', vol: 0.04, delay: 0.1 });
     },
+    // 指揮官を選ぶ画面で象徴マークをタップ：指揮官が背景にドンと出る（低いドン＋砂ぼこり）（2026-10-23）
+    cmdpick: function (t) {
+      tone(t, { f: 110, f2: 38, dur: 0.42, type: 'sine', vol: 0.55 }); noise(t, { dur: 0.28, vol: 0.28, f: 900 });
+      tone(t, { f: 220, f2: 90, dur: 0.12, type: 'triangle', vol: 0.12 });
+    },
     // 作戦変更で手札を外す：カードがシュッと下に消える
     cardout: function (t) {
       noise(t, { dur: 0.12, vol: 0.12, f: 3500, hp: true }); noise(t, { dur: 0.1, vol: 0.08, f: 1600, bp: true, delay: 0.05 });
