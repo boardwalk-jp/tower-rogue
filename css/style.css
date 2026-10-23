@@ -581,3 +581,47 @@ button.go:disabled{filter:saturate(.5)}
 .cmd-txt .cmd-deck{font-size:10.5px;color:var(--muted);line-height:1.4}
 .choice.cmd .cmd-dk canvas{width:20px;height:26px;object-fit:contain;object-position:50% 100%}
 .choice.cmd .cmd-relic .relic-ico canvas{width:18px;height:18px}
+
+/* ==== 戦闘画面の新デザイン（2026-10-23 オーナー決定：案A改「石の砦」）====
+   背景は石積み、上の帯は暗い鉄の板と真ちゅう色の線、ボタンは鉄の板と四すみのびょう。「攻撃開始」だけは今までのまま
+   模様は js/battleskin.js がコードで作る（--t-stone など） */
+#game{background:linear-gradient(rgba(8,10,9,.35),rgba(8,10,9,.55)),var(--t-stone) 0 0/64px 64px}
+#game .hud{background:linear-gradient(#1a1e1c,#111412);border-bottom:2px solid #6a5226;box-shadow:0 2px 0 #0a0806,0 4px 8px rgba(0,0,0,.5);padding-bottom:4px}   /* 線の2の分、下のすきまを2減らす（地図の大きさを変えないため） */
+#game .battle-relics{background:rgba(10,12,11,.55)}
+#game #map{border-radius:0;box-shadow:0 -2px 0 #0a0c0b,0 -4px 0 #6a5226}
+/* 地図の下に余りがある時（ホーム画面から開いた時など）だけ見える城壁 */
+.rampart{position:absolute;left:0;right:0;bottom:0;pointer-events:none;image-rendering:pixelated;
+  background:var(--t-merlon) 0 0/64px 28px repeat-x,linear-gradient(rgba(0,0,0,0),rgba(0,0,0,.55)) 0 28px/100% 100% no-repeat,var(--t-wall) 0 28px/64px 32px}
+.rampart::before{content:"";position:absolute;left:0;right:0;top:0;height:6px;background:linear-gradient(rgba(0,0,0,.55),rgba(0,0,0,0))}
+#game .nav-btn,#game .pile-btn,#btn-draw{
+  background:var(--t-rivet) 3px 3px/8px 8px no-repeat,var(--t-rivet) calc(100% - 3px) 3px/8px 8px no-repeat,var(--t-rivet) 3px calc(100% - 3px)/8px 8px no-repeat,var(--t-rivet) calc(100% - 3px) calc(100% - 3px)/8px 8px no-repeat,linear-gradient(#3a423e,#252b28);
+  border:2px solid #0a0c0b;border-radius:3px;box-shadow:inset 0 2px 0 #5e6862,inset 0 -3px 0 #161a18,0 2px 0 #050605;image-rendering:pixelated}
+#game .nav-btn:active,#game .pile-btn:active,#btn-draw:active{box-shadow:inset 0 2px 4px rgba(0,0,0,.6),0 1px 0 #050605;transform:translateY(1px)}
+#btn-draw:disabled{opacity:.5}
+#game .hand-bar{background:linear-gradient(rgba(10,12,11,0),rgba(10,12,11,.7))}
+#game .hand{background:linear-gradient(#141816,#0c0f0d);border-top:2px solid #4a4436;box-shadow:inset 0 3px 6px rgba(0,0,0,.6)}
+
+/* ==== カードの新デザイン（2026-10-23 オーナー決定：札3「紋章の旗」直し）====
+   旗の形（下が三角に切れこむ）。カード本体をふちの色（--rc：ふつう銀・アンコモン緑・レア金）で塗り、
+   2ドット内側に同じ形の布（::before）を重ねる。これで切れこみの斜めにもふちが付く。タワーは深い緑の布、スキルは紫の布
+   前のレア度の下の線（::after）は使わない。空き枠（.empty）は今までどおり点線 */
+.card:not(.empty){--rc:#9aa4aa;--cloth:linear-gradient(90deg,rgba(255,255,255,.06),rgba(0,0,0,0) 30%,rgba(0,0,0,.18)),linear-gradient(#24463e,#16302a);
+  border:0;border-radius:0;isolation:isolate;clip-path:polygon(0 0,100% 0,100% 84%,50% 100%,0 84%);
+  background:linear-gradient(var(--rc),var(--rc));box-shadow:none;padding:4px 3px 12px}   /* 横の余白は前と同じ3（名前が欠けないように） */
+.card:not(.empty)::before{content:"";position:absolute;inset:2px 2px 3px;z-index:-1;clip-path:polygon(0 0,100% 0,100% 84%,50% 100%,0 84%);background:var(--cloth)}
+.card.r-uncommon{--rc:#4fd1a5}
+.card.r-rare{--rc:#e6b84a}
+.card.skill:not(.empty){background:linear-gradient(var(--rc),var(--rc));--cloth:linear-gradient(90deg,rgba(255,255,255,.06),rgba(0,0,0,0) 30%,rgba(0,0,0,.18)),linear-gradient(#45305e,#2a1d3c)}
+.card:not(.empty) .top{border-bottom:1px solid rgba(0,0,0,.4);box-shadow:0 1px 0 rgba(255,255,255,.08);padding-right:2px}
+.card:not(.empty) canvas{margin-bottom:6px}
+.card.r-common::after,.card.r-uncommon::after,.card.r-rare::after{display:none}
+.card.plus{box-shadow:none}
+.card.sel{--rc:#ffe08a;background:linear-gradient(#ffe08a,#e6b84a)}
+.card.skill.sel{background:linear-gradient(#ffe08a,#e6b84a)}
+.card.sel::before{background:linear-gradient(rgba(255,224,138,.18),rgba(255,224,138,0) 60%),var(--cloth)}
+.card .tag{bottom:auto;top:24px;right:5px}   /* 「使い切り」：下は切れこみで欠けるので、名前の下へ */
+.pile-list.mini-cards .card{box-shadow:none}
+/* 報酬などのレアのカード：光は旗の形の外に出せないので、ふちの金色を明るくしたり暗くしたりする */
+.cards-grid .card.r-rare{animation:rareTrim 1.6s ease-in-out infinite}
+@keyframes rareTrim{0%,100%{--rc:#c79a2a;background:linear-gradient(#c79a2a,#c79a2a)}50%{--rc:#ffe48a;background:linear-gradient(#ffe48a,#ffd84a)}}
+@media (prefers-reduced-motion: reduce){.cards-grid .card.r-rare{animation:none}}

@@ -697,6 +697,7 @@ var G = window.G = window.G || {};
     var W = G.Render.W, H = G.Render.H, k = Math.min(st.width / W, st.height / H);
     var cw = Math.floor(W * k), ch = Math.floor(H * k);
     cv.style.width = cw + 'px'; cv.style.height = ch + 'px';
+    $('rampart').style.top = ch + 'px';   // 地図の下に余りがある時だけ見える城壁（2026-10-23 新デザイン。Safari ではふつう見えない）
     var d = Math.min(window.devicePixelRatio || 1, 3);
     var bw = Math.round(cw * d), bh = Math.round(ch * d);
     if (cv.width !== bw || cv.height !== bh) { cv.width = bw; cv.height = bh; }
