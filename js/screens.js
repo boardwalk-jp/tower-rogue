@@ -588,6 +588,14 @@ var G = window.G = window.G || {};
         grid.querySelectorAll('.card').forEach(function (x) { x.classList.remove('sel'); });
         c.classList.add('sel'); picked = id; ok.disabled = false;
         var box = UI.detailBox(id); desc.replaceWith(box); desc = box;
+        // 詳細が画面の下で切れないように、見える位置まで自動でスクロール（2026-10-24 オーナー指定）。詳細が画面より高い時は、詳細の上端がそろうまで
+        requestAnimationFrame(function () {
+          var br = body.getBoundingClientRect(), r = box.getBoundingClientRect(), d = 0;
+          if (r.bottom > br.bottom - 6) d = Math.min(r.bottom - br.bottom + 6, r.top - br.top - 6);
+          else if (r.top < br.top) d = r.top - br.top - 6;
+          if (Math.abs(d) < 1) return;
+          try { body.scrollBy({ top: d, behavior: 'smooth' }); } catch (e) { body.scrollTop += d; }
+        });
       });
       grid.appendChild(c);
     });
