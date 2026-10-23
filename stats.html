@@ -42,6 +42,23 @@
   #msg { color: var(--bad); padding: 0 16px; }
   .exinfo { margin: 8px 16px 0; padding: 8px 12px; background: var(--panel); border-left: 3px solid var(--gold); border-radius: 4px; font-size: 13px; }
   .exinfo button { margin-left: 8px; }
+  /* 名前をタップすると効果が出る（カード・レリック）。ふつうの文字より少し目立たせる */
+  button.nm { padding: 0; border: 0; border-bottom: 1px dotted var(--sub); border-radius: 0; background: transparent; color: var(--text); text-align: left; font-size: inherit; }
+  button.nm:hover, button.nm:focus-visible { color: var(--gold); border-bottom-color: var(--gold); }
+  tr.few button.nm { color: var(--sub); }
+  #info { position: fixed; inset: 0; z-index: 60; background: rgba(0,0,0,.55); display: flex; align-items: center; justify-content: center; padding: 16px; }
+  #info[hidden] { display: none; }
+  #info .box { background: var(--panel); border: 1px solid var(--gold); border-radius: 12px; width: min(420px, 100%); max-height: 85vh; overflow-y: auto; padding: 14px 16px 16px; box-shadow: 0 8px 30px rgba(0,0,0,.6); }
+  #info h3 { margin: 0 0 2px; font-size: 18px; color: var(--gold); padding-right: 28px; }
+  #info .sub { color: var(--sub); font-size: 12px; margin: 0 0 8px; }
+  #info .body { font-size: 14.5px; margin: 0 0 10px; }
+  #info dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; font-size: 13px; border-top: 1px solid var(--line); padding-top: 8px; }
+  #info dt { color: var(--sub); }
+  #info dd { margin: 0; }
+  #info .up { color: var(--good); font-weight: 600; }
+  #info .x { position: absolute; top: 8px; right: 8px; }
+  #info .wrapbox { position: relative; width: min(420px, 100%); }
+  .gtip .gsub { color: var(--sub); }
   /* 表／グラフの切りかえ（2026-10-23） */
   .mode { display: inline-flex; border: 1px solid var(--gold); border-radius: 8px; overflow: hidden; margin: 10px 16px 0; }
   .mode button { border: 0; border-radius: 0; background: transparent; color: var(--gold); padding: 6px 18px; }
@@ -67,6 +84,7 @@
 <header>
   <h1>プレイ統計</h1>
   <p class="note">ランが終わるたびに送られた記録の集計です。列の名前をタップすると並べかえます（もう一度で逆順）。</p>
+  <p class="note">カード・レリックの名前（点線の下線つき）をタップすると、効果とくわしい数字が出ます。グラフでは点や棒にふれると出ます。</p>
   <p class="note">「±」は、95%の確かさで本当の値が入る幅のめやすです。灰色の行は件数が10未満で、数字が大きくぶれます。</p>
   <p class="note">「中央値」は、数字を小さい順に並べた時の真ん中の値です。極端に大きい・小さいランに引っぱられにくい数字です。「1戦あたり」「100体あたり」のような割り算の数字は、ラン単位で足した形で保存しているので、中央値は出せません。</p>
   <p class="note">極端なプレイヤーを外して見たい時は、「プレイヤー」の表でチェックを外してください（外した人の記録は、ほかのすべての表に入らなくなります。この設定はこのブラウザに残ります）。</p>
@@ -85,8 +103,9 @@
 <nav id="nav"></nav>
 <main id="main"><p class="note">読み込み中…</p></main>
 
+<div id="info" hidden></div>
 <script src="js/data.js"></script>
-<script src="js/statsgraph.js?v=20261024035135"></script>
+<script src="js/statsgraph.js?v=20261024035637"></script>
 <script>
 (function () {
   'use strict';
@@ -171,6 +190,73 @@
     });
     draw();
     return sec;
+  }
+  // ---- 名前をタップした時の効果・くわしい内容（カード・レリック）。ゲーム本体の js/ui.js の説明と同じ内容を、このページだけで作る ----
+  var KIND_RELIC = { number: '数値が上がる', change: '遊び方が変わる', combo: '組み合わせで強くなる', commander: '指揮官の印・最初から持っている' };
+  function esc(t) { return String(t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function rarLabel(o) { return o && RAR[o.rarity] ? RAR_NAME[RAR[o.rarity]] : ''; }
+  // タワーのカード：置いた時の数字（強化済みのカードは、強化1回分を足した数字）
+  function towerRows(def) {
+    var T = G.TOWERS[def.tower]; if (!T) return [];
+    var st = Object.assign({}, T), i, rows = [];
+    for (i = 0; i < (def.startLv || 0) && i < (T.up || []).length; i++) Object.assign(st, T.up[i]);
+    var ups = (T.up || []).slice(def.startLv || 0), sec = function (v) { return Math.round(v * 100) / 100; };
+    if (T.noAir) rows.push(['空の敵', '当たらない']);
+    if (T.place === 'path') rows.push(['置ける場所', '道の上だけ']);
+    if (st.trap) rows.push([st.trap.type === 'tar' ? '遅くする' : st.trap.type === 'bomb' ? '爆発' : '罠のダメージ',
+      st.trap.type === 'tar' ? Math.round(st.trap.slow * 100) + '%' : st.trap.dmg + (st.trap.type === 'bomb' ? 'ダメージ・' + st.trap.splash + 'マス' : '（物理）')]);
+    if (st.blocker) rows.push(['体力', st.blocker.hp]);
+    if (st.soldiers) rows.push(['兵士', st.soldiers.n + '人（体力' + st.soldiers.hp + '・攻撃' + st.soldiers.dmg + '）'], ['戻るまで', st.soldiers.respawn + '秒']);
+    if (T.noAttack && st.income != null) { rows.push(['攻撃', 'しない'], ['収入', '攻撃1回ごと ' + st.income + 'G']); }
+    else if (!T.noAttack && st.dmg != null) {
+      rows.push(['攻撃力', st.dmg + (T.dmgType === 'magic' ? '（魔法）' : '（物理）')], ['射程', st.range + 'マス'], ['攻撃の間隔', sec(st.rate) + '秒']);
+      if (st.splash) rows.push(['爆発の広さ', st.splash + 'マス']);
+      if (st.poison) rows.push(['毒', '毎秒' + st.poison.dps + '×' + st.poison.dur + '秒']);
+      if (st.burn) rows.push(['やけど', '毎秒' + st.burn.dps + '×' + st.burn.dur + '秒']);
+      if (st.chain) rows.push(['連鎖', st.chain + '体']);
+      if (st.slow) rows.push(['遅くする', Math.round(st.slow.pct * 100) + '%×' + st.slow.dur + '秒']);
+    }
+    rows.push(['強化', ups.length ? '● ' + ups.map(function (u) { return u.cost; }).join(' → ● ') : '最大']);
+    return rows;
+  }
+  function cardInfo(id) {
+    var def = G.CARDS[id]; if (!def) return null;
+    var sub = [rarLabel(def), def.kind === 'tower' ? 'タワー' : 'スキル', 'エネルギー ' + def.cost].filter(Boolean).join('・');
+    var rows = [];
+    if (def.plus && def.plusNote) rows.push(['鍛えた効果', def.plusNote[0] + '：' + def.plusNote[1] + ' → <span class="up">' + esc(def.plusNote[2]) + '</span>', 1]);
+    if (def.kind === 'tower') rows = rows.concat(towerRows(def));
+    else {
+      rows.push(['使う相手', def.target === 'tower' ? 'タワー1つ' : def.target === 'hand' ? '手札のカード1枚' : 'なし（すぐ効く）']);
+      if (def.detail) rows.push(['詳細', def.detail]);
+      if (def.exhaust) rows.push(['使い切り', 'この戦闘中は戻らない']);
+    }
+    return { title: def.name, sub: sub, body: def.text, rows: rows };
+  }
+  function relicInfo(id) {
+    var r = G.RELICS[id]; if (!r) return null;
+    var rows = [['種類', KIND_RELIC[r.kind] || r.kind]];
+    if (r.unlock) rows.push(['手に入れ方', '経験値をためると解放される']);
+    return { title: r.name, sub: ['レリック', rarLabel(r)].filter(Boolean).join('・'), body: r.text, rows: rows };
+  }
+  function showInfo(info) {
+    if (!info) return;
+    var box = $('info');
+    box.innerHTML = '<div class="wrapbox"><div class="box"><button type="button" class="x" aria-label="とじる">✕</button><h3>' + esc(info.title) + '</h3><p class="sub">' + esc(info.sub) +
+      '</p><p class="body">' + esc(info.body || '') + '</p><dl>' + info.rows.map(function (r) { return '<dt>' + esc(r[0]) + '</dt><dd>' + (r[2] ? r[1] : esc(r[1])) + '</dd>'; }).join('') + '</dl></div></div>';
+    box.hidden = false;
+    var close = function () { box.hidden = true; box.innerHTML = ''; };
+    box.querySelector('.x').addEventListener('click', close);
+    box.onclick = function (e) { if (e.target === box || e.target.className === 'wrapbox') close(); };
+    box.querySelector('.x').focus();
+  }
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { $('info').hidden = true; $('info').innerHTML = ''; } });
+  // 表の名前の列に使う：タップで showInfo。kind＝'card' か 'relic'
+  function nameLink(text, kind, id) {
+    var info = kind === 'relic' ? relicInfo(id) : cardInfo(id);
+    if (!info) return text;   // 名前が data.js にない（消えたカードなど）時は、ただの文字
+    var b = document.createElement('button'); b.type = 'button'; b.className = 'nm'; b.textContent = text; b.title = 'タップで効果を見る';
+    b.addEventListener('click', function () { showInfo(info); });
+    return b;
   }
   function colored(v) { return v == null ? '' : { html: '<span class="' + (v > 0 ? 'pos' : v < 0 ? 'neg' : '') + '">' + diff(v) + '</span>' }; }
 
@@ -280,6 +366,7 @@
 
     if (mode === 'graph' && window.StatsGraph) {
       var H = { d: d, G: G, base: base, CMD: CMD, AT: AT, ci: ci, cards: buildCards(d), relics: buildRelics(d),
+        cardText: function (id) { var c = G.CARDS[id]; return c ? c.text : ''; }, relicText: function (id) { var r = G.RELICS[id]; return r ? r.text : ''; },
         cardName: cardName, relicName: relicName, enemyName: enemyName, mapName: mapName, srcName: srcName, actName: actName,
         rar: function (id, t) { return rarOf(t === 'relic' ? G.RELICS[id] : G.CARDS[id]); },
         diff: function (r) { return r.runs && base != null ? r.wins / r.runs - base : null; } };
@@ -359,7 +446,7 @@
     // 5. カード
     var cards = buildCards(d);
     add(table('cards', 'カード', '「デッキにあったラン」は最後のデッキに1枚以上あったラン（＋もふくむ）。勝率は全体（' + (P(base) || '—') + '）との差も出す。勝ったランは長く続いてカードが多いので、どのカードも勝率が高めに出やすい。取られた率と並べて見る。', [
-      ['カード', function (r) { return cardName(r.card); }, 't'],
+      ['カード', function (r) { return cardName(r.card); }, 't', function (v, r) { return nameLink(v, 'card', r.card); }],
       ['レア度', function (r) { return rarOf(G.CARDS[r.card]); }, 'n', rarName, 'label'],
       ['報酬で出た', function (r) { return r.offR; }, 'n'],
       ['報酬で取った', function (r) { return r.takeR; }, 'n'],
@@ -380,7 +467,7 @@
     // 出た回数＝商人に並んだ回数＋エリート・イベントで手に入れた数。エリートとイベントのレリックは選べず必ず手に入るので、「出た＝取った」として数える
     var relicRows = buildRelics(d);
     add(table('relics', 'レリック', '「出た回数」＝商人に並んだ回数＋エリート・イベントで手に入れた数、「取った回数」＝商人で買った数＋エリート・イベントで手に入れた数（エリートとイベントのレリックは選べないので、出たら必ず取ったことになる）。エリート・イベントの数は「持っていたラン − 商人で買った数」から出すので、途中からのランでは多めに出ることがある。指揮官のレリック（スターター）は、はじめから持っているので出た・取ったは0。勝率は最後に持っていたランで計算。', [
-      ['レリック', function (r) { return relicName(r.relic); }, 't'],
+      ['レリック', function (r) { return relicName(r.relic); }, 't', function (v, r) { return nameLink(v, 'relic', r.relic); }],
       ['レア度', function (r) { return rarOf(G.RELICS[r.relic]); }, 'n', rarName, 'label'],
       ['出た回数', function (r) { return r.offS + r.drop; }, 'n'],
       ['取った回数', function (r) { return r.takeS + r.drop; }, 'n'],
@@ -396,7 +483,7 @@
 
     // 7. タワー
     add(table('towers', 'タワー（ダメージの出どころ）', '敵に与えたダメージ（敵の残りの体力をこえた分は数えない）と、とどめを刺した数。毒・やけどは、かけたタワーの分。', [
-      ['出どころ', function (r) { return srcName(r.src); }, 't'],
+      ['出どころ', function (r) { return srcName(r.src); }, 't', function (v, r) { return !G.TOWERS[r.src] && G.CARDS[r.src] ? nameLink(v, 'card', r.src) : v; }],
       ['使った戦闘', function (r) { return r.fights; }, 'n'],
       ['ダメージ合計', function (r) { return r.dmg; }, 'n'],
       ['1戦あたり', function (r) { return pct(r.dmg, r.fights); }, 'n', f0],
@@ -466,7 +553,11 @@
         if (r.kind === 'rest') return REST[r.item] || r.item;
         if (r.kind === 'buy') { if (r.item === 'heal') return 'ライフ回復'; if (r.item === 'remove') return 'カードを手放す'; if (/^relic:/.test(r.item)) return 'レリック：' + relicName(r.item.slice(6)); }
         return cardName(r.item) + (r.detail && r.kind !== 'buy' ? '（' + (AT[r.detail] || r.detail) + '）' : '');
-      }, 't'],
+      }, 't', function (v, r) {
+        if (r.kind === 'buy' && /^relic:/.test(r.item)) return nameLink(v, 'relic', r.item.slice(6));
+        if (r.kind !== 'event' && r.kind !== 'rest' && !(r.kind === 'buy' && (r.item === 'heal' || r.item === 'remove')) && G.CARDS[r.item]) return nameLink(v, 'card', r.item);
+        return v;
+      }],
       ['回数', function (r) { return r.n; }, 'n']
     ], d.choices, 2), '選択');
 

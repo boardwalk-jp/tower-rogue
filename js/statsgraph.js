@@ -190,7 +190,7 @@
       var rk = RARITY[H.rar(q.r.card, 'card')] || RARITY[2];
       shape(g, rk.shape, q.cx, q.cy, q.rad, rk.color, q.few);
       var hit = el('circle', { cx: q.cx, cy: q.cy, r: Math.max(12, q.rad + 4), fill: 'transparent' }, g);
-      hover(hit, '<b>' + H.cardName(q.r.card) + '</b>（' + rk.name + '）<br>取られた率 ' + pct1(q.p) + '（' + q.r.takeR + '/' + q.r.offR + '）<br>勝率 ' + pct1(q.r.wins / q.r.runs) + '・全体との差 ' + pt(q.dv) +
+      hover(hit, '<b>' + H.cardName(q.r.card) + '</b>（' + rk.name + '）<br><span class="gsub">' + H.cardText(q.r.card) + '</span><br>取られた率 ' + pct1(q.p) + '（' + q.r.takeR + '/' + q.r.offR + '）<br>勝率 ' + pct1(q.r.wins / q.r.runs) + '・全体との差 ' + pt(q.dv) +
         '<br>デッキにあったラン ' + q.r.runs + (q.r.offS ? '<br>商人で買われた率 ' + pct1(q.r.takeS / q.r.offS) : ''));
     });
     // 名前を出すのは、10ラン以上の点のうち、真ん中（平均・差0）から遠い6つだけ（全部に出すと読めない）
@@ -235,7 +235,7 @@
       shape(g, rk.shape, x(dv), cy, 5, rk.color, few);
       txt(g, iw + 6, cy + 4, String(r.runs), { fill: few ? MUTED : SUB, 'font-size': 10.5 });
       var hit = el('rect', { x: -lw, y: i * rh, width: W, height: rh, fill: 'transparent' }, g);
-      hover(hit, '<b>' + H.relicName(r.relic) + '</b>（' + rk.name + '）<br>持っていたランの勝率 ' + pct1(p) + '（±' + Math.round(e * 100) + '）<br>全体との差 ' + pt(dv) + '<br>持っていたラン ' + r.runs +
+      hover(hit, '<b>' + H.relicName(r.relic) + '</b>（' + rk.name + '）<br><span class="gsub">' + H.relicText(r.relic) + '</span><br>持っていたランの勝率 ' + pct1(p) + '（±' + Math.round(e * 100) + '）<br>全体との差 ' + pt(dv) + '<br>持っていたラン ' + r.runs +
         '<br>出た ' + (r.offS + r.drop) + '・取った ' + (r.takeS + r.drop) + (r.offS ? '<br>商人：並んだ ' + r.offS + '・買った ' + r.takeS : ''));
     });
     return s;
@@ -249,7 +249,7 @@
     return hbars(s, W, rows.map(function (r) {
       var rk = RARITY[H.rar(r.relic, 'relic')] || RARITY[2], p = r.takeS / r.offS;
       return { label: H.relicName(r.relic), v: p, color: rk.color, few: r.offS < FEW, right: r.takeS + '/' + r.offS,
-        tip: '<b>' + H.relicName(r.relic) + '</b>（' + rk.name + '）<br>買われた率 ' + pct1(p) + '<br>並んだ ' + r.offS + '・買った ' + r.takeS };
+        tip: '<b>' + H.relicName(r.relic) + '</b>（' + rk.name + '）<br><span class="gsub">' + H.relicText(r.relic) + '</span><br>買われた率 ' + pct1(p) + '<br>並んだ ' + r.offS + '・買った ' + r.takeS };
     }), 1, function (t) { return Math.round(t * 100) + '%'; });
   }
 
