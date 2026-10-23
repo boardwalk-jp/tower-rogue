@@ -116,19 +116,27 @@ var G = window.G = window.G || {};
   // ---- 実際の音に近い効果音の部品（2026-10-24 指揮官を選ぶ画面のマーク用） ----
   function env(g, st, peak, att, dec) { g.gain.setValueAtTime(0.0001, st); g.gain.linearRampToValueAtTime(peak, st + att); g.gain.exponentialRampToValueAtTime(0.0001, st + att + dec); }
   function nsrc(st, dur) { var s = ac.createBufferSource(); s.buffer = noiseBuf; s.start(st, Math.random() * Math.max(0, 0.6 - dur - 0.02)); s.stop(st + dur); return s; }
-  // 剣を振る「シュバッ」：雑音の通る高さを 低→高→低 と一瞬で動かす（空気を切る音）＋最後に短く重い「バッ」
-  function realSwish(t) {
-    var n = nsrc(t, 0.45), bp = ac.createBiquadFilter(), g = ac.createGain();
-    bp.type = 'bandpass'; bp.Q.value = 1.3;
-    bp.frequency.setValueAtTime(450, t); bp.frequency.exponentialRampToValueAtTime(7000, t + 0.085); bp.frequency.exponentialRampToValueAtTime(1100, t + 0.34);
-    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(1.1, t + 0.065); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.38);
-    n.connect(bp); bp.connect(g); g.connect(sfxBus);
-    var n2 = nsrc(t + 0.05, 0.2), hp = ac.createBiquadFilter(), g2 = ac.createGain();   // 刃先の「シャッ」
-    hp.type = 'highpass'; hp.frequency.value = 5000; env(g2, t + 0.05, 0.5, 0.01, 0.12);
-    n2.connect(hp); hp.connect(g2); g2.connect(sfxBus);
-    var n3 = nsrc(t + 0.07, 0.12), lp = ac.createBiquadFilter(), g3 = ac.createGain();  // 振り切った「バッ」
-    lp.type = 'lowpass'; lp.frequency.setValueAtTime(2200, t + 0.07); lp.frequency.exponentialRampToValueAtTime(400, t + 0.17); env(g3, t + 0.07, 0.55, 0.004, 0.09);
-    n3.connect(lp); lp.connect(g3); g3.connect(sfxBus);
+  // 剣の重い斬撃「ザシュッ」（2026-10-24 オーナーが3案からC案を選んだ）：
+  //   ザ＝ザラついた中低音の雑音（少しひずませる）／シュッ＝高い所から下がる風切り＋刃先のシャッ／ドスッ＝低い重さ／刃の響き＝振り抜いた後のキィン（うっすら）
+  function crush(amt) { var ws = ac.createWaveShaper(), c = new Float32Array(1024); for (var i = 0; i < 1024; i++) { var x = i / 512 - 1; c[i] = Math.tanh(x * amt); } ws.curve = c; return ws; }
+  function realSlash(t) {
+    var n = nsrc(t, 0.14), lp = ac.createBiquadFilter(), pk = ac.createBiquadFilter(), ws = crush(3), g = ac.createGain();
+    lp.type = 'lowpass'; lp.frequency.setValueAtTime(3200, t); lp.frequency.exponentialRampToValueAtTime(600, t + 0.12);
+    pk.type = 'peaking'; pk.frequency.value = 900; pk.gain.value = 8; pk.Q.value = 1;
+    env(g, t, 1.25, 0.004, 0.11); n.connect(lp); lp.connect(pk); pk.connect(ws); ws.connect(g); g.connect(sfxBus);
+    var s2 = t + 0.045, n2 = nsrc(s2, 0.25), bp = ac.createBiquadFilter(), g2 = ac.createGain();
+    bp.type = 'bandpass'; bp.Q.value = 1.1; bp.frequency.setValueAtTime(6500, s2); bp.frequency.exponentialRampToValueAtTime(1300, s2 + 0.2);
+    g2.gain.setValueAtTime(0.0001, s2); g2.gain.linearRampToValueAtTime(1.25, s2 + 0.02); g2.gain.exponentialRampToValueAtTime(0.0001, s2 + 0.2);
+    n2.connect(bp); bp.connect(g2); g2.connect(sfxBus);
+    var n3 = nsrc(s2, 0.09), hp = ac.createBiquadFilter(), g3 = ac.createGain();
+    hp.type = 'highpass'; hp.frequency.value = 6000; env(g3, s2, 0.44, 0.005, 0.07); n3.connect(hp); hp.connect(g3); g3.connect(sfxBus);
+    var o = ac.createOscillator(), og = ac.createGain(); o.type = 'sine';
+    o.frequency.setValueAtTime(140, t); o.frequency.exponentialRampToValueAtTime(55, t + 0.16);
+    env(og, t, 0.65, 0.003, 0.16); o.connect(og); og.connect(sfxBus); o.start(t); o.stop(t + 0.22);
+    [[3350, 1, 0.5], [3368, 0.6, 0.45], [5120, 0.4, 0.3], [7480, 0.2, 0.18]].forEach(function (p) {
+      var r = ac.createOscillator(), rg = ac.createGain(), st = t + 0.06; r.type = 'sine'; r.frequency.value = p[0];
+      env(rg, st, 0.07 * p[1], 0.01, p[2]); r.connect(rg); rg.connect(sfxBus); r.start(st); r.stop(st + p[2] + 0.05);
+    });
   }
   // 金づちで鉄をたたく「カンッ」：高さのそろわない響き（金属らしさ）を重ね、打った瞬間の硬い「カチッ」を足す
   function realHammer(t0, delay, v) {
@@ -258,7 +266,7 @@ var G = window.G = window.G || {};
       tone(t, { f: 900, f2: 700, dur: 0.04, type: 'triangle', vol: 0.04, delay: 0.1 });
     },
     // 指揮官を選ぶ画面で象徴マークをタップした時の音（2026-10-24 オーナー指定：電子音でなく、実際の音に近づける。タップのたびに鳴らす）
-    cmd_captain: function (t) { realSwish(t); },
+    cmd_captain: function (t) { realSlash(t); },
     cmd_witch: function (t) { realMagic(t); },
     cmd_engineer: function (t) { realHammer(t, 0, 1); realHammer(t, 0.42, 0.8); },   // 「カンッ、（一拍）カンッ」
     // 作戦変更で手札を外す：カードがシュッと下に消える
