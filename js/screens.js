@@ -177,7 +177,7 @@ var G = window.G = window.G || {};
     cont.disabled = !d;
     if (d) {
       var r = d.run, n = r.at ? r.world.nodes[r.at] : null;
-      var where = '第' + (r.act || 1) + '層 ' + (!n ? 'スタート地点' : n.type === 'boss' ? 'ボス' : (n.floor + 1) + '階');
+      var where = G.ACTS[(r.act || 1) - 1].area + ' ' + (!n ? 'スタート地点' : G.dayOf(r.act || 1, n.floor, n.type === 'boss') + '日目' + (n.type === 'boss' ? 'ボス' : ''));
       var dt = new Date(d.at);
       $('t-cont-info').textContent = (G.COMMANDERS[r.cmd] || G.COMMANDERS.captain).name + (r.asc ? '・A' + r.asc : '') + '・' + where + '・ライフ' + r.life + '/' + r.maxLife + '・デッキ' + r.deck.length + '枚・' + (dt.getMonth() + 1) + '/' + dt.getDate() + ' ' + dt.getHours() + ':' + String(dt.getMinutes()).padStart(2, '0');
     } else $('t-cont-info').textContent = '保存されたデータはありません';
@@ -412,7 +412,7 @@ var G = window.G = window.G || {};
         ic.width = 14; ic.height = 14; ic.getContext('2d').drawImage(SPR.node[n.type], 0, 0);
       }
       b.appendChild(ic);
-      b.setAttribute('aria-label', (n.floor + 1) + '階 ' + KIND[n.type] + (bossId ? '：' + G.ENEMIES[bossId].name : ''));
+      b.setAttribute('aria-label', G.dayOf(run.act, n.floor, n.type === 'boss') + '日目 ' + KIND[n.type] + (bossId ? '：' + G.ENEMIES[bossId].name : ''));
       if (run.visited.indexOf(k) >= 0) b.classList.add('visited');
       if (k === run.at) b.classList.add('here');
       if (reach.indexOf(k) >= 0) b.classList.add('reach');
@@ -425,7 +425,7 @@ var G = window.G = window.G || {};
     renderRelics();
     var A = G.ACTS[run.act - 1];
     if (G.worldBg) G.worldBg(run.act, A.theme, box, $('world-scroll'));   // 層ごとの景色（草原・雪山・火山）
-    $('world').querySelector('.rb-title').textContent = A.name + ' ' + A.area;
+    $('world').querySelector('.rb-title').textContent = A.area;   // 2026-10-23 「第1層 草原」→「草原」
     var inShop = run.at && nodes[run.at].type === 'shop' && run.shop && run.shop.node === run.at;
     $('world-hint').textContent = view ? '見るだけ（マスは選べません）' : inShop ? '次のマスを選ぶ（今いる商人をタップでお店に戻れる）' : run.at ? '次に進むマスを選んでください' : '最初のマスを選んでください（下から上へ進みます）';
     // 今いる階が見えるようにスクロール
@@ -439,7 +439,7 @@ var G = window.G = window.G || {};
       pendingNode = k;
       document.querySelectorAll('.node.pick').forEach(function (x) { x.classList.remove('pick'); });
       b.classList.add('pick');
-      $('world-hint').textContent = (n.floor + 1 > run.world.floors ? 'ボス「' + R.bossName(run) + '」' : (n.floor + 1) + '階 ' + KIND[n.type]) + '：もう一度タップで進む';
+      $('world-hint').textContent = (n.floor + 1 > run.world.floors ? 'ボス「' + R.bossName(run) + '」' : G.dayOf(run.act, n.floor) + '日目 ' + KIND[n.type]) + '：もう一度タップで進む';
       return;
     }
     R.enter(run, k);
@@ -491,7 +491,7 @@ var G = window.G = window.G || {};
     music(n.type === 'boss' ? 'boss' : 'w' + run.act);   // ふつうの戦闘・エリート：ワールドマップの曲のまま（2026-10-22。前は戦闘の曲）。ボス戦は今までどおり
     // 上の帯：「草原 3日目エリート」（2026-10-23 オーナー指定。前は「1層3階エリート」）
     // 日数は地域が変わっても0にもどさない。1地域＝10マス＋ボス＝11日（ボスのマスも1日と数える）。例：雪山の最初のマス＝12日目
-    var day = (run.act - 1) * (G.RULES.floors + 1) + (n.type === 'boss' ? G.RULES.floors + 1 : n.floor + 1);
+    var day = G.dayOf(run.act, n.floor, n.type === 'boss');
     var label = G.ACTS[run.act - 1].area + ' ' + day + '日目' + (n.type === 'boss' ? 'ボス' : n.type === 'elite' ? 'エリート' : '');
     var t0 = Date.now();
     UI.start(opts, function (s) {
@@ -550,10 +550,10 @@ var G = window.G = window.G || {};
   function showActClear() {
     var A = G.ACTS[run.act - 1], N = G.ACTS[run.act];
     lastResume = { type: 'actclear' }; save(lastResume);
-    openPanel(A.name + 'クリア', function (body, foot) {
-      body.appendChild(el('h2', 'panel-title win', A.name + ' ' + A.area + ' クリア！'));
-      body.appendChild(el('p', 'panel-text', R.bossName(run) + 'を倒した。次は' + N.name + '「' + N.area + '」。敵が強くなる。' + (G.RULES.actHeal >= 99 ? '進む時にライフが全回復する。' : '進む時にライフが' + G.RULES.actHeal + '回復する。')));
-      foot.appendChild(button(N.name + 'へ進む', 'go', function () { R.nextAct(run); showWorld(); }));
+    openPanel(A.area + 'クリア', function (body, foot) {
+      body.appendChild(el('h2', 'panel-title win', A.area + ' クリア！'));
+      body.appendChild(el('p', 'panel-text', R.bossName(run) + 'を倒した。次は' + N.area + '。敵が強くなる。' + (G.RULES.actHeal >= 99 ? '進む時にライフが全回復する。' : '進む時にライフが' + G.RULES.actHeal + '回復する。')));
+      foot.appendChild(button(N.area + 'へ進む', 'go', function () { R.nextAct(run); showWorld(); }));
     });
   }
 
@@ -748,9 +748,9 @@ var G = window.G = window.G || {};
     openPanel(run.won ? 'クリア' : '敗北', function (body, foot) {
       // 場面の絵（クリア＝朝日の砦と花火、敗北＝燃える砦）と、記録のタイル（2026-10-22 新デザイン）
       var art = G.eventArt && G.eventArt(run.won ? 'victory' : 'defeat', run.act); if (art) body.appendChild(art);
-      body.appendChild(el('h2', 'panel-title ' + (run.won ? 'win' : 'lose'), (run.won ? '全3層クリア！' : '敗北…') + (run.asc ? '（アセンション' + run.asc + '）' : '')));
+      body.appendChild(el('h2', 'panel-title ' + (run.won ? 'win' : 'lose'), (run.won ? '全地域クリア！' : '敗北…') + (run.asc ? '（アセンション' + run.asc + '）' : '')));
       var n = R.node(run), cmd = (G.COMMANDERS[run.cmd] || G.COMMANDERS.captain).name;
-      body.appendChild(el('p', 'panel-text end-lead', cmd + '：' + (run.won ? 'ラスボスの' + (run.boss2Fight ? R.bossName(run, run.act, run.boss || 0) + 'と' : '') + R.bossName(run) + 'を倒した。' : G.ACTS[run.act - 1].name + 'の' + (n ? (n.type === 'boss' ? 'ボス戦' : (n.floor + 1) + '階') : '') + 'で力つきた。')));
+      body.appendChild(el('p', 'panel-text end-lead', cmd + '：' + (run.won ? 'ラスボスの' + (run.boss2Fight ? R.bossName(run, run.act, run.boss || 0) + 'と' : '') + R.bossName(run) + 'を倒した。' : G.ACTS[run.act - 1].area + 'の' + (n ? (n.type === 'boss' ? 'ボス戦' : G.dayOf(run.act, n.floor) + '日目') : '') + 'で力つきた。')));
       var tiles = el('div', 'end-stats');
       [['勝った戦闘', run.stats.battles + '回'], ['エリート', run.stats.elites + '回'], ['手に入れたカード', run.stats.cardsTaken + '枚'], ['最後のデッキ', run.deck.length + '枚'], ['レリック', run.relics.length + '個'], ['ライフ', Math.max(0, run.life) + '/' + run.maxLife]].forEach(function (q) {
         var d = el('div', 'end-stat'); d.appendChild(el('small', '', q[0])); d.appendChild(el('b', '', q[1])); tiles.appendChild(d);
@@ -772,7 +772,7 @@ var G = window.G = window.G || {};
   // ============================================================
   var HELP = [
     '<h3>目的</h3>',
-    '<p>タワーで<b>砦</b>を守りながら進み、<b>第3層のボス</b>を倒せばクリア。<b>ライフ</b>が0で終わり。</p>',
+    '<p>タワーで<b>砦</b>を守りながら進み、<b>火山のボス</b>を倒せばクリア。<b>ライフ</b>が0で終わり。</p>',
     '<h3>マップの記号</h3>',
     '<ul class="help-list">',
     '<li>{node:battle}<span><b>戦闘</b></span></li>',
@@ -780,7 +780,7 @@ var G = window.G = window.G || {};
     '<li>{node:event}<span><b>イベント</b>：選んだ結果で何かが起こる</span></li>',
     '<li>{node:shop}<span><b>商人</b>：お金でカード・レリックを買う</span></li>',
     '<li>{node:rest}<span><b>たき火</b>：回復か、カードを強くする</span></li>',
-    '<li>{node:boss}<span><b>ボス</b>：倒すと次の層へ</span></li>',
+    '<li>{node:boss}<span><b>ボス</b>：倒すと次の地域へ</span></li>',
     '</ul>',
     '<h3>戦闘</h3>',
     '<ul class="help-list">',
