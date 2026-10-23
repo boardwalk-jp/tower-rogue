@@ -923,7 +923,11 @@ var G = window.G = window.G || {};
   // ---- タイトルのメニュー ----
   $('t-menu').addEventListener('click', function () { $('title-menu').hidden = false; });
   // ページの更新：最後に番号を付けて読み直し、保存された古いページを使わずに最新版を読み込む
-  $('t-reload').addEventListener('click', function () { location.replace(location.pathname + '?r=' + Date.now()); });
+  function reloadPage() { location.replace(location.pathname + '?r=' + Date.now()); }
+  $('t-reload').addEventListener('click', reloadPage);
+  $('tm-update').addEventListener('click', reloadPage);
+  // ワールドマップ・戦闘のメニューから：「タイトルに戻る」と同じく今の状態を保存してから読み直す（戦闘中なら、つづきからはその戦闘の始めから）
+  $('wm-update').addEventListener('click', function () { save(lastResume); reloadPage(); });
   // 更新で付けた番号は、読み込んだ後にアドレスから消す（ホーム画面に追加する時などに残らないように）
   if (/[?&]r=\d+/.test(location.search)) { try { history.replaceState(null, '', location.pathname + location.hash); } catch (_) {} }
   $('tm-close').addEventListener('click', function () { $('title-menu').hidden = true; });
