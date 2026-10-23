@@ -642,7 +642,7 @@ var G = window.G = window.G || {};
         if (e.k === 'kill' && e.boss) freeze = Math.max(freeze, 0.45);
         else if (e.k === 'kill' && e.big) freeze = Math.max(freeze, 0.07);
       }
-      else if (e.k === 'reshuffle') toast('捨て札を混ぜて山札に戻しました');
+      else if (e.k === 'reshuffle') { toast('捨て札を混ぜて山札に戻しました'); if (G.Sound) G.Sound.play('shuffle'); }   // 2026-10-23 混ぜ直す音
       else if (e.k === 'relic') toast('レリック「' + G.RELICS[e.id].name + '」が働いた');
       else if (e.k === 'surprise') toast('びっくり箱から「' + G.CARDS[e.id].name + '」が出た！');
       else if (e.k === 'win' || e.k === 'lose') finish();

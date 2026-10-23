@@ -164,6 +164,11 @@ var G = window.G = window.G || {};
       noise(t, { dur: 0.4, vol: 0.05, f: 7000, hp: true, delay: 0.12 });
     },
     skill:  function (t) { tone(t, { f: 660, f2: 1320, dur: 0.18, type: 'sine', vol: 0.12 }); tone(t, { f: 990, dur: 0.12, type: 'triangle', vol: 0.06, delay: 0.06 }); },
+    // 山札を混ぜ直す（捨て札→山札）：カードをパラパラとはじく短い音を8回、だんだん速く。最後にトンとそろえる（2026-10-23 オーナー指定）
+    shuffle: function (t) {
+      for (var i = 0, d = 0; i < 8; i++) { noise(t, { dur: 0.025, vol: 0.12, f: 4200 + i * 150, hp: true, delay: d }); d += 0.05 - i * 0.004; }
+      tone(t, { f: 260, f2: 180, dur: 0.05, type: 'triangle', vol: 0.09, delay: 0.36 }); noise(t, { dur: 0.04, vol: 0.1, f: 1200, delay: 0.36 });
+    },
     card:   function (t) { noise(t, { dur: 0.05, vol: 0.06, f: 5000, hp: true }); tone(t, { f: 1200, dur: 0.03, type: 'triangle', vol: 0.04 }); },   // カードをめくるシュッ
     // ボタンを押した時の「カチャッ」（2026-10-22 オーナー指定。前は高い「ピッ」）：
     //   カチ＝ごく短い高いザッと硬い音（つめが当たる）／ャッ＝35ミリ秒あとに、少し低い2つ目の音と小さなこもった音（はまる手ごたえ）

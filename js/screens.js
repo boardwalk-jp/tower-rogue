@@ -723,9 +723,8 @@ var G = window.G = window.G || {};
       var u = button('', 'choice', function () { pickFromDeck('鍛えるカードを選ぶ', function (i) { R.logSet(run, 'rest', 'up'); var nm = G.CARDS[run.deck[i]].name; R.upgradeCard(run, i); done('「' + nm + '」を鍛えて「' + G.CARDS[run.deck[i]].name + '」にした。'); }, false, showRest, R.canUpgradeCard); });
       u.appendChild(el('b', '', '鍛える')); u.appendChild(el('small', '', 'カードを1枚「＋」にする（タワーはLv2で置かれる・スキルは効果アップ）'));
       u.disabled = !run.deck.some(R.canUpgradeCard);
-      var b = button('', 'choice', function () { pickFromDeck('手放すカードを選ぶ', function (i) { R.logSet(run, 'rest', 'rm'); R.removeCard(run, i); done('カードを手放した。'); }, false, showRest); });
-      b.appendChild(el('b', '', '整理する')); b.appendChild(el('small', '', 'デッキからカードを1枚手放す'));
-      list.appendChild(a); list.appendChild(u); list.appendChild(b);
+      // 2026-10-23 オーナー指定：「整理する」（カードを1枚手放す）はなくした。たき火は 休む／鍛える の2つ
+      list.appendChild(a); list.appendChild(u);
       body.appendChild(list);
     });
     function done(text) {
