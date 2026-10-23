@@ -203,10 +203,28 @@ var G = window.G = window.G || {};
       tone(t, { f: 150, f2: 60, dur: 0.18, type: 'sine', vol: 0.38, delay: 0.1 }); noise(t, { dur: 0.1, vol: 0.22, f: 450, delay: 0.1 });
       tone(t, { f: 900, f2: 700, dur: 0.04, type: 'triangle', vol: 0.04, delay: 0.1 });
     },
-    // 指揮官を選ぶ画面で象徴マークをタップ：指揮官が背景にドンと出る（低いドン＋砂ぼこり）（2026-10-23）
-    cmdpick: function (t) {
-      tone(t, { f: 110, f2: 38, dur: 0.42, type: 'sine', vol: 0.55 }); noise(t, { dur: 0.28, vol: 0.28, f: 900 });
-      tone(t, { f: 220, f2: 90, dur: 0.12, type: 'triangle', vol: 0.12 });
+    // 指揮官を選ぶ画面で象徴マークをタップした時の音（2026-10-23 オーナー指定：タップのたびに鳴らす）
+    // 騎士隊長（剣）：シュッと空気を切る音 → 刃のシャキーン
+    cmd_captain: function (t) {
+      noise(t, { dur: 0.05, vol: 0.18, f: 1400, bp: true }); noise(t, { dur: 0.06, vol: 0.2, f: 3200, hp: true, delay: 0.025 }); noise(t, { dur: 0.08, vol: 0.14, f: 6500, hp: true, delay: 0.05 });
+      tone(t, { f: 2700, f2: 2450, dur: 0.42, type: 'triangle', vol: 0.09, delay: 0.07 }); tone(t, { f: 4100, f2: 3900, dur: 0.3, type: 'sine', vol: 0.05, delay: 0.07 });
+      tone(t, { f: 1800, f2: 1700, dur: 0.2, type: 'sine', vol: 0.04, delay: 0.08 });
+    },
+    // 宮廷魔導師（水晶の杖）：キラキラと上がる音＋やわらかい響き
+    cmd_witch: function (t) {
+      tone(t, { f: 440, f2: 660, dur: 0.6, type: 'sine', vol: 0.1 });
+      [880, 1175, 1480, 1760, 2350].forEach(function (f, i) { tone(t, { f: f, dur: 0.28, type: 'sine', vol: 0.075, delay: 0.04 + i * 0.055 }); tone(t, { f: f * 2.01, dur: 0.18, type: 'sine', vol: 0.025, delay: 0.04 + i * 0.055 }); });
+      noise(t, { dur: 0.35, vol: 0.05, f: 7000, hp: true, delay: 0.05 });
+    },
+    // 工兵将校（スパナ）：金づちで金属を打つ「カーン、カン」
+    cmd_engineer: function (t) {
+      [0, 0.2].forEach(function (d, i) { var v = i ? 0.7 : 1;
+        noise(t, { dur: 0.03, vol: 0.32 * v, f: 3000, hp: true, delay: d });
+        tone(t, { f: 540, f2: 500, dur: 0.07, type: 'square', vol: 0.12 * v, delay: d });
+        tone(t, { f: 1320, f2: 1300, dur: 0.32, type: 'triangle', vol: 0.09 * v, delay: d });
+        tone(t, { f: 2210, dur: 0.18, type: 'sine', vol: 0.04 * v, delay: d });
+        tone(t, { f: 130, f2: 70, dur: 0.1, type: 'sine', vol: 0.2 * v, delay: d });
+      });
     },
     // 作戦変更で手札を外す：カードがシュッと下に消える
     cardout: function (t) {

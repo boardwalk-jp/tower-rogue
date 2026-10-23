@@ -228,6 +228,9 @@ var G = window.G = window.G || {};
     if (!seen) setTimeout(showHelp, 50);
     music('cmd');   // 指揮官を選ぶ画面の曲
     G.showScreen('cmdsel');
+    // 後ろにタイトル画面（ロゴと背景だけ）を出しておく。選ぶと炎の背景がかぶさる
+    $('start').hidden = false; $('start').classList.add('under-cmd'); window.scrollTo(0, 0);
+    $('cs-prompt').hidden = false;
     var scr = $('cmdsel'), hero = $('cs-hero'), info = $('cs-info'), tiles = $('cs-tiles'), foot = $('cs-foot'), flash = $('cs-flash');
     var oldBg = scr.querySelector('.cs-bg'); if (oldBg) oldBg.remove();
     var bg = G.cmdBg(); scr.insertBefore(bg, scr.firstChild);
@@ -236,12 +239,14 @@ var G = window.G = window.G || {};
     tiles.innerHTML = ''; foot.innerHTML = '';
     var picked = null;
     // 始める時：BGMをいったん止めて、出陣のファンファーレ。ワールドマップの曲は、ファンファーレが終わってから始まる
-    var ok = button('この指揮官で始める', 'go', function () { if (!picked) return; if (G.Sound) { G.Sound.music(null); G.Sound.play('start'); G.Sound.hold(1.5); } newRun(picked, ascPick); }, true);
+    function leaveTitle() { $('start').classList.remove('under-cmd'); }
+    var ok = button('この指揮官で始める', 'go', function () { if (!picked) return; leaveTitle(); $('start').hidden = true; if (G.Sound) { G.Sound.music(null); G.Sound.play('start'); G.Sound.hold(1.5); } newRun(picked, ascPick); }, true);
     ok.disabled = true;
     function restart(e, c) { e.classList.remove(c); void e.offsetWidth; e.classList.add(c); }
     function pick(id) {
+      if (G.Sound) G.Sound.play('cmd_' + id);   // タップのたびに、その指揮官の音（剣＝斬る音・杖＝魔法の音・スパナ＝金づちの音）
       if (picked === id) return;
-      picked = id; ok.disabled = false;
+      picked = id; ok.disabled = false; $('cs-prompt').hidden = true;
       var C = G.COMMANDERS[id], acc = G.CMD_ACC[id];
       tiles.classList.add('has-sel'); tiles.querySelectorAll('.tile').forEach(function (t) { t.classList.toggle('sel', t.dataset.id === id); });
       bg.set(id);
@@ -254,7 +259,6 @@ var G = window.G = window.G || {};
       var rl = $('cs-relic'); rl.innerHTML = '';
       if (C.relic) { rl.appendChild(UI.relicCanvas(C.relic)); var tx = el('div'); tx.appendChild(el('b', '', G.RELICS[C.relic].name)); tx.appendChild(el('span', '', G.RELICS[C.relic].text)); rl.appendChild(tx); }
       restart(info, 'on');
-      if (G.Sound) G.Sound.play('cmdpick');
     }
     Object.keys(G.COMMANDERS).forEach(function (id) {
       var b = button('', 'tile', function () { pick(id); }, true);
@@ -280,7 +284,7 @@ var G = window.G = window.G || {};
     }
     // 戻る：タイトルへ（ランはまだ始まっていないので、保存の中身は変わらない）
     var back = button('戻る', 'cs-back', function () {
-      G.started = false;
+      leaveTitle(); G.started = false;
       document.querySelectorAll('[data-screen]').forEach(function (e) { e.hidden = true; });
       G.currentScreen = 'start';
       $('start').hidden = false; refreshTitle(); window.scrollTo(0, 0);

@@ -699,11 +699,18 @@ html.skin-classic .rampart{display:none}
 @media (prefers-reduced-motion:reduce){.upd-arrow{transition:none}}
 
 /* ===== 指揮官を選ぶ画面（2026-10-23 新デザイン・確認用ブランチ） ===== */
-#cmdsel{background:#0c0a10;overflow:hidden}
-#cmdsel .cs-bg{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated;z-index:0}
+#cmdsel{z-index:5;overflow:hidden;background:rgba(4,3,8,.66)}   /* 選ぶ前：後ろのタイトル画面（ロゴと背景）がうっすら見える */
+#cmdsel .cs-bg{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated;z-index:0;opacity:0;transition:opacity .3s}
+#cmdsel .cs-bg.on{opacity:1}
+/* 指揮官を選んでいる間のタイトル画面：ロゴと背景だけ残す */
+#start.under-cmd .title-top-btns,#start.under-cmd .logo-sub,#start.under-cmd .title-menu,#start.under-cmd .meta-line,#start.under-cmd .title-help,#start.under-cmd .swipe,#start.under-cmd .ver{visibility:hidden}
+#cs-prompt{margin:0 0 -8px;text-align:center;font-size:14px;color:#e8e0d0;letter-spacing:.06em;text-shadow:0 1px 3px #000}
+#cs-prompt[hidden]{display:none}
 /* 全身の絵：右上に大きく。足元は文字の下に溶かす */
 #cs-hero{position:absolute;z-index:1;right:-8%;top:1%;width:84%;aspect-ratio:144/288;image-rendering:pixelated;pointer-events:none;opacity:0;
-  -webkit-mask-image:linear-gradient(to bottom,#000 66%,transparent 96%);mask-image:linear-gradient(to bottom,#000 66%,transparent 96%)}
+  /* 下と左のふちをぼかす（マントが絵のふちでまっすぐ切れて見えないように） */
+  -webkit-mask-image:linear-gradient(to bottom,#000 78%,transparent 99%),linear-gradient(to right,transparent,#000 9%);-webkit-mask-composite:source-in;
+  mask-image:linear-gradient(to bottom,#000 78%,transparent 99%),linear-gradient(to right,transparent,#000 9%);mask-composite:intersect}
 #cs-hero.on{opacity:1;animation:cs-don .55s cubic-bezier(.2,1.4,.4,1) both}   /* 出た後は動かさない（2026-10-23 オーナー指定） */
 @keyframes cs-don{0%{opacity:0;transform:translateX(18%) scale(1.22);filter:brightness(3) saturate(0)}35%{opacity:1;filter:brightness(1.8) saturate(.6)}100%{opacity:1;transform:none;filter:none}}
 #cs-flash{position:absolute;inset:0;z-index:2;pointer-events:none;opacity:0;mix-blend-mode:screen}
@@ -711,10 +718,13 @@ html.skin-classic .rampart{display:none}
 @keyframes cs-flash{0%{opacity:.85}100%{opacity:0}}
 #cmdsel.shake{animation:cs-shake .28s linear}
 @keyframes cs-shake{0%,100%{transform:none}20%{transform:translate(-5px,3px)}40%{transform:translate(4px,-3px)}60%{transform:translate(-3px,2px)}80%{transform:translate(2px,-1px)}}
-#cs-shade{position:absolute;left:0;right:0;bottom:0;height:62%;z-index:2;pointer-events:none;background:linear-gradient(to bottom,transparent,rgba(6,4,8,.78) 38%,rgba(6,4,8,.94))}
+#cs-shade{position:absolute;left:0;right:0;bottom:0;height:62%;z-index:2;pointer-events:none;background:linear-gradient(to bottom,transparent,rgba(6,4,8,.5) 40%,rgba(6,4,8,.82))}   /* 薄めにしてマントが沈まないように（文字は影で読ませる） */
 #cmdsel .cs-ui{position:relative;z-index:3;flex:1 1 auto;width:100%;max-width:480px;margin:0 auto;display:flex;flex-direction:column;padding:max(14px,env(safe-area-inset-top)) 16px max(14px,env(safe-area-inset-bottom))}
 #cmdsel .cs-spacer{flex:1 1 auto}
 #cs-info{min-height:176px;display:flex;flex-direction:column;gap:6px;text-shadow:0 2px 0 #000,0 0 6px #000}
+#cs-info{position:relative}
+#cs-info::before{content:"";position:absolute;inset:-36px -70px -24px -40px;z-index:-1;pointer-events:none;background:radial-gradient(ellipse at 22% 55%,rgba(6,4,8,.72),rgba(6,4,8,.35) 45%,transparent 72%)}   /* 文字のすぐ後ろだけ暗く */
+#cs-info:not(.on)::before{display:none}
 #cs-info > *{opacity:0;transform:translateX(-14px)}
 #cs-info.on > *{animation:cs-in .35s ease-out forwards}
 #cs-info.on > :nth-child(2){animation-delay:.06s} #cs-info.on > :nth-child(3){animation-delay:.12s} #cs-info.on > :nth-child(4){animation-delay:.18s}
