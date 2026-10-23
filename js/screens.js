@@ -770,9 +770,11 @@ var G = window.G = window.G || {};
   // 遊び方（はじめての人向けの説明）。{node:battle} などはドット絵のアイコンに置きかえる
   // ============================================================
   var HELP = [
+    // 2026-10-23 オーナーの文章で書き直し（背景の話は「魔物」、操作の説明は「敵」）
     '<h3>目的</h3>',
-    '<p>タワーで<b>砦</b>を守りながら進み、<b>火山のボス</b>を倒せばクリア。<b>ライフ</b>が0で終わり。</p>',
-    '<h3>マップの記号</h3>',
+    '<p>国の領地のあちこちで魔物の侵攻が始まった。砦に兵を集め、塔を築き、魔物の進軍を食い止めよう！</p>',
+    '<p>砦の耐久値（<b class="c-life">♥</b>）が0になると敗北。すべての敵を倒せばステージクリア</p>',
+    '<h3>地図</h3>',
     '<ul class="help-list">',
     '<li>{node:battle}<span><b>戦闘</b></span></li>',
     '<li>{node:elite}<span><b>エリート</b>：強い敵。勝つとレリック</span></li>',
@@ -782,21 +784,30 @@ var G = window.G = window.G || {};
     '<li>{node:boss}<span><b>ボス</b>：倒すと次の地域へ</span></li>',
     '</ul>',
     '<h3>戦闘</h3>',
+    '<p><b>準備ターン</b>：カードを使って塔や罠を置く</p>',
     '<ul class="help-list">',
-    '<li><span><b class="c-life">♥ ライフ</b>：砦に敵が着くと減る。戦闘をまたいで続く</span></li>',
-    '<li><span><b class="c-en">◆ エネルギー</b>：カードを使う力。毎ターン3。カード左上の数字だけ減る</span></li>',
-    '<li><span><b>■ カード</b>：毎ターン' + G.RULES.drawPerTurn + '枚引く。<b class="c-gold">● ' + G.RULES.extraDrawCost + '</b>払うと「ドロー」で1枚追加</span></li>',
-    '<li><span><b class="c-gold">● お金</b>：敵を倒すともらえる。タワーをタップ →「強化」で強くできる</span></li>',
+    '<li><span><b class="c-en">◆ エネルギー</b>：カードを使う力。毎ターン全回復する</span></li>',
+    '<li><span><b>■ カード</b>：毎ターン' + G.RULES.drawPerTurn + '枚引く。<b class="c-gold">●</b>を払って追加で引ける。使わなかった手札も毎ターン捨て札へ。山札をすべて引くとシャッフルされ、捨て札は山札に戻る</span></li>',
     '</ul>',
-    '<p class="help-how">建て方：カードをタップ → 置くマスを<b>2回</b>タップ</p>',
-    '<h3>カードの種類</h3>',
+    '<p class="help-how">タワーの建て方：カードをタップ → 置きたいマスを<b>2回</b>タップで建設</p>',
+    '<p><b>敵の攻撃ターン</b>：「攻撃開始」で敵が攻めてくる。敵が砦に着くと砦がダメージを受けて<b class="c-life">♥</b>が減ってしまうので、それまでに敵を倒そう！</p>',
+    '<h3>塔の強化と狙う敵</h3>',
+    '<ul class="help-list">',
+    '<li><span>配置した塔をタップ → <b class="c-gold">●</b>で強化。狙う敵も変えられる。<b class="c-gold">●</b>は敵を倒すと手に入る</span></li>',
+    '</ul>',
+    '<h3>カード</h3>',
     '<ul class="help-list">',
     '<li>{tower:archer}<span><b>タワー</b>：近づいた敵を自動で攻撃</span></li>',
     '<li>{tower:spikes}<span><b>罠</b>：道の上にだけ置ける</span></li>',
     '<li>{tower:barracks}<span><b>兵舎</b>：兵士が道で敵を止める</span></li>',
     '<li>{icon:eye}<span><b>スキル</b>：タワーを強くする・カードを引く など</span></li>',
     '</ul>',
-    '<p class="help-how">カードを長押しで説明。枠の色は <span class="rr" style="color:var(--r-common)">ノーマル</span> <span class="rr" style="color:var(--r-uncommon)">アンコモン</span> <span class="rr" style="color:var(--r-rare)">レア</span></p>',
+    '<p class="help-how">カードの詳細を見る：カードを長押し</p>',
+    '<h3>その他用語</h3>',
+    '<ul class="help-list">',
+    '<li><span><b>レリック</b>：持っているだけで効果発動。エリート・ボス・商人・イベントで手に入る</span></li>',
+    '<li><span><b>アセンション</b>：クリアすると、次の難しさを選べるようになる</span></li>',
+    '</ul>',
     '<h3 id="help-save">記録を消さないために</h3>',
     '<p>ブラウザは、しばらく遊ばないと、このゲームの記録（経験値・解放・クリア）を消すことがあります。ホーム画面に追加すると、消えにくくなります。</p>',
     '<p><b>iPhone（Safari）</b></p>',
@@ -806,7 +817,10 @@ var G = window.G = window.G || {};
     '<p class="help-how">ホーム画面のアイコンから遊ぶと、それまでブラウザで遊んだ記録が引き継がれないことがあります。先に下の「データの引き継ぎ」で書き出しておくと安心です。</p>',
     '<h3>別の端末・ブラウザで遊ぶとき</h3>',
     '<p>記録はブラウザごとに別々です。「データの引き継ぎ」で書き出した文字を、新しい方で読み込むと、続きから遊べます（経験値・解放・アセンション・クリアの記録と、途中のラン。戦闘の途中だった時は、その戦闘の始めから）。</p>',
-    '<p><button type="button" class="help-link" id="help-data">▶ データの引き継ぎを開く</button></p>'
+    '<p><button type="button" class="help-link" id="help-data">▶ データの引き継ぎを開く</button></p>',
+    '<h3>ベータ版のご注意点</h3>',
+    '<p>本作品はベータ版にて予告なくデザイン、バランスの調整を行うことがございます。皆様のプレイ統計データを見ながら調整する事で、より楽しく、奥深いゲームにする事を目指しておりますのでご理解いただけますととても嬉しいです</p>',
+    '<p class="help-how">※ページの再読み込みをして頂くと自動的に最新のアップデートが反映されます</p>'
   ].join('');
   function helpIcon(key) {
     var k = key.split(':'), img = null, sc = 2;
