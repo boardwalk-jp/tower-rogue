@@ -288,7 +288,7 @@ dt{color:var(--muted);text-align:right} dd{margin:0;text-align:left}
 .price{font-size:14px;color:var(--gold)} .price.poor{color:var(--bad)}
 .modal-box.wide{max-width:420px;max-height:calc(100dvh - 32px)}
 /* メニュー：項目が増えて画面より高くなっても、中でスクロールして下まで押せるように */
-.menu-box{max-height:calc(100dvh - 32px);overflow-y:auto;-webkit-overflow-scrolling:touch;touch-action:pan-y;overscroll-behavior:contain}
+.menu-box{max-height:100%;overflow-y:auto;-webkit-overflow-scrolling:touch;touch-action:pan-y;overscroll-behavior:contain}
 .menu-box > *{flex-shrink:0}
 /* カードを選ぶ画面は上の帯（マップ・デッキ・レリック）の下から出す：選んでいる間も上の帯を押せる */
 #picker{padding-top:8px}
