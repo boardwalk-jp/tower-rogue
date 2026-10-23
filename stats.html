@@ -150,6 +150,51 @@
   }
   function colored(v) { return v == null ? '' : { html: '<span class="' + (v > 0 ? 'pos' : v < 0 ? 'neg' : '') + '">' + diff(v) + '</span>' }; }
 
+  // ---- 戦闘画面の見た目（プレイヤーごと）。最低ラン数・最低の時間で、1回でやめた人などを外して見る（このページの中だけの絞りこみ） ----
+  var skinMin = { runs: 2, min: 0 };
+  function skinSection(rows) {
+    var box = document.createElement('section'); box.id = 's-skins-box';
+    box.innerHTML = '<h2>戦闘画面の見た目（プレイヤーごと）</h2>' +
+      '<p class="note">「最後の画面」＝見た目の記録があるランのうち、いちばん新しいランの設定（砦＝初期・黒＝砦風にする前）。' +
+      '「切り替え」＝その端末で今までに切り替えた回数（1回以上＝自分で選んだ人）。秒数は戦闘画面を見ていた時間で、メニューを開いている間・別のアプリにいる間は数えません。' +
+      '見た目の記録は 10/23 の切り替え追加より後の版のランだけにあります（前の版のランは「不明」）。この表はしぼりこみ・外す設定に関係なく、全部のランから出します。</p>' +
+      '<div class="tools"><label>ラン数が <input type="number" id="sk-runs" min="1" style="width:4em"> 以上</label> ' +
+      '<label>ランの合計時間が <input type="number" id="sk-min" min="0" style="width:5em"> 分以上</label></div>' +
+      '<p class="note" id="sk-sum"></p><div id="sk-tbl"></div>';
+    var iR = box.querySelector('#sk-runs'), iM = box.querySelector('#sk-min');
+    iR.value = skinMin.runs; iM.value = skinMin.min;
+    var NM = { fort: '砦', classic: '黒' };
+    function draw() {
+      skinMin.runs = Math.max(1, +iR.value || 1); skinMin.min = Math.max(0, +iM.value || 0);
+      var list = rows.filter(function (r) { return r.total >= skinMin.runs && (r.dur || 0) >= skinMin.min * 60; });
+      var c = { fort: 0, classic: 0, none: 0 }, cs = { fort: 0, classic: 0 }, ft = 0, ct = 0;
+      list.forEach(function (r) {
+        c[r.last_skin === 'classic' ? 'classic' : r.last_skin === 'fort' ? 'fort' : 'none']++;
+        if (r.sw > 0 && cs[r.last_skin] != null) cs[r.last_skin]++;
+        ft += r.sec_f || 0; ct += r.sec_c || 0;
+      });
+      box.querySelector('#sk-sum').innerHTML = '対象 <b>' + list.length + '人</b>　最後の画面：砦 <b>' + c.fort + '人</b>・黒 <b>' + c.classic + '人</b>・不明 ' + c.none + '人　／　' +
+        'そのうち切り替えたことがある人：砦 <b>' + cs.fort + '人</b>・黒 <b>' + cs.classic + '人</b>　／　戦闘画面の時間の合計：砦 ' + Math.round(ft / 60) + '分・黒 ' + Math.round(ct / 60) + '分';
+      var t = table('skins', '一覧', '', [
+        ['番号', function (r) { return r.pid.slice(0, 6); }, 't'],
+        ['総ラン', function (r) { return r.total; }, 'n'],
+        ['ランの合計時間(分)', function (r) { return Math.round((r.dur || 0) / 60); }, 'n'],
+        ['最後の画面', function (r) { return r.last_skin ? NM[r.last_skin] || r.last_skin : '不明'; }, 't'],
+        ['切り替え', function (r) { return r.sw || 0; }, 'n'],
+        ['砦の時間(分)', function (r) { return Math.round((r.sec_f || 0) / 60); }, 'n'],
+        ['黒の時間(分)', function (r) { return Math.round((r.sec_c || 0) / 60); }, 'n'],
+        ['黒の割合', function (r) { var a = (r.sec_f || 0) + (r.sec_c || 0); return a ? (r.sec_c || 0) / a : null; }, 'n', function (v) { return v == null ? '' : P(v); }],
+        ['記録ありラン', function (r) { return r.known; }, 'n'],
+        ['最後', function (r) { return r.last; }, 'n', function (v) { return v ? new Date(v).toLocaleString('ja-JP') : ''; }]
+      ], list, 1);
+      t.querySelector('h2').remove();
+      var w = box.querySelector('#sk-tbl'); w.innerHTML = ''; w.appendChild(t);
+    }
+    iR.addEventListener('input', draw); iM.addEventListener('input', draw);
+    draw();
+    return box;
+  }
+
   // ---- 画面を作る ----
   function render(d) {
     var main = $('main'), nav = $('nav'); main.innerHTML = ''; nav.innerHTML = '';
@@ -321,6 +366,9 @@
       ['最初', function (r) { return r.first; }, 'n', function (v) { return v ? new Date(v).toLocaleString('ja-JP') : ''; }],
       ['最後', function (r) { return r.last; }, 'n', function (v) { return v ? new Date(v).toLocaleString('ja-JP') : ''; }]
     ], d.players, 4, function (r) { return !!exclude[r.pid]; }), 'プレイヤー');
+
+    // 9.5 戦闘画面の見た目（2026-10-23）：砦（初期）と黒（砦風にする前）の、どちらで遊んでいるか
+    if (d.skins) add(skinSection(d.skins), '見た目');
 
     // 10. 選択
     var KIND = { event: 'イベント', rest: 'たき火', buy: '商人で買った', remove: '手放した', upgrade: '鍛えた' };

@@ -324,6 +324,10 @@ var G = window.G = window.G || {};
   $('tm-se').addEventListener('click', function () { G.Sound.set('se', !G.Sound.get('se')); soundLabels(); });
   $('tm-bgm').addEventListener('click', function () { G.Sound.set('bgm', !G.Sound.get('bgm')); soundLabels(); });
   soundLabels();
+  // 戦闘画面の見た目の切り替え（砦／黒）。メニューとタイトルのメニューのどちらでも（2026-10-23 オーナー指定。js/battleskin.js）
+  function skinLabels() { if (!G.Skin) return; var t = '戦闘画面：' + (G.Skin.get() === 'classic' ? '黒' : '砦'); $('wm-skin').textContent = t; $('tm-skin').textContent = t; }
+  ['wm', 'tm'].forEach(function (p) { $(p + '-skin').addEventListener('click', function () { if (G.Skin) G.Skin.toggle(); skinLabels(); }); });
+  skinLabels();
   $('wm-test').addEventListener('click', function () {
     if (!G.Sound) { $('wm-sound-state').textContent = '音の仕組みが読み込まれていません。エラー：' + (window.__errs || []).join(' / '); return; }
     G.Sound.test();

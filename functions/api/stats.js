@@ -90,6 +90,14 @@ export async function onRequestGet({ request, env }) {
               MAX(COALESCE(r.asc_max,0)) asc_max, MIN(r.ts) first, MAX(r.ts) last FROM runs r WHERE ${WP.sql} GROUP BY r.pid`,
     // プレイヤーごとの総ラン数（しぼりこみも外す設定も関係なく、そのプレイヤーの全部）
     totals: `SELECT r.pid pid, COUNT(*) total, SUM(r.result='win') total_wins FROM runs r WHERE r.bot = 0 GROUP BY r.pid`,
+    // 戦闘画面の見た目（2026-10-23）：プレイヤーごと。しぼりこみ・外す設定に関係なく、そのプレイヤーの全部のランから出す
+    // data（送られてきた記録そのまま）の skin＝終わった時の設定、skinSec.f／.c＝戦闘画面を見ていた秒数（砦／黒）、skinSw＝その端末で切り替えた回数
+    // last_skin：見た目の記録があるランのうち、いちばん新しいランの設定（古い版のランには記録がないので飛ばす）
+    skins: `SELECT r.pid pid, COUNT(*) total, SUM(COALESCE(r.dur,0)) dur,
+              SUM(COALESCE(json_extract(r.data,'$.skinSec.f'),0)) sec_f, SUM(COALESCE(json_extract(r.data,'$.skinSec.c'),0)) sec_c,
+              MAX(COALESCE(json_extract(r.data,'$.skinSw'),0)) sw, SUM(json_extract(r.data,'$.skin') IS NOT NULL) known,
+              (SELECT json_extract(r2.data,'$.skin') FROM runs r2 WHERE r2.pid = r.pid AND r2.bot = 0 AND json_extract(r2.data,'$.skin') IS NOT NULL ORDER BY r2.ts DESC LIMIT 1) last_skin,
+              MAX(r.ts) last FROM runs r WHERE r.bot = 0 GROUP BY r.pid`,
     // 戦闘以外の選択
     choices: `SELECT x.kind, x.item, x.detail, COUNT(*) n FROM choices x ${J} WHERE ${W.sql} GROUP BY x.kind, x.item, x.detail`,
     // 版の一覧（しぼりこみ用）
@@ -97,7 +105,7 @@ export async function onRequestGet({ request, env }) {
     // 最近のラン
     recent: `SELECT r.id, r.ts, r.pid pid, r.ver, r.cmd, r.asc, r.result, r.act, r.at, r.floor, r.life, r.gold, r.deck_n, r.dur FROM runs r WHERE ${W.sql} ORDER BY r.id DESC LIMIT 50`
   };
-  const noBind = { vers: 1, totals: 1 };
+  const noBind = { vers: 1, totals: 1, skins: 1 };
   const keys = Object.keys(Q);
   const stmts = keys.map(k => DB.prepare(Q[k]).bind(...(noBind[k] ? [] : k === 'players' ? WP.bind : W.bind)));
 

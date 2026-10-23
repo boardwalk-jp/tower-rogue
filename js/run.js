@@ -415,7 +415,10 @@ var G = window.G = window.G || {};
       v: 1, result: result, cmd: run.cmd, asc: run.asc || 0, act: run.act, floor: n ? n.floor : -1, at: n ? (n.type === 'boss' ? (run.boss2Fight ? 'boss2' : 'boss') : n.type) : 'start',
       life: run.life, maxLife: run.maxLife, gold: run.gold, deck: run.deck.slice(), relics: run.relics.slice(), stats: run.stats,
       dur: Math.round((Date.now() - (L.start || Date.now())) / 1000), partial: !!L.partial, floors: L.floors,
-      meta: { xp: m.xp || 0, runs: m.runs || 0, wins: m.wins || 0, ascMax: m.ascMax || 0 }
+      meta: { xp: m.xp || 0, runs: m.runs || 0, wins: m.wins || 0, ascMax: m.ascMax || 0 },
+      // 戦闘画面の見た目（2026-10-23）：skin＝終わった時の設定（fort＝砦／classic＝黒）、skinSec＝このランで戦闘画面を見ていた秒数、
+      // skinSwRun＝このランの中で切り替えた回数、skinSw＝このブラウザで今までに切り替えた回数（js/battleskin.js）
+      skin: G.Skin ? G.Skin.get() : '', skinSec: L.sk || { f: 0, c: 0 }, skinSwRun: L.skSw || 0, skinSw: G.Skin ? G.Skin.switches() : 0
     };
   }
 

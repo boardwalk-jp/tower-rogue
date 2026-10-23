@@ -29,3 +29,41 @@
   var s = document.documentElement.style;
   s.setProperty('--t-stone', stone); s.setProperty('--t-merlon', merlon); s.setProperty('--t-wall', wall);
 })();
+
+// ============================================================
+// 戦闘画面の見た目の切り替え（2026-10-23 オーナー指定）：'fort'＝砦（初期）／'classic'＝黒い背景（砦風にする前）
+// - 選んだ物はこのブラウザに覚える。<html> に skin-classic を付け外しするだけ（css/style.css の最後を参照）
+// - どちらの見た目で遊んでいるかを統計で見るため、記録を取る（run.js の report で送る）
+//     run.log.sk：このランで戦闘画面を見ていた秒数 { f：砦, c：黒 }（メニューを開いている間・別のアプリに切り替えている間は数えない）
+//     run.log.skSw：このランの中で切り替えた回数
+//     towerRogue.skinSw：このブラウザで今までに切り替えた回数（ランの外＝タイトルで切り替えた分も入る）
+// ============================================================
+(function () {
+  var G = window.G = window.G || {};
+  var KEY = 'towerRogue.skin', SW_KEY = 'towerRogue.skinSw';
+  function load(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function store(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  var cur = load(KEY) === 'classic' ? 'classic' : 'fort';
+  function apply() {
+    document.documentElement.classList.toggle('skin-classic', cur === 'classic');
+    // 地図の大きさを合わせ直す（地図の下の城壁の位置など）
+    try { window.dispatchEvent(new Event('resize')); } catch (e) {}
+  }
+  function set(name) {
+    name = name === 'classic' ? 'classic' : 'fort';
+    if (name === cur) return;
+    cur = name; store(KEY, cur);
+    store(SW_KEY, String((+load(SW_KEY) || 0) + 1));
+    var L = G.run && G.run.log; if (L) L.skSw = (L.skSw || 0) + 1;
+    apply();
+  }
+  // 1秒ごとに、戦闘画面を見ている間だけ数える
+  setInterval(function () {
+    if (G.currentScreen !== 'game' || G.paused || document.hidden) return;
+    var L = G.run && G.run.log; if (!L) return;
+    if (!L.sk) L.sk = { f: 0, c: 0 };
+    L.sk[cur === 'classic' ? 'c' : 'f']++;
+  }, 1000);
+  apply();
+  G.Skin = { get: function () { return cur; }, set: set, toggle: function () { set(cur === 'classic' ? 'fort' : 'classic'); }, switches: function () { return +load(SW_KEY) || 0; } };
+})();
