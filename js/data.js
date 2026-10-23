@@ -412,11 +412,12 @@ G.CARDS = {
 
   supply:   { kind: 'skill', name: '補給', cost: 1, target: 'none', rarity: 'uncommon', icon: 'bag', n: 2,   // 2026-10-22 コスト0→1（オーナー指定）
               text: 'カードを2枚引く。' },
-  // 魔術強化（2026-10-24 オーナー指定）：宮廷魔導師の初期カード（狙い撃ちと差し替え）。選んだタワーの「属性の効果」をこのターンだけ2倍
+  // 魔術強化（2026-10-24 オーナー指定。同日に変更：初期・コスト1・鍛えるとコスト0・対象は属性タワー全部）：宮廷魔導師の初期カード（狙い撃ちと差し替え）
+  //   属性のあるタワー（毒・雷・氷・炎）すべての「属性の効果」をこのターンだけ2倍。選ばずにすぐ効く（target: 'none'）
   //   毒の威力（毎秒のダメージ）・雷の連鎖する体数・氷の遅くする強さ・炎のやけどのダメージ（毎秒）が mult 倍。攻撃力・続く時間・射程は変わらない
   //   buff を付けない：隊長の勲章（攻撃力・攻撃速度を上げるスキルのコスト-1）の対象にしない
-  arcane:   { kind: 'skill', name: '魔術強化', cost: 0, target: 'tower', rarity: 'common', icon: 'arcane', mult: 2,
-              text: 'タワー1つの属性効果が、このターンだけ2倍になる。', detail: '毒威力2倍、電気連鎖体数2倍、氷減速効果2倍、炎延焼ダメージ2倍' },
+  arcane:   { kind: 'skill', name: '魔術強化', cost: 1, target: 'none', rarity: 'starter', icon: 'arcane', mult: 2,
+              text: '属性タワーすべての属性効果が、このターンだけ2倍になる。', detail: '毒威力2倍、電気連鎖体数2倍、氷減速効果2倍、炎延焼ダメージ2倍' },
   whet:     { kind: 'skill', buff: true, name: '研ぎ石', cost: 0, target: 'tower', rarity: 'common', icon: 'stone', amount: 3,
               text: 'タワー1つの攻撃力を+3（この戦闘中ずっと）。' },
   tax:      { kind: 'skill', name: '臨時徴税', cost: 0, target: 'none', rarity: 'common', icon: 'coin', exhaust: true, gold: 50,   // 2026-10-22 +20→+50（オーナー指定）
@@ -468,7 +469,7 @@ Object.keys(G.CARDS).forEach(function (id) {
 G.PLUS_SKILL = {
   // plusNote：鍛える前 → 後（画面では「→」の後ろをアップの色で出す）
   aim:      { mult: 2, text: 'タワー1つの攻撃力をこのターンだけ2倍。', plusNote: ['攻撃力の倍率', '1.5倍', '2倍'] },
-  arcane:   { mult: 3, text: 'タワー1つの属性効果が、このターンだけ3倍になる。', detail: '毒威力3倍、電気連鎖体数3倍、氷減速効果3倍、炎延焼ダメージ3倍', plusNote: ['属性効果の倍率', '2倍', '3倍'] },   // 2026-10-24（鍛えた時の中身はオーナー未指定。仮に3倍）
+  arcane:   { cost: 0, plusNote: ['エネルギー', '1', '0'] },   // 2026-10-24 鍛えるとコスト0（倍率は2倍のまま）
   energize: { n: 2, text: 'エネルギー+2。', plusNote: ['もらえるエネルギー', '+1', '+2'] },
   replan:   { cost: 0, text: '手札のカードを1枚選び、この戦闘中は外す。カードを2枚引く。', plusNote: ['エネルギー', '1', '0'] },   // 2026-10-23 鍛えるとコスト0
   supply:   { cost: 0, text: 'カードを2枚引く。', plusNote: ['エネルギー', '1', '0'] },   // 2026-10-22 鍛えるとコスト0に（前：3枚引く）

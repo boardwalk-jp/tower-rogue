@@ -40,9 +40,9 @@ function bestSpot(s, type) {
   }
   return best;
 }
-function strongest(s, only) {   // only：選べるタワーを絞る関数（魔術強化は属性効果のあるタワーだけ）
+function strongest(s) {
   var best = null;
-  s.towers.forEach(function (tw) { if (only && !only(tw)) return; var d = B.towerStats(tw, s).dmg; if (!best || d > best.d) best = { tw: tw, d: d }; });
+  s.towers.forEach(function (tw) { var d = B.towerStats(tw, s).dmg; if (!best || d > best.d) best = { tw: tw, d: d }; });
   return best && best.tw;
 }
 
@@ -68,7 +68,7 @@ function playTurn(s) {
       var target = null;
       if (def.kind === 'tower') { target = bestSpot(s, def.tower); if (!target) continue; }
       else if (def.target === 'tower') {
-        var tw = def.id === 'forge' ? s.towers.filter(function (t) { return t.lv < G.TOWERS[t.type].up.length; })[0] : (def.id === 'arcane' || def.id === 'arcane+') ? strongest(s, function (t) { var b = B.baseStats(t.type, t.lv); return b.poison || b.slow || b.burn || b.chain; }) : strongest(s);
+        var tw = def.id === 'forge' ? s.towers.filter(function (t) { return t.lv < G.TOWERS[t.type].up.length; })[0] : strongest(s);
         if (!tw) continue; target = { tower: tw.id };
       }
       else if (def.target === 'hand') {

@@ -173,8 +173,8 @@ var G = window.G = window.G || {};
       if (!tw) return 'タワーを選んでください';
       var bid = def.base || def.id;
       if ((bid === 'forge' || bid === 'masterwork') && tw.lv >= G.TOWERS[tw.type].up.length) return 'これ以上強化できません';
-      if (bid === 'arcane' && !hasElement(tw)) return 'このタワーには属性効果がありません';
     }
+    if ((def.base || def.id) === 'arcane' && !s.towers.some(hasElement)) return '属性効果のあるタワーがありません';
     return null;
   }
 
@@ -238,7 +238,7 @@ var G = window.G = window.G || {};
   function applySkill(s, def, tw) {
     switch (def.base || def.id) {
       case 'aim': tw.turnDmgMult *= def.mult; break;
-      case 'arcane': tw.turnElemMult = (tw.turnElemMult || 1) * def.mult; break;   // 魔術強化（towerStats で毒・連鎖・減速・やけどに掛ける）
+      case 'arcane': s.towers.forEach(function (t2) { if (hasElement(t2)) t2.turnElemMult = (t2.turnElemMult || 1) * def.mult; }); break;   // 魔術強化：属性タワーすべて（towerStats で毒・連鎖・減速・やけどに掛ける）
       case 'whet': tw.bonusDmg += def.amount; break;
       case 'forge': tw.lv++; ev(s, { k: 'upgrade', x: tw.x, y: tw.y, id: tw.id }); var fb = baseStats(tw.type, tw.lv); if (fb.blocker) { tw.hp += fb.blocker.hp - tw.maxHp; tw.maxHp = fb.blocker.hp; } if (fb.soldiers) makeSoldiers(s, tw); break;
       case 'supply': case 'replan': for (var d = 0; d < def.n; d++) drawOne(s); break;
