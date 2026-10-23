@@ -440,11 +440,13 @@ var G = window.G = window.G || {};
     };
   }
 
-  function rest(run) { var before = run.life; run.life = Math.min(run.maxLife, run.life + G.RULES.restHeal); return run.life - before; }
+  // たき火で回復する量＝最大ライフの restHealPct（四捨五入）。画面の文と実際の回復で同じ数字を使う
+  function restAmount(run) { return Math.round(run.maxLife * G.RULES.restHealPct); }
+  function rest(run) { var before = run.life; run.life = Math.min(run.maxLife, run.life + restAmount(run)); return run.life - before; }
 
   G.Run = {
     create: create, reachable: reachable, enter: enter, node: node, battleOpts: battleOpts, finishBattle: finishBattle,
     rollCards: rollCards, addCard: addCard, choiceBlocked: choiceBlocked, removeCard: removeCard, shopStock: shopStock,
-    rollEvent: rollEvent, eventChoice: eventChoice, gainXp: gainXp, nextUnlock: nextUnlock, unlocked: unlocked, metaLoad: metaLoad, metaSave: metaSave, count: count, easyTemplates: easyTemplates, tplScore: tplScore, upgradeCard: upgradeCard, canUpgradeCard: canUpgradeCard, bossName: bossName, bossType: bossType, nextAct: nextAct, allRoutes: allRoutes, rest: rest, rollRelic: rollRelic, addRelic: addRelic, price: price, toSave: toSave, fromSave: fromSave, logPick: logPick, logSet: logSet, logAdd: logAdd, report: report
+    rollEvent: rollEvent, eventChoice: eventChoice, gainXp: gainXp, nextUnlock: nextUnlock, unlocked: unlocked, metaLoad: metaLoad, metaSave: metaSave, count: count, easyTemplates: easyTemplates, tplScore: tplScore, upgradeCard: upgradeCard, canUpgradeCard: canUpgradeCard, bossName: bossName, bossType: bossType, nextAct: nextAct, allRoutes: allRoutes, rest: rest, restAmount: restAmount, rollRelic: rollRelic, addRelic: addRelic, price: price, toSave: toSave, fromSave: fromSave, logPick: logPick, logSet: logSet, logAdd: logAdd, report: report
   };
 })();

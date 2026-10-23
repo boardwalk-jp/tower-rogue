@@ -746,7 +746,7 @@ var G = window.G = window.G || {};
       body.appendChild(el('p', 'panel-text', 'ひと休みできる。どれか1つを選ぶ。'));
       var list = el('div', 'choices');
       var a = button('', 'choice', function () { R.logSet(run, 'rest', 'heal'); var h = R.rest(run); done('砦の耐久値が' + h + '回復した。'); });
-      a.appendChild(el('b', '', '休む')); a.appendChild(el('small', '', '砦の耐久値+' + G.RULES.restHeal + '（最大' + run.maxLife + '）'));
+      a.appendChild(el('b', '', '休む')); a.appendChild(el('small', '', '砦の耐久値+' + R.restAmount(run) + '（最大' + run.maxLife + '）'));
       var u = button('', 'choice', function () { pickFromDeck('鍛えるカードを選ぶ', function (i) { R.logSet(run, 'rest', 'up'); var nm = G.CARDS[run.deck[i]].name; R.upgradeCard(run, i); done('「' + nm + '」を鍛えて「' + G.CARDS[run.deck[i]].name + '」にした。'); }, false, showRest, R.canUpgradeCard); });
       u.appendChild(el('b', '', '鍛える')); u.appendChild(el('small', '', 'カードを1枚「＋」にする（タワーはLv2で置かれる・スキルは効果アップ）'));
       u.disabled = !run.deck.some(R.canUpgradeCard);
