@@ -212,7 +212,21 @@ var G = window.G = window.G || {};
     run.at = nodeId; run.visited.push(nodeId);
     var n = run.world.nodes[nodeId];
     logPush(run, n.type === 'boss' ? 'boss' : n.type, n.floor);
+    if (n.type === 'event') resolveEvent(run);
     return true;
+  }
+  // ？マスに入った時に、中身をくじで決める（2026-10-24 オーナー指定）。
+  //   くじに入るもの：今の層でまだ出ていないイベント1つずつ＋通常戦闘1つ＋商人2つ。どれも同じ確率（イベントが N 個なら 1/(N+3)。商人は2つ分で 2/(N+3)）
+  //   戦闘・商人が出たら、そのマスを戦闘・商人のマスに変える（報酬・商人の画面・記録は、ふつうの戦闘・商人と同じ。記録には fe:1 の印）。
+  //   イベントが出たら、マスに n.ev（イベントの id）を覚える（途中でやめて「つづきから」で戻っても、同じ中身）
+  function resolveEvent(run) {
+    var n = node(run); if (!n || n.type !== 'event' || n.ev) return;
+    var list = eventPool(run).map(function (e) { return { ev: e.id }; }).concat([{ k: 'battle' }, { k: 'shop' }, { k: 'shop' }]);
+    var x = pick(list, run.rand);
+    if (x.k) {
+      n.type = x.k; n.fromEvent = true;
+      var c = logCur(run); if (c) { c.t = x.k; c.fe = 1; }
+    } else { n.ev = x.ev; markEvent(run, x.ev); }
   }
   function node(run) { return run.at ? run.world.nodes[run.at] : null; }
 
@@ -338,12 +352,19 @@ var G = window.G = window.G || {};
 
   // ---- イベント ----
   // 同じイベントは1回の挑戦で1度だけ（run.events に出たイベントの id を覚える）。その層で出せるものを全部使い切った時だけ、もう一度すべてから選ぶ
-  function rollEvent(run) {
-    var seen = run.events || (run.events = []);
+  function eventPool(run) {
+    var seen = run.events || [];
     var pool = G.EVENTS.filter(function (e) { return !e.acts || e.acts.indexOf(run.act) >= 0; });
     var fresh = pool.filter(function (e) { return seen.indexOf(e.id) < 0; });
-    var e = pick(fresh.length ? fresh : pool, run.rand);
-    if (seen.indexOf(e.id) < 0) seen.push(e.id);
+    return fresh.length ? fresh : pool;
+  }
+  function markEvent(run, id) { var seen = run.events || (run.events = []); if (seen.indexOf(id) < 0) seen.push(id); }
+  // 今のマスのイベント。マスに入った時に決まっている（resolveEvent）。決まっていない時（前の版のセーブ・マスに入らずに呼んだ時）は、イベントだけからくじ
+  function rollEvent(run) {
+    var n = node(run), id = n && n.ev, e = id && G.EVENTS.filter(function (x) { return x.id === id; })[0];
+    if (e) return e;
+    e = pick(eventPool(run), run.rand); markEvent(run, e.id);
+    if (n && n.type === 'event') n.ev = e.id;
     return e;
   }
   // 次の層へ：新しいワールドマップ、ライフ回復
