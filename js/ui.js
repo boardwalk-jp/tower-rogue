@@ -239,8 +239,9 @@ var G = window.G = window.G || {};
     document.querySelectorAll('#hand .card.sel').forEach(function (d) { d.classList.remove('sel'); });
   }
   // 1回目：仮置き（射程が見える）。同じマスをもう一度タップで建設
-  function setPending(t) {
-    ui.pending = { tx: t.tx, ty: t.ty }; ui.preview = ui.pending;
+  // swipe：ドラッグ（スワイプ）で仮置きした時だけ true。その時は仮置きの周り1マス（ななめ含む）のタップでも建設する
+  function setPending(t, swipe) {
+    ui.pending = { tx: t.tx, ty: t.ty, swipe: !!swipe }; ui.preview = ui.pending;
     toast('もう一度タップで建設');
   }
   function tryPlace(i, tx, ty) {
@@ -296,7 +297,7 @@ var G = window.G = window.G || {};
           var t = cancel ? null : tileFromClient(e.clientX, e.clientY);
           if (t && ui.selType) t = B.fitTile(s, t, ui.selType) || t;   // 2マスのタワーは、置ける向きに合わせる
           // ドラッグで離した場所も仮置き。確定はタップで
-          if (t && B.canPlaceAt(s, t.tx, t.ty, ui.selType)) { renderHand(); setPending(t); }
+          if (t && B.canPlaceAt(s, t.tx, t.ty, ui.selType)) { renderHand(); setPending(t, true); }
           else if (t) { ui.preview = null; renderHand(); toast('そこには置けません'); }
           else { deselect(); renderHand(); }
         } else {
@@ -310,6 +311,12 @@ var G = window.G = window.G || {};
     el.addEventListener('pointercancel', function (e) { end(e, true); });
   }
 
+  // タップしたマスが、仮置きしたタワーのマス（2マスのタワーは両方）から縦・横・ななめ1マス以内か
+  function nearPending(t, p, type) {
+    var n = B.sizeOf(type);
+    for (var k = 0; k < n; k++) if (Math.abs(t.tx - (p.tx + k)) <= 1 && Math.abs(t.ty - p.ty) <= 1) return true;
+    return false;
+  }
   function tileFromClient(x, y) {
     var r = cv.getBoundingClientRect();
     if (x < r.left || x > r.right || y < r.top || y > r.bottom) return null;
@@ -341,6 +348,8 @@ var G = window.G = window.G || {};
     var tw = towerFromClient(e.clientX, e.clientY);
     if (ui.selType) {
       var t = tileFromClient(e.clientX, e.clientY);
+      // スワイプで仮置きした時だけ：仮置きの周り1マス以内のタップも建設（指で隠れた場所を正確に押さなくてよい）
+      if (t && ui.pending && ui.pending.swipe && nearPending(t, ui.pending, ui.selType)) { tryPlace(ui.selIndex, ui.pending.tx, ui.pending.ty); return; }
       t = B.fitTile(s, t, ui.selType) || t;
       // タワーを置くカードを選んでいる間は、タワーの絵をタップしても小窓は開かない（後ろのマスをねらった誤タップを防ぐ）
       if (t && B.canPlaceAt(s, t.tx, t.ty, ui.selType)) {
