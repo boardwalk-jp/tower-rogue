@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap">
-<link rel="stylesheet" href="css/style.css?v=20261023150745">
+<link rel="stylesheet" href="css/style.css?v=20261023154251">
 </head>
 <body>
 
@@ -38,7 +38,7 @@
       <p>上にスワイプしてスタート</p>
       <button type="button" id="pc-start" class="pc-only">クリックでスタート</button>
     </div>
-    <p class="ver" id="ver">版 10/23 15:07</p>
+    <p class="ver" id="ver" role="button" tabindex="0" aria-label="アップデート履歴">版 10/23 15:07</p>
   </div>
 </section>
 
@@ -210,27 +210,38 @@
   </div>
 </div>
 
+<!-- アップデート履歴（タイトル画面の右下の「版」の文字をタップで開く。2026-10-23） -->
+<div class="modal" id="updates" hidden>
+  <div class="modal-box wide help-box upd-box">
+    <h2>アップデート履歴</h2>
+    <div class="upd-head" id="upd-head"></div>
+    <div class="help-body scroll-y upd-list" id="upd-list"></div>
+    <button type="button" id="upd-close" class="go">閉じる</button>
+  </div>
+</div>
+
 <div id="tap-sound" hidden>♪ 画面をタップすると音が出ます</div>
 <div id="rotate"><p>画面を縦にしてください</p></div>
 
-<script src="js/data.js?v=20261023150745"></script>
-<script src="js/battle.js?v=20261023150745"></script>
-<script src="js/run.js?v=20261023150745"></script>
-<script src="js/sprites.js?v=20261023150745"></script>
-<script src="js/relicart.js?v=20261023150745"></script>
-<script src="js/battleskin.js?v=20261023150745"></script>
-<script src="js/hudicons.js?v=20261023150745"></script>
-<script src="js/dotart.js?v=20261023150745"></script>
-<script src="js/towerart.js?v=20261023150745"></script>
-<script src="js/enemyart.js?v=20261023150745"></script>
-<script src="js/render.js?v=20261023150745"></script>
-<script src="js/sound.js?v=20261023150745"></script>
-<script src="js/bossbgm.js?v=20261023150745"></script>
-<script src="js/ui.js?v=20261023150745"></script>
-<script src="js/stats.js?v=20261023150745"></script>
-<script src="js/screens.js?v=20261023150745"></script>
-<script src="js/logo.js?v=20261023150745"></script>
-<script src="js/worldbg.js?v=20261023150745"></script>
-<script src="js/eventart.js?v=20261023150745"></script>
+<script src="js/data.js?v=20261023154251"></script>
+<script src="js/battle.js?v=20261023154251"></script>
+<script src="js/run.js?v=20261023154251"></script>
+<script src="js/sprites.js?v=20261023154251"></script>
+<script src="js/relicart.js?v=20261023154251"></script>
+<script src="js/battleskin.js?v=20261023154251"></script>
+<script src="js/hudicons.js?v=20261023154251"></script>
+<script src="js/dotart.js?v=20261023154251"></script>
+<script src="js/towerart.js?v=20261023154251"></script>
+<script src="js/enemyart.js?v=20261023154251"></script>
+<script src="js/render.js?v=20261023154251"></script>
+<script src="js/sound.js?v=20261023154251"></script>
+<script src="js/bossbgm.js?v=20261023154251"></script>
+<script src="js/ui.js?v=20261023154251"></script>
+<script src="js/stats.js?v=20261023154251"></script>
+<script src="js/updates.js?v=20261023154251"></script>
+<script src="js/screens.js?v=20261023154251"></script>
+<script src="js/logo.js?v=20261023154251"></script>
+<script src="js/worldbg.js?v=20261023154251"></script>
+<script src="js/eventart.js?v=20261023154251"></script>
 </body>
 </html>

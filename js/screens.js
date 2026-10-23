@@ -199,7 +199,7 @@ var G = window.G = window.G || {};
   document.addEventListener('click', function (e) {
     var bt = e.target && e.target.closest ? e.target.closest('button') : null;
     if (!bt || bt.disabled || !G.Sound) return;
-    if (bt.id === 'world-menu-btn' || bt.closest('#start, #title-menu, #world-menu, #help, #data-modal')) G.Sound.play('tap');
+    if (bt.id === 'world-menu-btn' || bt.closest('#start, #title-menu, #world-menu, #help, #data-modal, #updates')) G.Sound.play('tap');
   }, true);
 
   // ブラウザに「このサイトのデータは消さないで」とお願いする（Safari 17〜。許可するかはブラウザが決める。結果は記録だけして画面には出さない）
@@ -864,6 +864,44 @@ var G = window.G = window.G || {};
   $('wm-help').addEventListener('click', function () { closeMenu(); showHelp(); });
   $('help-body').addEventListener('click', function (e) { if (e.target.id === 'help-data') { $('help').hidden = true; openData(); } });
   G.showHelp = showHelp;
+
+  // ---- アップデート履歴（2026-10-23）：タイトル画面の右下の「版」の文字をタップで開く。通知はしない ----
+  var UPD_LABEL = { new: '新要素', adj: '調整', fix: '修正' };
+  function showUpdates() {
+    var U = G.UPDATES || [], list = $('upd-list');
+    if (!list.dataset.done && U.length) {
+      var head = $('upd-head');
+      head.appendChild(el('div', 'upd-now', 'いまの版 ' + U[0].v + '（' + U[0].d + '）'));
+      var lg = el('div', 'upd-legend');
+      [['new', '追加された物'], ['adj', '数字や遊び方の変更'], ['fix', '不具合の直し']].forEach(function (x) { var sp = el('span'); sp.appendChild(el('i', 'upd-chip ' + x[0], UPD_LABEL[x[0]])); sp.appendChild(document.createTextNode(x[1])); lg.appendChild(sp); });
+      head.appendChild(lg);
+      U.forEach(function (u, i) {
+        var d = el('details', 'upd-ver' + (i === 0 ? ' latest' : '')); if (i === 0) d.open = true;
+        var s = el('summary');
+        s.appendChild(el('span', 'upd-vno', u.v)); s.appendChild(el('span', 'upd-vtitle', u.t)); s.appendChild(el('span', 'upd-arrow', '▼'));
+        var b = el('span', 'upd-badge');
+        ['new', 'adj', 'fix'].forEach(function (k) { if (u[k]) b.appendChild(el('i', 'upd-chip ' + k, UPD_LABEL[k] + ' ' + u[k].length)); });
+        s.appendChild(b); s.appendChild(el('span', 'upd-date', u.d));
+        d.appendChild(s);
+        var body = el('div', 'upd-body');
+        ['new', 'adj', 'fix'].forEach(function (k) {
+          if (!u[k]) return;
+          var g = el('section', 'upd-grp ' + k); g.appendChild(el('h3', '', UPD_LABEL[k]));
+          var ul = el('ul');
+          u[k].forEach(function (it) { var li = el('li'); if (Array.isArray(it)) { li.appendChild(document.createTextNode(it[0])); li.appendChild(el('small', '', it[1])); } else li.textContent = it; ul.appendChild(li); });
+          g.appendChild(ul); body.appendChild(g);
+        });
+        d.appendChild(body); list.appendChild(d);
+      });
+      list.dataset.done = '1';
+    }
+    list.scrollTop = 0;
+    $('updates').hidden = false;
+  }
+  $('ver').addEventListener('click', function () { if (G.Sound) G.Sound.play('tap'); showUpdates(); });
+  $('ver').addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); showUpdates(); } });
+  $('upd-close').addEventListener('click', function () { $('updates').hidden = true; });
+  G.showUpdates = showUpdates;
 
 
   // ============================================================
