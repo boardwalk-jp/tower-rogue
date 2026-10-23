@@ -169,6 +169,45 @@ var G = window.G = window.G || {};
       for (var i = 0, d = 0; i < 8; i++) { noise(t, { dur: 0.025, vol: 0.12, f: 4200 + i * 150, hp: true, delay: d }); d += 0.05 - i * 0.004; }
       tone(t, { f: 260, f2: 180, dur: 0.05, type: 'triangle', vol: 0.09, delay: 0.36 }); noise(t, { dur: 0.04, vol: 0.1, f: 1200, delay: 0.36 });
     },
+    // ---- 2026-10-23 追加：傭兵団の野営地・王の解任状・作戦変更 ----
+    // 稽古：木刀を打ち合う「カン・カン・カカン」と、最後に重い一撃「ドスッ」
+    drill:  function (t) {
+      [0, 0.17, 0.29, 0.36].forEach(function (d, i) {
+        noise(t, { dur: 0.05, vol: 0.22, f: 1500 + i * 120, bp: true, delay: d });
+        tone(t, { f: 760 - i * 40, f2: 520, dur: 0.06, type: 'triangle', vol: 0.12, delay: d });
+      });
+      tone(t, { f: 140, f2: 55, dur: 0.22, type: 'sine', vol: 0.35, delay: 0.52 }); noise(t, { dur: 0.16, vol: 0.25, f: 600, delay: 0.52 });
+    },
+    // 隊を去る：土の上の足音が4つ、だんだん小さく遠くなる。最後に小さく下がる2音
+    depart: function (t) {
+      for (var i = 0; i < 4; i++) {
+        var d = i * 0.24, v = 0.24 * (1 - i * 0.2);
+        noise(t, { dur: 0.06, vol: v, f: 520 - i * 50, delay: d }); tone(t, { f: 95, f2: 60, dur: 0.06, type: 'sine', vol: v * 0.8, delay: d });
+      }
+      notes(t + 1.0, [330, 262], { type: 'triangle', dur: 0.22, vol: 0.06, step: 0.2 });
+    },
+    // 物資を買う：お金を払う「チャリン・チャリン」→ 荷車の布をめくる「バサッ」→ 木箱を置く「ゴトッ」
+    supplies: function (t) {
+      notes(t, [1319, 1760], { type: 'square', dur: 0.06, vol: 0.05, step: 0.05 }); notes(t, [2637, 3520], { type: 'sine', dur: 0.12, vol: 0.03, step: 0.05 });
+      notes(t + 0.14, [1175, 1568], { type: 'square', dur: 0.06, vol: 0.045, step: 0.05 });
+      noise(t, { dur: 0.08, vol: 0.14, f: 2600, bp: true, delay: 0.36 }); noise(t, { dur: 0.16, vol: 0.12, f: 1500, bp: true, delay: 0.42 });
+      tone(t, { f: 180, f2: 110, dur: 0.1, type: 'triangle', vol: 0.18, delay: 0.66 }); noise(t, { dur: 0.08, vol: 0.16, f: 700, delay: 0.66 });
+    },
+    // 無視する：すたすた歩き去る足音3つ（だんだん小さく）
+    walkaway: function (t) {
+      for (var i = 0; i < 3; i++) { var d = i * 0.18, v = 0.2 * (1 - i * 0.25); noise(t, { dur: 0.05, vol: v, f: 650, delay: d }); tone(t, { f: 110, f2: 70, dur: 0.05, type: 'sine', vol: v * 0.7, delay: d }); }
+    },
+    // 王の解任状でカードを手放す：紙がサッ、判を押す「ドン」
+    stamp:  function (t) {
+      noise(t, { dur: 0.07, vol: 0.12, f: 4500, hp: true });
+      tone(t, { f: 150, f2: 60, dur: 0.18, type: 'sine', vol: 0.38, delay: 0.1 }); noise(t, { dur: 0.1, vol: 0.22, f: 450, delay: 0.1 });
+      tone(t, { f: 900, f2: 700, dur: 0.04, type: 'triangle', vol: 0.04, delay: 0.1 });
+    },
+    // 作戦変更で手札を外す：カードがシュッと下に消える
+    cardout: function (t) {
+      noise(t, { dur: 0.12, vol: 0.12, f: 3500, hp: true }); noise(t, { dur: 0.1, vol: 0.08, f: 1600, bp: true, delay: 0.05 });
+      tone(t, { f: 900, f2: 260, dur: 0.16, type: 'triangle', vol: 0.07 });
+    },
     card:   function (t) { noise(t, { dur: 0.05, vol: 0.06, f: 5000, hp: true }); tone(t, { f: 1200, dur: 0.03, type: 'triangle', vol: 0.04 }); },   // カードをめくるシュッ
     // ボタンを押した時の「カチャッ」（2026-10-22 オーナー指定。前は高い「ピッ」）：
     //   カチ＝ごく短い高いザッと硬い音（つめが当たる）／ャッ＝35ミリ秒あとに、少し低い2つ目の音と小さなこもった音（はまる手ごたえ）

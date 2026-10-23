@@ -444,6 +444,10 @@ G.CARDS = {
   workshop: { kind: 'skill', name: '急造工房', cost: 2, target: 'none', rarity: 'rare', icon: 'saw', exhaust: true,
               text: '「弓兵の塔（エネルギー0・使い切り）」を2枚手札に加える。使い切り。',
               give: { card: 'archer', n: 2, cost: 0 } },
+  // 作戦変更（2026-10-23 オーナー指定）：手札のカードを1枚選んで、この戦闘中は外す（使い切りを使った時と同じ扱い）。そのあと2枚引く
+  //   target: 'hand'＝手札のカードを選んで使う。手札がこのカードだけなら、選ばずに2枚引くだけ
+  replan:   { kind: 'skill', name: '作戦変更', cost: 1, target: 'hand', rarity: 'uncommon', icon: 'replan', n: 2,
+              text: '手札のカードを1枚選び、この戦闘中は外す。カードを2枚引く。' },
   // びっくり箱（2026-10-22 オーナー指定）：商人でしか買えない（shopOnly。報酬・イベントには出ない）。レア度はアンコモン扱い（商人の値段とくじの重み）
   surprise: { kind: 'skill', name: 'びっくり箱', cost: 1, target: 'none', rarity: 'uncommon', icon: 'box', exhaust: true, shopOnly: true,
               text: 'ランダムなアンコモンかレアのタワーを1枚、エネルギー0で手札に加える（この戦闘だけ）。使い切り。' }
@@ -460,6 +464,7 @@ G.PLUS_SKILL = {
   // plusNote：鍛える前 → 後（画面では「→」の後ろをアップの色で出す）
   aim:      { mult: 2, text: 'タワー1つの攻撃力をこのターンだけ2倍。', plusNote: ['攻撃力の倍率', '1.5倍', '2倍'] },
   energize: { n: 2, text: 'エネルギー+2。', plusNote: ['もらえるエネルギー', '+1', '+2'] },
+  replan:   { cost: 0, text: '手札のカードを1枚選び、この戦闘中は外す。カードを2枚引く。', plusNote: ['エネルギー', '1', '0'] },   // 2026-10-23 鍛えるとコスト0
   supply:   { cost: 0, text: 'カードを2枚引く。', plusNote: ['エネルギー', '1', '0'] },   // 2026-10-22 鍛えるとコスト0に（前：3枚引く）
   whet:     { amount: 5, text: 'タワー1つの攻撃力を+5（この戦闘中ずっと）。', plusNote: ['攻撃力', '+3', '+5'] },
   tax:      { gold: 80, text: 'お金+80。使い切り（この戦闘中は戻らない）。', plusNote: ['もらえるお金', '+50', '+80'] },
@@ -723,6 +728,15 @@ G.EVENTS = [
   { id: 'firespring', acts: [3], title: '火の泉', text: '煮えたぎる泉。浴びれば体がきたえられるという。',
     choices: [{ label: '泉を浴びる', note: 'ライフ-8、最大ライフ+6', effect: 'maxLife', life: -8, amount: 6 },
               { label: '立ち去る', effect: 'none' }] },
+  // 傭兵団の野営地（2026-10-23 オーナー指定・全層）。say：選んだ後に出る文。se：選んだ時の効果音
+  //   needLife：ライフがこの数より少ないと選べない（ライフ15以下では稽古を選べない）。お金が足りない時も選べない
+  { id: 'mercs', acts: [1, 2, 3], title: '傭兵団の野営地', text: '道の脇で傭兵たちが野営している。たき火の向こうから、傷だらけの団長が声をかけてきた。\n「ここらは危ないぜ？ あんたら、訓練は十分か？」',
+    choices: [{ label: '厳しい稽古をつけてもらう', note: 'ライフ-15、カードを1枚手放す', effect: 'drill', life: -15, needLife: 16, se: 'drill',
+                say: '稽古は夜明けまで続いた。翌朝、隊の一部が書き置きを残して姿を消していた。\n団長は笑った。「ついて来られないやつが抜けただけさ。残ったのは本物だ」' },
+              { label: '物資を売ってもらう', note: '-●20、ランダムなスキル3枚から1枚選ぶ', effect: 'skillCard', gold: -20, se: 'supplies',
+                say: '団長が荷車の布をめくった。「戦場で拾った物ばかりだが、まだ使えるぜ」' },
+              { label: '無視する', effect: 'none', se: 'walkaway',
+                say: '団長は肩をすくめた。「忠告はしたぜ」\n背中に笑い声を聞きながら、先へ進んだ。' }] },
   { id: 'lavatreasure', acts: [3], title: '溶岩の中の宝', text: '溶岩の流れの向こうに金貨の山が見える。',
     choices: [{ label: '手を伸ばす', note: '50%で+●80、50%でライフ-8', effect: 'risk', win: 80, lose: 8 },
               { label: 'やめておく', effect: 'none' }] }
@@ -754,6 +768,8 @@ G.RELICS = {
   magnet:    { name: '金の磁石',   kind: 'number', rarity: 'uncommon', unlock: true, text: '敵を倒した時のお金+25%。' },
   anvil:     { name: '見習いの金床', kind: 'change', rarity: 'uncommon', unlock: true, text: '戦闘で最初に建てたタワーは、強化1回分のレベルで置かれる。' },
   crown:     { name: '小さな王冠', kind: 'number', rarity: 'rare',     unlock: true, text: '毎ターン引くカード+1枚。' },
+  // 王の解任状（2026-10-23 オーナー指定）：手に入れた時、デッキからカードを2枚まで手放せる（1回きり。run.dismiss に残りの枚数）
+  dismiss:   { name: '王の解任状', kind: 'change', rarity: 'rare', text: '手に入れた時、デッキからカードを2枚まで手放せる。' },
   phoenix:   { name: '不死鳥の羽', kind: 'change', rarity: 'rare',     unlock: true, text: 'ライフが0になった時、1回だけライフ10で立ち直る（使うと消える）。' },
   // ---- 指揮官のレリック（最初から1つだけ持っている。報酬・商人・イベントでは出ない） ----
   cmd_captain:  { name: '隊長の勲章',   kind: 'commander', rarity: 'starter', text: 'スキルのコストが1下がる。' },   // 2026-10-22 変更（前：勝つたびにお金+8）。0より下にはならない（説明には書かない）

@@ -175,6 +175,9 @@ var G = window.G = window.G || {};
     return null;
   }
 
+  // 手札のカードの位置を、カードの uid（1枚ごとの番号）から探す。なければ -1
+  function handPos(s, uid) { for (var i = 0; i < s.hand.length; i++) if (s.hand[i].uid === uid) return i; return -1; }
+
   // target：タワーカードなら {tx, ty}、タワー対象のスキルなら {tower: id}、対象なしなら null
   function playCard(s, handIndex, target) {
     if (s.phase !== 'prep' && s.phase !== 'attack') return '今は使えません';
@@ -188,9 +191,16 @@ var G = window.G = window.G || {};
     } else {
       tw = target && target.tower ? findTower(s, target.tower) : null;
       var why = skillBlocked(s, def, tw); if (why) return why;
+      // 手札を対象にするスキル（作戦変更）：外すカードを選ぶ。手札がこのカードだけなら選ばずに使える
+      if (def.target === 'hand') {
+        var hi = target && target.hand !== undefined ? handPos(s, target.hand) : -1;
+        if (hi === handIndex) hi = -1;
+        if (hi < 0 && s.hand.length > 1) return '外すカードを選んでください';
+      }
     }
     s.energy -= cost;
     if (def.kind === 'tower' && s.freeTowers > 0) s.freeTowers--;
+    var outCard = (def.target === 'hand' && hi >= 0) ? s.hand[hi] : null;   // 作戦変更で外すカード
     s.hand.splice(handIndex, 1);
     s.stats.played[card.id] = (s.stats.played[card.id] || 0) + 1;
     if (card.temp || def.exhaust) s.exhaust.push(card); else s.discard.push(card);
@@ -212,6 +222,11 @@ var G = window.G = window.G || {};
       if (s.stats.built === 1 && has(s, 'anvil')) { t.lv = Math.min(TD.up.length, t.lv + has(s, 'anvil')); var ab = baseStats(t.type, t.lv); if (ab.blocker) t.hp = t.maxHp = ab.blocker.hp; if (ab.soldiers) makeSoldiers(s, t); ev(s, { k: 'relic', id: 'anvil', x: t.x, y: t.y }); }
       return null;
     }
+    // 外すカードは「使い切りを使った時」と同じ扱い：この戦闘中は戻らない（exhaust の山へ）
+    if (outCard) {
+      s.hand.splice(s.hand.indexOf(outCard), 1); s.exhaust.push(outCard);
+      ev(s, { k: 'exhaustOut', id: outCard.id });
+    }
     applySkill(s, def, tw);
     ev(s, { k: 'skill', id: def.id, x: tw ? tw.x : null, y: tw ? tw.y : null });
     return null;
@@ -222,7 +237,7 @@ var G = window.G = window.G || {};
       case 'aim': tw.turnDmgMult *= def.mult; break;
       case 'whet': tw.bonusDmg += def.amount; break;
       case 'forge': tw.lv++; ev(s, { k: 'upgrade', x: tw.x, y: tw.y, id: tw.id }); var fb = baseStats(tw.type, tw.lv); if (fb.blocker) { tw.hp += fb.blocker.hp - tw.maxHp; tw.maxHp = fb.blocker.hp; } if (fb.soldiers) makeSoldiers(s, tw); break;
-      case 'supply': for (var d = 0; d < def.n; d++) drawOne(s); break;
+      case 'supply': case 'replan': for (var d = 0; d < def.n; d++) drawOne(s); break;
       case 'energize': s.energy += def.n; break;
       case 'tax': s.gold += def.gold; s.stats.goldEarned += def.gold; break;
       case 'warcry': case 'overclock': s.buff.speedMult *= def.mult; break;

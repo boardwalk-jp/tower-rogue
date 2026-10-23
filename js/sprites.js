@@ -77,6 +77,15 @@ var G = window.G = window.G || {};
                      g.rect(1, 6, 7, 2, '#ff6a4a'); g.rect(1, 7, 7, 1, '#c8341a');
                      g.px(9, 8, '#c3c7cc'); g.px(10, 7, '#c3c7cc'); g.px(9, 6, '#c3c7cc'); g.px(10, 5, '#c3c7cc');
                      g.ell(10, 3, 2.6, 2.6, '#f0e0c0'); g.px(9, 3, '#16120f'); g.px(11, 3, '#16120f'); g.px(10, 4, '#d94a3a'); g.rect(8, 0, 5, 1, '#3a7bd9'); break;
+      case 'replan': // 作戦変更：作戦図（紙）の上で、点線の古い道すじが×で止まり、太い矢印が向きを変えて右上へ進む
+                     g.rect(1, 2, 14, 12, '#e8d9b0'); g.rect(1, 2, 14, 1, '#fff4d0'); g.rect(1, 2, 1, 12, '#fff4d0'); g.rect(1, 13, 14, 1, '#b8a070'); g.rect(14, 3, 1, 10, '#c8b88a');
+                     g.rect(5, 2, 1, 12, '#d0c090'); g.rect(10, 2, 1, 12, '#d0c090');                                  // 地図の折り目
+                     g.rect(2, 11, 2, 1, '#6b5a3a'); g.rect(5, 11, 2, 1, '#6b5a3a'); g.rect(9, 11, 1, 1, '#9a8a64');    // 前の道すじ（点線・右へ。×で行き止まり）
+                     g.px(11, 10, '#d94a3a'); g.px(13, 10, '#d94a3a'); g.px(12, 11, '#d94a3a'); g.px(11, 12, '#d94a3a'); g.px(13, 12, '#d94a3a');   // 行き止まりの×
+                     g.rect(7, 6, 2, 5, '#3a7bd9'); g.rect(7, 6, 1, 5, '#7ab0ff');                                     // 新しい道：上へ曲がって
+                     g.rect(7, 5, 4, 2, '#3a7bd9'); g.rect(7, 5, 4, 1, '#7ab0ff');                                     // 右へ
+                     g.rect(11, 3, 1, 6, '#3a7bd9'); g.rect(12, 4, 1, 4, '#3a7bd9'); g.px(13, 5, '#3a7bd9'); g.px(13, 6, '#2a5aa8'); g.px(11, 3, '#7ab0ff'); g.px(12, 4, '#7ab0ff');   // 矢じり
+                     g.px(7, 11, '#2a5aa8'); g.px(8, 11, '#2a5aa8'); break;
       case 'saw':    g.rect(2, 7, 12, 4, '#b4b8bc'); for (var x = 2; x < 14; x += 2) g.px(x, 11, '#8b8f94'); g.rect(11, 4, 4, 4, '#8a5a2b'); g.rect(3, 2, 6, 3, '#8a5a2b'); g.rect(4, 3, 4, 1, '#c08a4a'); break;
     }
     return g.outline(OUT).bake();
@@ -147,7 +156,7 @@ var G = window.G = window.G || {};
       icon: {}, node: {}, relic: {},
       heart: heart()
     };
-    ['eye', 'bag', 'stone', 'coin', 'hammer', 'horn', 'saw', 'gear', 'scroll', 'meteor', 'sword', 'hourglass', 'star', 'bandage', 'target', 'poster', 'energy', 'box'].forEach(function (k) { S.icon[k] = icon(k); });
+    ['eye', 'bag', 'stone', 'coin', 'hammer', 'horn', 'saw', 'gear', 'scroll', 'meteor', 'sword', 'hourglass', 'star', 'bandage', 'target', 'poster', 'energy', 'box', 'replan'].forEach(function (k) { S.icon[k] = icon(k); });
     ['battle', 'elite', 'event', 'shop', 'rest', 'boss'].forEach(function (k) { S.node[k] = nodeIcon(k); });
     G.TowerArt.apply(S);
     G.EnemyArt.apply(S);   // 敵の絵は js/enemyart.js（24×18の疑似3D・段階③）で、できた種類から上書きする   // タワーの絵は js/towerart.js（24×18の疑似3D）で作る

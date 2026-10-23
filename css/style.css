@@ -272,7 +272,7 @@ dt{color:var(--muted);text-align:right} dd{margin:0;text-align:left}
 .panel-foot button{width:100%}
 .panel-title{margin:6px 0 0;font-weight:400;font-size:24px;text-wrap:balance}
 .panel-title.win{color:var(--good)} .panel-title.lose{color:var(--bad)}
-.panel-text{margin:0;font-size:15px;line-height:1.7;color:var(--fg)}
+.panel-text{margin:0;font-size:15px;line-height:1.7;color:var(--fg);white-space:pre-line}
 .panel-sub{margin:0;font-size:13px;color:var(--muted)}
 .choices{display:flex;flex-direction:column;gap:8px}
 .choice{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:10px 14px;text-align:left;min-height:56px}
@@ -656,3 +656,10 @@ html:not(.skin-classic) .cards-grid .card.r-rare{animation:rareTrim 1.6s ease-in
    メニューの「戦闘画面」で「黒」を選ぶと、<html> に skin-classic が付く。上の2つのまとまり（砦の石壁・カードの旗の形）は
    「html:not(.skin-classic)」を付けてあるので効かなくなり、砦風にする前（黒い背景）の見た目に戻る。初期は砦。js/battleskin.js の G.Skin */
 html.skin-classic .rampart{display:none}
+/* 作戦変更（2026-10-23）：外す候補の手札。暗くして赤い×印 */
+.card.out-pick{border-color:#d8513f}
+.card.out-pick > :not(.out-mark){filter:grayscale(.8) brightness(.6)}
+.card .out-mark{position:absolute;left:50%;top:50%;width:30px;height:30px;margin:-15px 0 0 -15px;pointer-events:none;z-index:4}
+.card .out-mark::before,.card .out-mark::after{content:"";position:absolute;left:12px;top:-2px;width:6px;height:34px;border-radius:2px;background:#e8543f;box-shadow:0 0 0 1px #4a120c,0 0 6px rgba(232,84,63,.6)}
+.card .out-mark::before{transform:rotate(45deg)}
+.card .out-mark::after{transform:rotate(-45deg)}

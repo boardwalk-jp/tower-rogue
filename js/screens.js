@@ -376,6 +376,8 @@ var G = window.G = window.G || {};
   function showWorld(view) {
     view = view === true;
     if (!view) { lastResume = { type: 'map' }; save(lastResume); music('w' + run.act); viewFrom = null; }   // ワールドマップ専用の曲（w1〜w3）
+    // 王の解任状の手放しが残っていたら（イベントで手に入れた後・途中でやめて再開した時）、マップを描いた後で選ばせる
+    if (!view && run.dismiss > 0) setTimeout(function () { if (G.currentScreen === 'world' && $('picker').hidden) runDismiss(function () {}); }, 0);
     G.showScreen('world');
     $('world-menu-btn').hidden = view; $('world-back').hidden = !view;
     pendingNode = null;
@@ -526,7 +528,7 @@ var G = window.G = window.G || {};
     var big = n.type === 'elite' || n.type === 'boss';
     var cards = savedCards || R.rollCards(run, 3, n.type === 'boss' ? 'boss' : big ? 'elite' : 'battle');
     // ボスに勝った後は、報酬を選んだら次の層の案内へ
-    var after = function () { if (run.actClear) showActClear(); else showWorld(); };
+    var after = function () { runDismiss(function () { if (run.actClear) showActClear(); else showWorld(); }); };   // 王の解任状を取った時は、先に手放すカードを選ぶ
     lastResume = { type: 'reward', cards: cards, bonus: bonus, stats: { killed: s.stats.killed, leaked: s.stats.leaked, goldEarned: s.stats.goldEarned } };
     save(lastResume);
     openPanel(n.type === 'boss' ? 'ボス撃破' : n.type === 'elite' ? 'エリート撃破' : '勝利', function (body, foot) {
@@ -596,25 +598,31 @@ var G = window.G = window.G || {};
       ev.choices.forEach(function (ch, ci) {
         var b = button('', 'choice', function () {
           var res = R.eventChoice(run, ch);
+          if (!res.fail && ch.se && G.Sound) G.Sound.play(ch.se);   // 選んだ時の効果音（傭兵団の野営地など）
           renderRunBar();
           if (res.fail) { msg.textContent = res.msg; return; }
           R.logSet(run, 'ev', { id: ev.id, c: ci, r: ch.effect === 'gamble' ? (res.msg.indexOf('当たり') === 0 ? 'win' : 'lose') : undefined });
           var key = String(ci) + (ch.effect === 'gamble' ? (res.msg.indexOf('当たり') === 0 ? 'win' : 'lose') : '');
           function afterEvent(text, rid) { afterEventK(text, rid, key); }
           if (res.next === 'pickCopy') return pickFromDeck('複製するカードを選ぶ', function (i) { var id = run.deck[i]; R.addCard(run, id); afterEvent('「' + G.CARDS[id].name + '」をもう1枚手に入れた。'); }, true);
-          if (res.next === 'pickRemove') return pickFromDeck('手放すカードを選ぶ', function (i) { R.removeCard(run, i); afterEvent('カードを手放した。'); }, true);
+          if (res.next === 'pickRemove') return pickFromDeck('手放すカードを選ぶ', function (i) {
+            var rnm = G.CARDS[run.deck[i]].name; R.removeCard(run, i);
+            if (ch.effect === 'drill') { if (G.Sound) G.Sound.play('depart'); afterEvent(res.msg + '\n「' + rnm + '」を手放した。'); }   // 稽古：隊を去る足音
+            else afterEvent('カードを手放した。');
+          }, true);
           if (res.next === 'pickUpgrade') return pickFromDeck('鍛えるカードを選ぶ', function (i) { var nm = G.CARDS[run.deck[i]].name; R.upgradeCard(run, i); afterEvent('「' + nm + '」を鍛えて「' + G.CARDS[run.deck[i]].name + '」にした。'); }, true, null, R.canUpgradeCard);
           if (res.next === 'pickCard') {
             return openPanel('イベント', function (b2, f2) {
               eventArt(b2, key); b2.appendChild(el('h2', 'panel-title', ev.title));
-              b2.appendChild(el('p', 'panel-text', res.msg + ' カードを1枚えらぶ。'));
+              b2.appendChild(el('p', 'panel-text', res.msg + (res.noSuffix ? '' : ' カードを1枚えらぶ。')));
               choose(b2, f2, res.cards, '受け取る', function (id) { R.logPick(run, 'event', res.cards, id); R.addCard(run, id); afterEvent('「' + G.CARDS[id].name + '」を手に入れた。'); });
             });
           }
           afterEvent(res.msg, res.relic);
-        });
+        }, !!ch.se);   // 専用の効果音がある選択肢は、ボタンの「カチャッ」を鳴らさない
         b.appendChild(el('b', '', ch.label));
         if (ch.note) b.appendChild(el('small', '', ch.note));
+        if (R.choiceBlocked(run, ch)) b.disabled = true;   // お金・ライフが足りない選択肢は押せない（2026-10-23）
         list.appendChild(b);
       });
       body.appendChild(list);
@@ -679,6 +687,7 @@ var G = window.G = window.G || {};
             if (rl.sold) return;
             if (run.gold < rl.price) { say('お金が足りません'); return; }
             run.gold -= rl.price; rl.sold = true; R.logAdd(run, 'buy', 'relic:' + rl.id); R.addRelic(run, rl.id); render();
+            if (run.dismiss > 0) runDismiss(render);   // 王の解任状
           });
           rbtn.className += ' r-' + RD.rarity;
           var rline = el('b', 'relic-line'); rline.appendChild(UI.relicCanvas(rl.id)); rline.appendChild(el('span', 'relic-line-name', 'レリック：' + RD.name)); rline.appendChild(el('span', 'rar-label r-' + RD.rarity, UI.RARITY[RD.rarity]));
@@ -970,6 +979,16 @@ var G = window.G = window.G || {};
 
   // ---- デッキから1枚選ぶ ----
   // ok：選べるカードか（省略するとすべて選べる）。選べないカードは暗く出す
+  // 王の解任状（2026-10-23）：デッキからカードを run.dismiss 枚まで手放す。「やめる」で残りは手放さずに終わる。終わったら then()
+  function runDismiss(then) {
+    if (!(run.dismiss > 0) || run.deck.length <= 1) { if (run.dismiss) { run.dismiss = 0; save(lastResume); } return then(); }
+    pickFromDeck('手放すカードを選ぶ（あと' + run.dismiss + '枚）', function (i) {
+      R.removeCard(run, i); run.dismiss--; save(lastResume);
+      if (G.Sound) G.Sound.play('stamp');   // 解任状に判を押す音
+      renderRunBar();
+      runDismiss(then);
+    }, false, function () { run.dismiss = 0; save(lastResume); then(); });
+  }
   function pickFromDeck(title, onOk, mustPick, onCancel, ok) {
     var grid = $('pk-grid'), picked = -1;
     $('pk-title').textContent = title;

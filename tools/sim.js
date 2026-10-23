@@ -46,6 +46,17 @@ function strongest(s) {
   return best && best.tw;
 }
 
+// カードを1枚手放す：投石小屋 → 見習い弓兵の順。どちらもなければ手放さない（2026-10-23 前は見つからないと最後の1枚を消していた）
+function simRemove(run) {
+  var i = run.deck.indexOf('sling'); if (i < 0) i = run.deck.indexOf('bowman');
+  if (i >= 0) { G.Run.removeCard(run, i); return true; }
+  return false;
+}
+// 王の解任状：残りの枚数ぶん手放す（デッキが5枚より多い時だけ）
+function simDismiss(run) {
+  while (run.dismiss > 0) { run.dismiss--; if (run.deck.length > 5) simRemove(run); }
+}
+
 // 準備ターンの作戦：使えるカードを全部使い、余ったお金で強化
 function playTurn(s) {
   var guard = 0, played = true;
@@ -59,6 +70,14 @@ function playTurn(s) {
       else if (def.target === 'tower') {
         var tw = def.id === 'forge' ? s.towers.filter(function (t) { return t.lv < G.TOWERS[t.type].up.length; })[0] : strongest(s);
         if (!tw) continue; target = { tower: tw.id };
+      }
+      else if (def.target === 'hand') {
+        // 作戦変更：残りのエネルギーで使えないカード（いちばん重い物）、なければ初期カードを外す。どちらもなければ使わない
+        var left = s.energy - B.cardCost(c, s), out = null;
+        s.hand.forEach(function (h, k) { if (k === i) return; var hc = B.cardCost(h, s); if (hc > left && (!out || hc > B.cardCost(out, s))) out = h; });
+        if (!out) s.hand.forEach(function (h, k) { if (k !== i && !out && B.cardDef(h).rarity === 'starter') out = h; });
+        if (!out && s.hand.length > 1) continue;
+        target = out ? { hand: out.uid } : null;
       }
       if (!B.playCard(s, i, target)) { played = true; break; }
     }
@@ -103,6 +122,7 @@ function playRun(seed, log, cmdId) {
     var nid = opts[Math.floor(run.rand() * opts.length)];
     G.Run.enter(run, nid);
     var n = G.Run.node(run);
+    simDismiss(run);   // 王の解任状（手に入れた後、次のマスに入る時に手放す）
     if (n.type === 'battle' || n.type === 'elite' || n.type === 'boss') {
       var lifeBefore = run.life;
       var s = fight(G.Run.battleOpts(run));
@@ -125,12 +145,13 @@ function playRun(seed, log, cmdId) {
       if (st) { run.gold -= st.price; G.Run.logAdd(run, 'buy', st.id); G.Run.addCard(run, st.id); }
       steps.push(n.floor + 'S');
     } else {
-      var e = G.Run.rollEvent(run), res = G.Run.eventChoice(run, e.choices[0]);
-      G.Run.logSet(run, 'ev', { id: e.id, c: 0 });
+      // 選択肢はいつも1番目。傭兵団の野営地だけは MERC（0・1・2）で選べる（確認用。ふだんは1番目）
+      var e = G.Run.rollEvent(run), ci = (e.id === 'mercs' && process.env.MERC) ? +process.env.MERC : 0, res = G.Run.eventChoice(run, e.choices[ci]);
+      G.Run.logSet(run, 'ev', { id: e.id, c: ci });
       if (res.next === 'pickCard') { G.Run.logPick(run, 'event', res.cards, res.cards[0]); G.Run.addCard(run, res.cards[0]); }
       if (res.next === 'pickCopy') G.Run.addCard(run, run.deck[run.deck.length - 1]);
       if (res.next === 'pickUpgrade') upgradeBest(run);
-      if (res.next === 'pickRemove' && run.deck.length > 5) G.Run.removeCard(run, run.deck.indexOf('sling'));
+      if (res.next === 'pickRemove' && run.deck.length > 5) simRemove(run);
       steps.push(n.floor + 'E');
     }
   }
