@@ -917,6 +917,271 @@
     }
   };
 
+  // ======================================================================
+  // 傭兵団の野営地（2026-10-23・全層）：テント2張り・たき火と鍋・武器立て・幌の荷車。たき火の向こうに傷だらけの大柄な団長、まわりに傭兵3人
+  //   場面の部品を campStat（動かない）と campAnim（動く）にまとめ、選んだ後の絵は opt（作り方の指定）を変えて描き直す
+  // ======================================================================
+  var MC = {   // 団長の色
+    sk: '#e0a880', skS: '#b07850', skH: '#f2c49a', tun: '#8a3a2a', tunS: '#5e2418', tunH: '#a8503a',
+    lea: '#5a4028', leaS: '#3e2a18', leaH: '#7a5a38', hair: '#4a3020', brd: '#6a4630', brdS: '#4a2e1c', scar: '#c86a5a', pants: '#3e3a34', boot: '#2a2018'
+  };
+  var TARP = { hi: '#e2d6aa', l: '#c8b88a', s: '#97865a', d: '#6a5c38' };   // 荷車の幌・テントの布
+
+  // 大柄な団長（高さ約33ドット。ふつうの人の1.5倍）。(x,y)＝足もと。正面を向く。pose：'call'＝右手を上げて呼ぶ、'fold'＝腕組みで笑う、'shrug'＝肩をすくめる、'lift'＝右手を高く上げて布をつまむ
+  function chief(g, x, y, pose, t) {
+    var C = MC, laugh = pose === 'fold' || pose === 'shrug';
+    shadow(g, x, y, 10, 0.3);
+    R(g, C.pants, x - 6, y - 10, 5, 9); R(g, C.pants, x + 1, y - 10, 5, 9); R(g, shade2(C.pants, -0.3), x + 4, y - 10, 2, 9); R(g, shade2(C.pants, 0.3), x - 6, y - 10, 1, 9);   // 足
+    R(g, C.boot, x - 7, y - 3, 6, 3); R(g, C.boot, x + 1, y - 3, 6, 3); R(g, '#4a3a2a', x - 7, y - 3, 6, 1); R(g, '#4a3a2a', x + 1, y - 3, 6, 1);              // ブーツ
+    R(g, C.tun, x - 8, y - 23, 16, 13); R(g, C.tunS, x + 4, y - 23, 4, 13); R(g, C.tunH, x - 8, y - 23, 1, 13);                                                 // 体（右は影）
+    for (var i = 0; i < 10; i++) R(g, i < 6 ? C.lea : C.leaS, x - 6 + i, y - 22 + i, 2, 1);                                                                     // ななめの革ベルト
+    R(g, C.lea, x - 8, y - 12, 16, 2); R(g, C.leaH, x - 8, y - 12, 9, 1); R(g, '#e8c040', x - 1, y - 12, 2, 2);                                                  // 腰のベルトと金具
+    DA.ell(g, x - 8, y - 22, 3, 2, C.lea); R(g, C.leaH, x - 10, y - 23, 3, 1); DA.ell(g, x + 7, y - 22, 3, 2, C.leaS);                                          // 肩当て
+    // 頭：短い髪・ひげ・左目の眼帯・右目の上の傷
+    R(g, C.skS, x - 2, y - 24, 5, 1);
+    R(g, C.sk, x - 4, y - 33, 9, 9); R(g, C.sk, x - 3, y - 34, 7, 1); R(g, C.skS, x + 3, y - 33, 2, 9); R(g, C.skH, x - 4, y - 33, 1, 7);
+    R(g, C.hair, x - 3, y - 35, 7, 2); R(g, C.hair, x - 4, y - 34, 1, 3); R(g, shade2(C.hair, 0.3), x - 2, y - 35, 3, 1);
+    R(g, '#2a2018', x - 4, y - 31, 9, 1); R(g, '#1b1b22', x - 3, y - 30, 3, 2);                                                                                 // 眼帯とひも
+    if (laugh) { R(g, '#1b1b22', x + 1, y - 29, 2, 1); R(g, C.hair, x + 1, y - 31, 3, 1); }                                                                    // 笑って細めた目
+    else { R(g, '#1b1b22', x + 1, y - 30, 1, 2); R(g, C.hair, x, y - 32, 3, 1); }
+    R(g, C.scar, x + 2, y - 32, 1, 5); R(g, C.scar, x - 3, y - 27, 2, 1); R(g, C.scar, x - 2, y - 26, 2, 1);                                                   // 傷あと
+    R(g, C.skS, x, y - 29, 1, 2);                                                                                                                                 // 鼻
+    R(g, C.brd, x - 4, y - 27, 9, 4); R(g, C.brd, x - 3, y - 23, 7, 1); R(g, C.brdS, x + 2, y - 27, 3, 4); R(g, shade2(C.brd, 0.25), x - 4, y - 27, 1, 3);   // ひげ
+    if (laugh) { R(g, '#3a1410', x - 1, y - 26, 4, 2); R(g, '#f0e8d8', x - 1, y - 26, 4, 1); } else R(g, '#3a1a14', x - 1, y - 26, 3, 1);                      // 口
+    // 腕
+    var wave = t != null ? (Math.floor(t * 3) % 2) : 0;
+    if (pose === 'fold') {
+      R(g, C.tun, x - 11, y - 22, 3, 6); R(g, C.tunS, x + 8, y - 22, 3, 6);
+      R(g, C.sk, x - 9, y - 19, 17, 3); R(g, C.skS, x + 3, y - 19, 6, 3); R(g, C.skH, x - 9, y - 19, 8, 1); R(g, '#e8e0d0', x - 6, y - 19, 3, 3); R(g, '#c8bca8', x - 4, y - 19, 1, 3);   // 組んだ腕（包帯）
+    } else if (pose === 'shrug') {
+      R(g, C.tun, x - 12, y - 22, 4, 3); R(g, C.tunS, x + 8, y - 22, 4, 3);
+      R(g, C.sk, x - 14, y - 27, 3, 6); R(g, C.skH, x - 14, y - 27, 1, 6); R(g, C.sk, x + 11, y - 27, 3, 6); R(g, C.skS, x + 13, y - 27, 1, 6);                  // 上を向いた手のひら
+      R(g, C.sk, x - 16, y - 28, 4, 2); R(g, C.sk, x + 12, y - 28, 4, 2); R(g, '#e8e0d0', x + 11, y - 24, 3, 2);
+    } else {
+      R(g, C.tun, x - 11, y - 22, 3, 7); R(g, C.tunH, x - 11, y - 22, 1, 7); R(g, C.sk, x - 11, y - 15, 3, 5); R(g, '#e8e0d0', x - 11, y - 14, 3, 2); R(g, C.sk, x - 11, y - 10, 3, 2);   // 下ろした左腕（包帯）
+      if (pose === 'lift') { R(g, C.tunS, x + 8, y - 23, 3, 5); R(g, C.sk, x + 9, y - 33, 3, 11); R(g, C.skS, x + 11, y - 33, 1, 11); R(g, C.scar, x + 9, y - 28, 2, 1); R(g, C.sk, x + 9, y - 36, 4, 3); }
+      else { R(g, C.tunS, x + 8, y - 23, 3, 5); R(g, C.sk, x + 10, y - 29, 3, 8); R(g, C.skS, x + 12, y - 29, 1, 8); R(g, C.scar, x + 10, y - 25, 2, 1); R(g, C.sk, x + 9 + wave, y - 32, 4, 3); R(g, C.skS, x + 12 + wave, y - 32, 1, 3); }   // 上げて呼ぶ右手（少しふる）
+    }
+  }
+  // 傭兵（person2 に鉄のかぶとと槍を足す）。o.helm・o.spear・o.laugh（口を開けて笑う）
+  function merc(g, x, y, o) {
+    var P = TP();
+    person2(g, x, y, o);
+    if (o.helm) {   // 丸い鉄かぶと（明るい鋼色。左上が光る）と、つば
+      var M = P.metal;
+      R(g, M.f, x - 3, y - 25, 7, 1); R(g, M.f, x - 4, y - 24, 9, 3); R(g, M.hi, x - 3, y - 25, 3, 1); R(g, M.hi, x - 4, y - 24, 1, 2); R(g, '#e8f0f8', x - 2, y - 24, 1, 1);
+      R(g, M.s, x + 2, y - 25, 2, 1); R(g, M.s, x + 3, y - 24, 2, 3); R(g, M.d, x - 6, y - 21, 13, 1); R(g, M.t, x - 6, y - 21, 7, 1);
+    }
+    if (o.spear) { R(g, '#8a6a3c', x + 6, y - 34, 1, 33); R(g, '#a8844e', x + 6, y - 34, 1, 8); R(g, '#e8ecf0', x + 6, y - 39, 1, 5); R(g, '#9aa2aa', x + 7, y - 37, 1, 3); R(g, '#e8ecf0', x + 5, y - 37, 1, 2); R(g, o.skin || '#f1c6a0', x + 5, y - 13, 2, 2); }
+    if (o.laugh) { R(g, '#7a2a2a', x, y - 16, 3, 2); R(g, '#1b1b22', x, y - 18, 1, 1); R(g, '#1b1b22', x + 2, y - 18, 1, 1); }
+  }
+  // 遠くを歩いていく小さな人影（高さ7ドット）。背中に荷物
+  function tiny(g, x, y, bd) {
+    R(g, '#3a3030', x - 1, y - 2, 1, 2); R(g, '#3a3030', x + 1, y - 2, 1, 2); R(g, bd, x - 1, y - 5, 3, 3); R(g, '#e0b090', x - 1, y - 7, 3, 2); R(g, '#6a4a2a', x + 2, y - 6, 2, 3);
+  }
+  // テント（正面の三角と、右奥へのびる屋根）。光は左上：正面の左は明るく、右と屋根の横は影。入口は開いて暗い
+  function tent(g, cx, by, hw, h, dx, dy, C) {
+    var i, y, ax = cx, ay = by - h;
+    DA.ell(g, cx + (dx >> 1) + 2, by, hw + (dx >> 1) + 2, 3, 'rgba(0,0,0,0.25)');
+    for (y = ay - dy; y <= by; y++) {   // 屋根の横（右奥へのびる面）：棟から、手前の三角の右ふちと奥の三角の右ふちの間
+      var xl = y < ay ? ax + dx * (ay - y) / dy : ax + hw * (y - ay) / h, xr = ax + dx + hw * Math.max(0, y - (ay - dy)) / h;
+      R(g, y < ay ? shade2(C.s, 0.12) : C.s, xl, y, Math.max(1, Math.round(xr - xl) + 1), 1);
+    }
+    for (i = 0; i <= dy; i++) R(g, C.hi, ax + Math.round(dx * i / dy), ay - i, 1, 1);   // 棟（いちばん上のすじ。光が当たる）
+    R(g, C.d, ax + dx, by - dy, hw + 1, 1);
+    for (i = 0; i <= h; i++) {
+      var w2 = Math.round(hw * i / h);
+      R(g, C.l, ax - w2, ay + i, w2 + 1, 1); R(g, shade2(C.l, -0.1), ax + 1, ay + i, w2, 1);   // 正面：左は明るく、右は少し暗く
+      R(g, C.hi, ax - w2, ay + i, 1, 1);
+    }
+    R(g, C.d, cx - hw, by, hw * 2 + 1, 1);
+    var dh = Math.round(h * 0.62), dw = Math.round(hw * 0.45);   // 入口（暗い三角）と、左にまとめてしばった布
+    for (i = 0; i < dh; i++) { var w3 = Math.round(dw * i / dh); R(g, '#2a2018', cx - w3, by - dh + i, w3 * 2 + 1, 1); if (i > dh * 0.3) R(g, '#3e3024', cx + 1, by - dh + i, w3, 1); }
+    for (i = 0; i < dh; i++) { var w4 = Math.round(dw * i / dh); R(g, C.s, cx - w4 - 2, by - dh + i, 2, 1); R(g, C.hi, cx - w4 - 3, by - dh + i, 1, 1); }
+    R(g, C.d, cx - Math.round(dw * 0.5) - 3, by - Math.round(dh * 0.5), 3, 1);   // しばったひも
+    R(g, '#6a4a2a', ax, ay - 3, 1, 4);   // 柱の先
+    R(g, C.d, cx - hw - 3, by, 2, 1); R(g, C.d, cx + hw + 2, by, 2, 1);   // くい
+    for (i = 1; i < 4; i++) R(g, C.d, cx - hw - 3 + Math.round((hw - 3) * i / 4) , by - Math.round(h * i / 4) + 1, 1, 1);   // 張りづな（点で）
+  }
+  // たき火の石の輪と薪。lit：燃えているか（false＝消えて黒い炭と灰）
+  function hearth(g, x, y, lit) {
+    var i;
+    DA.ell(g, x, y + 1, 13, 4, lit ? '#2a1a12' : '#5a5450'); DA.ell(g, x, y, 10, 3, lit ? '#3a2416' : '#8a8480');
+    for (i = 0; i < 9; i++) { var a = i / 9 * 6.2832, sx = x + Math.cos(a) * 12, sy = y + Math.sin(a) * 4; DA.ell(g, sx, sy, 2, 1, '#6a6560'); R(g, '#9a958c', sx - 1, sy - 1, 2, 1); }
+    R(g, lit ? '#5a3a1e' : '#2a2220', x - 7, y - 2, 14, 2); R(g, lit ? '#7a5230' : '#3a302c', x - 7, y - 2, 14, 1);   // 薪
+    R(g, lit ? '#4a2e16' : '#221a18', x - 3, y - 4, 2, 5); R(g, lit ? '#4a2e16' : '#221a18', x + 2, y - 4, 2, 5);
+    if (!lit) { R(g, '#b0aaa2', x - 4, y, 8, 1); R(g, '#c8c2b8', x - 2, y + 1, 4, 1); }
+  }
+  // 横にねかせた丸太（腰かけ）
+  function logSeat(g, x0, x1, y) {
+    var P = TP();
+    shadow(g, (x0 + x1) / 2, y + 1, (x1 - x0) / 2 + 2, 0.25);
+    R(g, P.wood.f, x0, y - 5, x1 - x0, 5); R(g, P.wood.hi, x0, y - 5, x1 - x0, 1); R(g, P.wood.s, x0, y - 1, x1 - x0, 1);
+    DA.ell(g, x0, y - 3, 2, 3, '#d8b078'); R(g, '#b08850', x0, y - 3, 1, 1);
+  }
+  // ---- 動かない部分。opt：dawn＝夜明けの空、noTent2＝小さいテントが無い（たたんで去った）、out＝たき火が消えている、cart：'open'＝荷車の布をめくる ----
+  function campStat(g, act, opt) {
+    opt = opt || {};
+    var k = kindOf(act), P = TP(), i;
+    sky2(g, k); if (opt.dawn) dawnSky(g, k); ground2(g, k);
+    flank(g, k, 12, 58, 230, 58);
+    // 小さいテント（奥）
+    if (!opt.noTent2) tent(g, 88, 70, 14, 20, 7, 4, { hi: '#c8bc98', l: '#ae9f78', s: '#7e7050', d: '#4e4430' });
+    else {   // たたんだ跡：草（雪）がつぶれた四角と、くいの穴
+      DA.ell(g, 89, 67, 15, 4, k === 'volcano' ? 'rgba(0,0,0,.16)' : k === 'snow' ? 'rgba(120,140,170,.16)' : 'rgba(90,70,30,.2)');
+      [[73, 70], [103, 70], [80, 64], [98, 64]].forEach(function (q) { R(g, '#2a2018', q[0], q[1], 1, 1); });
+    }
+    // 大きいテント（手前左）
+    tent(g, 42, 86, 24, 32, 10, 6, TARP);
+    R(g, '#6a4a2a', 41, 47, 1, 8);   // 旗ざお
+    // 武器立て：2本の柱と横木、槍3本と斧、下に丸い盾
+    shadow(g, 170, 81, 14, 0.25);
+    R(g, P.wood.f, 159, 58, 2, 23); R(g, P.wood.hi, 159, 58, 1, 23); R(g, P.wood.s, 180, 58, 2, 23);
+    R(g, P.wood2.t, 157, 61, 27, 2); R(g, P.wood2.s, 157, 63, 27, 1); R(g, P.wood2.t, 157, 72, 27, 2); R(g, P.wood2.s, 157, 74, 27, 1);
+    [163, 167, 171].forEach(function (sx, j) { R(g, '#8a6a3c', sx, 50 - j, 1, 30 + j); R(g, '#e8ecf0', sx, 45 - j, 1, 5); R(g, '#9aa2aa', sx + 1, 47 - j, 1, 3); R(g, '#e8ecf0', sx - 1, 47 - j, 1, 2); });
+    R(g, '#8a6a3c', 176, 52, 1, 28); R(g, P.iron.hi, 173, 52, 3, 1); R(g, '#9aa2aa', 173, 53, 3, 5); R(g, '#cfd6dc', 172, 53, 1, 5); R(g, '#6a7078', 177, 53, 2, 3);   // 斧
+    DA.ell(g, 166, 76, 6, 6, '#7a2a20'); DA.ell(g, 165, 75, 5, 5, '#a8382c'); DA.ell(g, 166, 76, 2, 2, P.gold.f); R(g, P.gold.hi, 165, 75, 1, 1); R(g, '#c85040', 162, 72, 2, 1);   // 盾
+    // 荷車（右）：木の台・幌（布）・車輪・地面にのばした2本のかじ棒
+    shadow(g, 208, 98, 28, 0.3);
+    R(g, P.wood.s, 176, 96, 16, 2); R(g, P.wood.f, 176, 95, 16, 1); R(g, P.wood.s, 180, 99, 14, 2); R(g, P.wood.f, 180, 98, 14, 1);
+    DA.box(g, 212, 92, 42, 8, 9, P.wood2); for (i = 194; i < 232; i += 7) R(g, P.wood2.d, i, 84, 1, 7);
+    if (opt.cart === 'open') cartGoods(g); else {
+      DA.ell(g, 212, 76, 20, 11, TARP.d); DA.ell(g, 211, 75, 19, 10, TARP.s); DA.ell(g, 208, 74, 15, 8, TARP.l); DA.ell(g, 204, 71, 8, 4, TARP.hi);   // 布をかけた荷物のふくらみ
+      R(g, '#a67a48', 192, 75, 40, 9); R(g, P.wood2.t, 192, 75, 40, 1);   // 台の上の面にかくれる下半分
+      for (i = 0; i < 3; i++) { var rx = 200 + i * 11; R(g, '#6a4a2a', rx, 66 + (i === 1 ? -1 : 0), 1, 17); }   // しばったなわ
+      R(g, TARP.s, 192, 76, 40, 7); R(g, TARP.l, 192, 76, 28, 6); R(g, TARP.hi, 192, 76, 40, 1); R(g, TARP.d, 192, 82, 40, 1);   // 台にたれた布
+      for (i = 196; i < 232; i += 6) R(g, TARP.s, i, 79, 1, 4);
+    }
+    DA.ell(g, 202, 95, 8, 8, P.wood.d); DA.ell(g, 201, 94, 7, 7, P.wood.f); DA.ell(g, 201, 94, 4, 4, P.wood.d); DA.ell(g, 201, 94, 3, 3, P.wood.s);   // 車輪
+    R(g, P.wood.hi, 194, 91, 1, 5); R(g, P.wood.d, 194, 94, 14, 1); R(g, P.wood.d, 201, 87, 1, 14); R(g, P.iron.f, 200, 93, 3, 3); R(g, P.iron.hi, 200, 93, 1, 1);
+    R(g, P.wood.d, 226, 86, 4, 10); R(g, P.wood.s, 226, 86, 2, 10);                                                                                   // 奥の車輪（少しだけ見える）
+    // たき火の三脚と、まわりの丸太
+    hearth(g, 112, 97, !opt.out);
+    R(g, '#4a3420', 104, 76, 1, 22); R(g, '#4a3420', 120, 76, 1, 22); R(g, '#3a2818', 112, 74, 1, 18);
+    for (i = 0; i < 4; i++) { R(g, '#5a4028', 105 + i * 2, 76 - i, 1, 1); R(g, '#5a4028', 119 - i * 2, 76 - i, 1, 1); }
+    R(g, '#2a2018', 112, 72, 1, 8);   // 鍋をつるす鎖
+    logSeat(g, 76, 96, 104);
+    // 寝ぶくろ（大きいテントの前）
+    R(g, '#6a7a4a', 52, 96, 18, 5); R(g, '#8a9a62', 52, 96, 18, 1); R(g, '#4a5a32', 52, 100, 18, 1); DA.ell(g, 52, 98, 3, 3, '#7a8a52'); R(g, '#e8dcc0', 66, 96, 4, 4);
+    if (opt.out) {   // 消えた火の朝：全体を少し朝の色に
+      g.globalCompositeOperation = 'source-atop'; g.fillStyle = 'rgba(255,160,110,0.08)'; g.fillRect(0, 0, W2, H2); g.globalCompositeOperation = 'source-over';
+    }
+  }
+  // 夜明けの空：sky2 の空の色（3色の帯と雲）だけを、朝焼けの色に置きかえる。山や丘はそのまま。右の地平線から太陽が顔を出す
+  function dawnSky(g, k) {
+    var S = k === 'snow' ? ['#7d90ae', '#96a8c2', '#b4c4d8'] : k === 'volcano' ? ['#2a1216', '#4a1c1a', '#7a3020'] : ['#5f98d6', '#7eb0e0', '#a6cbea'];
+    var D = k === 'volcano' ? [[58, 30, 64], [138, 52, 60], [214, 112, 64]] : [[70, 82, 140], [212, 124, 140], [250, 184, 120]];
+    var id = g.getImageData(0, 0, W2, HZ), d = id.data, x, y, sx = k === 'snow' ? 150 : 206, sy = k === 'snow' ? HZ - 14 : HZ - 18;
+    function hex(h) { return [parseInt(h.substr(1, 2), 16), parseInt(h.substr(3, 2), 16), parseInt(h.substr(5, 2), 16)]; }
+    var SC = S.map(hex);
+    for (y = 0; y < HZ; y++) for (x = 0; x < W2; x++) {
+      var o = (y * W2 + x) * 4, r = d[o], gg = d[o + 1], b = d[o + 2], sky = -1;
+      for (var j = 0; j < 3; j++) if (r === SC[j][0] && gg === SC[j][1] && b === SC[j][2]) sky = j;
+      var cloud = (r === 255 && gg === 255 && b === 255) || (r === 0xd6 && gg === 0xe6 && b === 0xf4);
+      if (sky < 0 && !cloud) continue;
+      var c;
+      if (cloud) c = r === 255 ? [255, 214, 190] : [226, 150, 150];
+      else { var kk = y / HZ * 2, a = Math.min(1, Math.floor(kk)), f = kk - a; if (f > 0.6 && ((x + y) & 1)) a = Math.min(2, a + 1); c = D[a]; if (y > HZ * 0.8 && !((x + y) & 1)) c = D[2]; }
+      var dd = Math.hypot(x - sx, y - sy);
+      if (!cloud && dd < 7) c = dd < 5.5 ? [255, 248, 214] : [255, 222, 150];          // 太陽
+      else if (!cloud && dd < 13 && ((x + y) & 1)) c = [255, 206, 140];                 // 太陽のまわりの光（1ドットおき）
+      d[o] = c[0]; d[o + 1] = c[1]; d[o + 2] = c[2];
+    }
+    g.putImageData(id, 0, 0);
+  }
+  // めくった荷車の物資：後ろに立ち上がった布（裏側）と、巻物・袋・小箱・薬びん・ランプ・盾
+  function cartGoods(g) {
+    var P = TP();
+    // 持ち上げられた布（団長の手の所 (186,58) から荷台の奥のふちまで。見えているのは布の裏なので暗め）
+    var pts = [[186, 57], [194, 55], [234, 70], [234, 76], [194, 76], [190, 64]];
+    (function (col, pts) { var minY = 99, maxY = 0, i; pts.forEach(function (p) { minY = Math.min(minY, p[1]); maxY = Math.max(maxY, p[1]); });
+      for (var y = minY; y <= maxY; y++) { var xs = []; for (i = 0; i < pts.length; i++) { var a = pts[i], b = pts[(i + 1) % pts.length]; if ((a[1] <= y && b[1] > y) || (b[1] <= y && a[1] > y)) xs.push(a[0] + (y - a[1]) / (b[1] - a[1]) * (b[0] - a[0])); }
+        xs.sort(function (p, q) { return p - q; }); for (i = 0; i + 1 < xs.length; i += 2) R(g, col, xs[i], y, Math.round(xs[i + 1] - xs[i]), 1); } })(TARP.s, pts);
+    for (var i = 0; i < 40; i++) R(g, TARP.hi, 194 + i, 55 + Math.round(i * 15 / 40), 1, 1);   // 上のふち（表の明るい色が見える）
+    for (i = 0; i < 4; i++) R(g, TARP.d, 202 + i * 8, 62 + i * 3, 1, 12 - i * 2);              // しわ
+    R(g, '#3a2414', 192, 75, 40, 2);                                                            // 荷台の中（影）
+    // 袋2つ（左）
+    DA.ell(g, 199, 74, 6, 5, '#7a5a32'); DA.ell(g, 198, 73, 5, 4, '#9a7444'); R(g, '#b88e58', 195, 70, 3, 1); R(g, '#5a3e20', 197, 68, 3, 2); R(g, '#c8a060', 196, 67, 5, 1);
+    DA.ell(g, 206, 75, 4, 4, '#6a4e2a'); DA.ell(g, 205, 74, 3, 3, '#8a6a3c'); R(g, '#4a3418', 205, 70, 2, 1);
+    // 巻物の束（赤いひも）
+    for (i = 0; i < 3; i++) { var sy = 72 - i * 3 + (i === 2 ? 1 : 0), sx = 210 + (i === 2 ? 3 : 0); R(g, '#e8dcc0', sx, sy, 11, 3); R(g, '#fff6e0', sx, sy, 11, 1); R(g, '#b8a888', sx, sy + 2, 11, 1); R(g, '#c8bca0', sx + 10, sy, 1, 3); R(g, '#8a7a5a', sx + 10, sy + 1, 1, 1); }
+    R(g, '#c8341a', 215, 66, 2, 9); R(g, '#ff6a4a', 215, 66, 1, 1);
+    // 小箱（金の帯）
+    DA.box(g, 227, 77, 9, 3, 6, P.wood); R(g, P.gold.f, 226, 68, 2, 9); R(g, P.gold.hi, 226, 68, 1, 1);
+    // 前に置いた薬びん2本とランプ
+    R(g, '#b02a2a', 196, 78, 3, 5); R(g, '#e86a6a', 196, 78, 1, 4); R(g, '#7a828a', 196, 77, 3, 1);
+    R(g, '#2a6ab0', 201, 79, 3, 4); R(g, '#7ab8f0', 201, 79, 1, 3); R(g, '#7a828a', 201, 78, 3, 1);
+    R(g, P.iron.f, 219, 76, 5, 7); R(g, '#ffd27a', 220, 78, 3, 3); R(g, P.iron.hi, 219, 76, 1, 7); R(g, P.iron.d, 220, 75, 3, 1);
+    // 荷台の横に立てかけた丸い盾
+    DA.ell(g, 230, 86, 5, 6, '#3a5a8a'); DA.ell(g, 229, 85, 4, 5, '#4a7ab0'); R(g, P.iron.hi, 228, 84, 2, 2); R(g, '#e8c040', 229, 86, 1, 1);
+  }
+  // ---- 動く部分。opt：chief＝団長のポーズ（'none'で描かない）、cx/cy＝団長の場所、out＝火が消えている、who＝いる傭兵（'abc'）、laugh＝傭兵が笑ってゆれる ----
+  function campAnim(g, t, act, opt) {
+    opt = opt || {};
+    var P = TP(), who = opt.who == null ? 'abc' : opt.who, L = opt.laugh, i;
+    var fl = Math.floor(t * 5) % 3;   // 旗（ゆれる）：赤地に金の剣の印
+    R(g, '#a8302a', 42, 47, 9, 5); R(g, '#c84838', 42, 47, 9, 1); R(g, '#7a2018', 42, 51, 9, 1);
+    R(g, '#a8302a', 51, 48 + (fl === 1 ? 1 : 0), 2 + (fl === 2 ? 1 : 0), 2); R(g, '#a8302a', 51, 50 + (fl === 0 ? 1 : 0), 2, 2);
+    R(g, '#e8c040', 46, 48, 1, 3); R(g, '#e8c040', 45, 49, 3, 1);
+    function bob(k) { return L ? (Math.floor(t * 7 + k) % 2) : 0; }
+    if (who.indexOf('b') >= 0) merc(g, 66, 92 + bob(0), { body: '#6a4a5a', hair: '#2a1a10', helm: !L, spear: true, laugh: L });   // テントの前で槍を持つ
+    if (who.indexOf('c') >= 0) { merc(g, 152, 82 + bob(1), { body: '#4a5a7a', hair: '#8a5a2a', helm: true, laugh: L }); if (L) { R(g, '#4a5a7a', 156, 66 + bob(1), 2, 3); R(g, '#f1c6a0', 157, 64 + bob(1), 2, 2); } }   // 武器立ての前（笑う時は手を上げる）
+    if (opt.chief !== 'none') chief(g, opt.cx || 136, opt.cy || 92, opt.chief || 'call', t);
+    if (!opt.out) {
+      var f = 0.85 + 0.15 * Math.sin(t * 9);
+      glow(g, 112, 94, Math.round(30 * f), 12, 'rgba(255,140,50,0.12)'); glow(g, 112, 88, 16, 14, 'rgba(255,170,70,0.1)');
+      fire2(g, 112, 96, t, 1.25);
+      DA.ell(g, 112, 83, 5, 4, P.iron.d); DA.ell(g, 111, 82, 4, 3, P.iron.f); R(g, P.iron.hi, 108, 81, 2, 1); R(g, P.iron.m, 107, 79, 10, 1);   // 鍋
+      for (i = 0; i < 3; i++) { var q = (t * 0.5 + i / 3) % 1; DA.ell(g, 112 + Math.sin(t * 2 + i) * 2, 76 - q * 14, 1 + Math.round(q * 2), 1, 'rgba(240,240,240,' + (0.4 * (1 - q)).toFixed(2) + ')'); }   // 鍋の湯気
+    } else smoke(g, 112, 92, t, 5);
+    if (who.indexOf('a') >= 0) {   // 丸太に座ってたき火を見る（丸太が足をかくす）
+      var y0 = 104 + bob(2);
+      merc(g, 86, y0 - 3, { body: '#5a6a3a', hair: '#3a2416', laugh: L });
+      if (L) { R(g, '#5a6a3a', 91, y0 - 15, 3, 2); R(g, '#f1c6a0', 93, y0 - 14 + (Math.floor(t * 7) % 2) * 3, 2, 2); }   // ひざをたたく手
+      else { R(g, '#5a6a3a', 90, y0 - 14, 4, 2); R(g, '#f1c6a0', 94, y0 - 14, 2, 2); }   // 火に手をかざす
+      logSeat(g, 76, 96, 104);
+    }
+    weather(g, t, act);
+  }
+
+  SCENES2.mercs = {
+    stat: function (g, act) { campStat(g, act); },
+    anim: function (g, t, act) { campAnim(g, t, act); }
+  };
+  SCENES2.mercs.after = {
+    // 厳しい稽古：夜明けの空。火は消えて煙。小さいテントはたたまれ、丸太の上に書き置き。足あとが地平線の小さな人影へ続く。団長は腕組みで笑う
+    '0': {
+      stat: function (g, act) {
+        var k = kindOf(act), i;
+        campStat(g, act, { dawn: true, noTent2: true, out: true });
+        var FP = k === 'snow' ? '#8a9ab4' : k === 'volcano' ? '#161010' : '#2a4a22';
+        for (i = 0; i < 18; i++) {   // 足あと：テントの跡から地平線の人影まで。手前は大きく間があき、奥ほど小さくつまる
+          var q = i / 17, fx = 92 + q * 10 + Math.sin(q * 5) * 3, fy = 70 - q * 16, s = q < 0.4 ? 2 : 1;
+          R(g, FP, fx + (i % 2 ? 2 : -1) * (1 - q * 0.7), fy, s, 1);
+        }
+        tiny(g, 100, 53, '#5a6a3a'); tiny(g, 106, 52, '#7a4a3a');
+        // 丸太の上の書き置き（石をのせた紙）
+        R(g, '#f4ecd8', 82, 96, 8, 4); R(g, '#ffffff', 82, 96, 8, 1); R(g, '#c8bca0', 89, 96, 1, 4); R(g, '#8a7a5a', 83, 98, 5, 1); R(g, '#8a7a5a', 83, 99, 3, 1);
+        DA.ell(g, 86, 95, 2, 1, '#7a7670'); R(g, '#a8a49c', 85, 94, 2, 1);
+      },
+      anim: function (g, t, act) {
+        campAnim(g, t, act, { chief: 'fold', out: true, who: 'bc' });
+      }
+    },
+    // 物資を売ってもらう：団長が荷車の布を高く持ち上げる。中の巻物・袋・薬がきらめく
+    '1': {
+      stat: function (g, act) { campStat(g, act, { cart: 'open' }); },
+      anim: function (g, t, act) {
+        campAnim(g, t, act, { chief: 'lift', cx: 176, cy: 94 });
+        sparkle(g, 214, 64, t, 0, '#fff6c0'); sparkle(g, 198, 66, t, 0.7, '#ffe14d'); sparkle(g, 228, 66, t, 1.2, '#fff6c0'); sparkle(g, 203, 77, t, 0.4, '#bfe4ff');
+      }
+    },
+    // 無視する：団長は肩をすくめ、傭兵たちは体をゆらして笑う
+    '2': {
+      anim: function (g, t, act) { campAnim(g, t, act, { chief: 'shrug', laugh: true }); }
+    }
+  };
+
   // ---- 終わりの画面（2026-10-22）：クリア＝朝日の砦と花火、敗北＝燃える砦と煙 ----
   SCENES2.victory = {
     stat: function (g) {
