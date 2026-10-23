@@ -547,7 +547,7 @@ var G = window.G = window.G || {};
   }
   function setVol(kind, v) { cfg[kind + 'Vol'] = clampVol(v); saveCfg(); applyGain(kind); }
   // 音の状態（メニューの「音のテスト」で表示）
- function state() { return (ac ? '［' + ac.state + '・作り直し' + rebuilds + '回］' : '') + (!ac ? 'まだ準備していない（画面をタップすると準備）' : ac.state === 'running' ? '鳴らせる状態' : '止まっている（' + ac.state + '）') + (bossErr ? '・ボス曲のエラー：' + bossErr : '') + '・ボス曲' + (G.makeBossTheme ? 'あり' : 'なし'); }
+ function state() { return (ac ? '［' + ac.state + '・作り直し' + rebuilds + '回］' : '') + (!ac ? 'まだ準備していない（画面をタップすると準備）' : ac.state === 'running' ? '鳴らせる状態' : '止まっている（' + ac.state + '）') + (bossErr ? '・ボス曲のエラー：' + bossErr : '') + (ac ? '・曲：' + (playing ? playing + '（次の音まで' + (nextT - ac.currentTime).toFixed(1) + '秒）' : wantTrack ? '始まっていない（' + wantTrack + '）' : 'なし') : '') + '・ボス曲' + (G.makeBossTheme ? 'あり' : 'なし'); }
   function test() { unlock(); var was = cfg.se; cfg.se = true; play('upgrade'); cfg.se = was; }
   // 曲を流したいのに音がまだ出せない時は、画面の下に「タップすると音が出ます」を出す
   setInterval(function () {
