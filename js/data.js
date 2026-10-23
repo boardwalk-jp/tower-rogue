@@ -373,11 +373,11 @@ G.TOWERS = {
     text: '遠くまで届く重い矢。1発が大きい。',
     up: [{ cost: 40, dmg: 62, range: 3.9, rate: 2.3 }, { cost: 80, dmg: 90, range: 4.2, rate: 2.2 }]
   },
-  // 2026-10-24 新カード（オーナー指定：物理・アンコモン・コスト1・飛んでいる敵だけを攻撃・1秒に1発・爆発1.5マス・威力25）。射程と強化の値はこちらで決めた（アンコモンの弓兵の塔と同じ形）
+  // 2026-10-24 新カード（オーナー指定：物理・アンコモン・コスト1・飛んでいる敵だけを攻撃・1秒に1発・爆発1.5マス・威力25）。強化の値はこちらで決めた（アンコモンの弓兵の塔と同じ形）。2026-10-24 オーナー指定で 名前を「対空炸裂弾砲」・射程を3.0に変更（強化の射程は同じ上げ幅の 3.3・3.6）
   flak: {
-    name: '対空炸裂弾', airOnly: true, muzzle: 1.0, cost: 1, range: 2.6, dmg: 25, rate: 1.0, dmgType: 'physical', shot: 'flak', speed: 10, splash: 1.5,
+    name: '対空炸裂弾砲', airOnly: true, muzzle: 1.0, cost: 1, range: 3.0, dmg: 25, rate: 1.0, dmgType: 'physical', shot: 'flak', speed: 10, splash: 1.5,
     text: '空を飛ぶ敵だけを狙い、当たった所で爆発して、近くの飛ぶ敵もまとめて攻撃する。地上の敵にはダメージが入らない。',
-    up: [{ cost: 25, dmg: 36, range: 2.9, rate: 0.9, splash: 1.6 }, { cost: 50, dmg: 50, range: 3.2, rate: 0.8, splash: 1.7 }]
+    up: [{ cost: 25, dmg: 36, range: 3.3, rate: 0.9, splash: 1.6 }, { cost: 50, dmg: 50, range: 3.6, rate: 0.8, splash: 1.7 }]
   }
 };
 
