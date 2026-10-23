@@ -1183,6 +1183,88 @@
   };
 
   // ---- 終わりの画面（2026-10-22）：クリア＝朝日の砦と花火、敗北＝燃える砦と煙 ----
+  // ======================================================================
+  // 横柄な大工（2026-10-24・草原と雪山）：右に石の砦のかべ、左に板と木びき台、大工は砦のほうへ向かって金づちを肩にかついでいる
+  //   選んだ後：0＝かべが欠けて金づちで作業（強化の光1つ）／1＝かべがほとんどくずれて光が2つ／2＝大工が鼻で笑って左へ去る
+  // ======================================================================
+  var CARP = { body: '#a8742a', apron: '#5a3a22', hair: '#6a4a2a', hat: '#d8b24a', legs: '#4a3a2c' };
+  function carpBg(c, act) { var k = kindOf(act); sky2(c, k); ground2(c, k); flank(c, k, 20, 66, 224, 70); }
+  function carpRubble(g, x, y, n, P) {   // くずれた石（n個）
+    for (var i = 0; i < n; i++) { var rx = x + Math.round((hash(i + 1.3) - 0.5) * 30), ry = y - Math.round(hash(i + 4.1) * 5), w = 4 + Math.floor(hash(i + 7.7) * 4); DA.box(g, rx, ry, w, 2, 2 + (i % 3), P.stone); }
+  }
+  // かべ：st＝0（元のまま）／1（右の3分の1がなくなる）／2（低い土台だけ）
+  function carpWall(g, st, P) {
+    var by = 98, i, r, x0, w, hh, cx;
+    function masonry(xa, wa, ha) {
+      for (r = 0; r < ha; r += 6) { R(g, P.stone.m, xa, by - ha + r + 3, wa, 1); for (var xx = xa + ((r / 6) % 2 ? 5 : 11); xx < xa + wa - 1; xx += 12) R(g, P.stone.m, xx, by - ha + r, 1, 3); }
+    }
+    shadow(g, 168, by + 1, 40, 0.3);
+    if (st === 0) { cx = 168; w = 64; hh = 34; DA.box(g, cx, by, w, 8, hh, P.stone); masonry(cx - 32, w, hh);
+      for (i = 0; i < 4; i++) { var mx = cx - 32 + i * 18; R(g, P.stone.f, mx, by - hh - 8 - 6, 8, 6); R(g, P.stone.hi, mx, by - hh - 8 - 6, 1, 6); R(g, P.stone.s, mx + 6, by - hh - 8 - 6, 2, 6); R(g, P.stone.t, mx, by - hh - 8 - 7, 8, 1); }
+      R(g, P.wood.d, 168, by - hh - 24, 1, 18); R(g, '#b02c34', 169, by - hh - 24, 8, 5); R(g, '#8a2028', 169, by - hh - 20, 8, 1); }   // 旗
+    else if (st === 1) { DA.box(g, 152, by, 32, 8, 34, P.stone); masonry(136, 32, 34); for (i = 0; i < 2; i++) { var m1 = 137 + i * 18; R(g, P.stone.f, m1, by - 48, 8, 6); R(g, P.stone.s, m1 + 6, by - 48, 2, 6); R(g, P.stone.t, m1, by - 49, 8, 1); }
+      DA.box(g, 186, by, 30, 8, 12, P.stone); masonry(171, 30, 12); carpRubble(g, 196, by + 2, 6, P); R(g, P.stone.d, 168, by - 42, 1, 42); }   // 切り口
+    else { DA.box(g, 148, by, 26, 8, 12, P.stone); masonry(135, 26, 12); DA.box(g, 196, by, 20, 8, 6, P.stone); carpRubble(g, 172, by + 3, 14, P); carpRubble(g, 200, by + 4, 8, P); }
+  }
+  function carpHammer(g, x, y, ang, P) {   // 肩の上の大きな金づち。ang：ふり上げ（0〜1）
+    var hx = x + 8 + Math.round(ang * 4), hy = y - 31 - Math.round(ang * 6);
+    for (var i = 0; i <= 14; i++) R(g, i % 5 === 0 ? P.wood.hi : P.wood2.s, x + 4 + Math.round((hx - x - 4) * i / 14), y - 14 + Math.round((hy - y + 14) * i / 14), 2, 2);   // 柄
+    R(g, P.iron.f, hx - 3, hy - 3, 9, 5); R(g, P.iron.hi, hx - 3, hy - 3, 9, 1); R(g, P.iron.s, hx + 4, hy - 3, 2, 5);
+  }
+  function carpFace(g, x, y) { R(g, '#4a2f1a', x - 1, y - 17, 6, 1); R(g, '#4a2f1a', x - 1, y - 16, 2, 1); R(g, '#4a2f1a', x + 1, y - 20, 4, 1); }   // 口ひげ・まゆ
+  function carpDust(g, t, x, y, n, big) { for (var i = 0; i < n; i++) { var q = (t * 0.5 + i / n) % 1; DA.ell(g, x + (hash(i + 2) - 0.5) * 36, y - q * (big ? 26 : 16), 2 + Math.round(q * (big ? 5 : 3)), 1 + Math.round(q * 2), 'rgba(222,210,188,' + (0.55 * (1 - q)).toFixed(2) + ')'); } }
+  function carpOrb(g, t, x, y, k) { glow(g, x, y, 9, 6, 'rgba(255,214,90,.35)'); for (var i = 0; i < 5; i++) sparkle(g, x - 8 + i * 4, y - 6 + (i % 3) * 4, t + k, i * 0.37, i % 2 ? '#fff6c0' : '#ffd84a'); }
+  SCENES2.carpenter = {
+    stat: function (g, act) {
+      var P = TP(), x;
+      carpBg(g, act); carpWall(g, 0, P);
+      // 左：板の山と木びき台
+      shadow(g, 52, 100, 18, 0.28); for (x = 0; x < 3; x++) DA.box(g, 52, 98 - x * 4, 30, 6, 3, P.wood2);
+      shadow(g, 76, 100, 10, 0.25); R(g, P.wood.f, 68, 86, 2, 13); R(g, P.wood.f, 82, 86, 2, 13); DA.box(g, 75, 88, 18, 3, 3, P.wood);
+    },
+    anim: function (g, t, act) {
+      var P = TP(), bob = Math.round(Math.sin(t * 3) * 0.5 + 0.5), tap = Math.floor(t * 4) % 2;
+      person2(g, 112, 98, CARP); carpFace(g, 112, 98); carpHammer(g, 112, 98, 0, P);
+      R(g, CARP.body, 108, 88, 3, 5); R(g, '#f1c6a0', 107, 92, 2, 2);   // 腰に当てた左手
+      R(g, '#2a2018', 112 + 1, 98 - 1 - tap, 3, 1);                     // 足でトントン
+      R(g, '#1b1b22', 113, 98 - 18, 2, 1);                              // 細めた目
+      weather(g, t, act);
+    }
+  };
+  SCENES2.carpenter.after = {
+    '0': {
+      stat: function (g, act) { var P = TP(); patchBg(g, 128, 40, 90, 66, function (c) { carpBg(c, act); carpWall(c, 1, P); }); },
+      anim: function (g, t, act) {
+        var P = TP(), sw = (Math.sin(t * 7) + 1) / 2;
+        person2(g, 112, 98, CARP); carpFace(g, 112, 98); carpHammer(g, 112, 98, sw, P);
+        R(g, CARP.body, 108, 88, 3, 5); R(g, '#f1c6a0', 107, 92, 2, 2);
+        carpOrb(g, t, 134, 74, 0); carpDust(g, t, 186, 96, 5, false);
+        weather(g, t, act);
+      }
+    },
+    '1': {
+      stat: function (g, act) { var P = TP(); patchBg(g, 128, 40, 90, 66, function (c) { carpBg(c, act); carpWall(c, 2, P); }); },
+      anim: function (g, t, act) {
+        var P = TP(), sh = Math.floor(t * 3) % 2;
+        person2(g, 112, 98, CARP); carpFace(g, 112, 98);
+        R(g, P.wood2.s, 116, 74 - sh, 2, 10); R(g, P.iron.f, 114, 71 - sh, 8, 4); R(g, P.iron.hi, 114, 71 - sh, 8, 1);   // 金づちを下ろして、あいた手で頭をかく
+        R(g, CARP.body, 115, 82 - sh, 3, 6); R(g, '#f1c6a0', 115, 80 - sh, 3, 2);
+        carpOrb(g, t, 130, 70, 0); carpOrb(g, t, 146, 80, 1.7); carpDust(g, t, 172, 96, 8, true);
+        weather(g, t, act);
+      }
+    },
+    '2': {
+      anim: function (g, t, act) {
+        var x = 112 - Math.min(t * 12, 150), step = Math.floor(t * 6) % 2, tmp = DA.mk(48, 48), P = TP();
+        carpWall(g, 0, P);   // （この絵の上に大工だけを描き足す。かべは元のまま）
+        person2(tmp.c, 24, 44, CARP); carpFace(tmp.c, 24, 44); carpHammer(tmp.c, 24, 44, 0, P);
+        g.save(); g.translate(Math.round(x) + 24, 98 - 44 - step); g.scale(-1, 1); g.drawImage(tmp.cv, 0, 0); g.restore();   // 左向き（去っていく）
+        if (t < 1.4) { var q = t / 1.4; DA.ell(g, 100 - q * 6, 80 - q * 5, 2 + Math.round(q * 2), 1 + Math.round(q), 'rgba(255,255,255,' + (0.7 * (1 - q)).toFixed(2) + ')'); DA.ell(g, 96 - q * 8, 82 - q * 4, 1 + Math.round(q * 2), 1 + Math.round(q), 'rgba(255,255,255,' + (0.5 * (1 - q)).toFixed(2) + ')'); }   // 「フンッ」
+        weather(g, t, act);
+      }
+    }
+  };
+
   SCENES2.victory = {
     stat: function (g) {
       var A = art(); sky2(g, 'grass'); ground2(g, 'grass');

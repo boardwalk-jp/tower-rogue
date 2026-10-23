@@ -263,6 +263,26 @@ var G = window.G = window.G || {};
     walkaway: function (t) {
       for (var i = 0; i < 3; i++) { var d = i * 0.18, v = 0.2 * (1 - i * 0.25); noise(t, { dur: 0.05, vol: v, f: 650, delay: d }); tone(t, { f: 110, f2: 70, dur: 0.05, type: 'sine', vol: v * 0.7, delay: d }); }
     },
+    // ---- 2026-10-24 追加：横柄な大工 ----
+    // 砦を少し解体して強化：金づち「カン・カン・カン」→ 石がくずれる「ガラガラ」→ 強化のきらきら
+    carp1:  function (t) {
+      [0, 0.2, 0.4].forEach(function (d, i) { noise(t, { dur: 0.05, vol: 0.2, f: 1400 + i * 150, bp: true, delay: d }); tone(t, { f: 520 - i * 30, f2: 300, dur: 0.07, type: 'triangle', vol: 0.12, delay: d }); });
+      noise(t, { dur: 0.4, vol: 0.22, f: 520, delay: 0.58 }); [0.62, 0.78, 0.88].forEach(function (d) { tone(t, { f: 160, f2: 90, dur: 0.05, type: 'square', vol: 0.06, delay: d }); });
+      notes(t + 1.05, [523, 659, 784, 1047, 1319], { type: 'triangle', dur: 0.2, vol: 0.1, step: 0.055 }); noise(t, { dur: 0.3, vol: 0.04, f: 7000, hp: true, delay: 1.1 });
+    },
+    // 砦の大部分を解体して強化：金づちを6回、大きなくずれる音、きらきらを2回
+    carp2:  function (t) {
+      [0, 0.14, 0.28, 0.42, 0.56, 0.7].forEach(function (d, i) { noise(t, { dur: 0.05, vol: 0.2, f: 1300 + (i % 3) * 200, bp: true, delay: d }); tone(t, { f: 540 - i * 25, f2: 280, dur: 0.07, type: 'triangle', vol: 0.12, delay: d }); });
+      noise(t, { dur: 0.7, vol: 0.3, f: 420, delay: 0.85 }); tone(t, { f: 110, f2: 40, dur: 0.5, type: 'sine', vol: 0.3, delay: 0.85 });
+      [0.9, 1.05, 1.2, 1.32, 1.45].forEach(function (d) { tone(t, { f: 170, f2: 80, dur: 0.05, type: 'square', vol: 0.06, delay: d }); });
+      notes(t + 1.6, [523, 659, 784, 1047, 1319], { type: 'triangle', dur: 0.2, vol: 0.1, step: 0.055 }); notes(t + 1.9, [659, 784, 988, 1319, 1568], { type: 'triangle', dur: 0.24, vol: 0.09, step: 0.055 });
+      noise(t, { dur: 0.5, vol: 0.05, f: 7000, hp: true, delay: 1.7 });
+    },
+    // 断る：「フンッ」と鼻で笑う息 → すたすた去っていく足音3つ
+    carpno: function (t) {
+      noise(t, { dur: 0.12, vol: 0.22, f: 2600, hp: true }); tone(t, { f: 210, f2: 150, dur: 0.12, type: 'sawtooth', vol: 0.06 });
+      for (var i = 0; i < 3; i++) { var d = 0.45 + i * 0.2, v = 0.2 * (1 - i * 0.25); noise(t, { dur: 0.05, vol: v, f: 650, delay: d }); tone(t, { f: 110, f2: 70, dur: 0.05, type: 'sine', vol: v * 0.7, delay: d }); }
+    },
     // 王の解任状でカードを手放す：紙がサッ、判を押す「ドン」
     stamp:  function (t) {
       noise(t, { dur: 0.07, vol: 0.12, f: 4500, hp: true });

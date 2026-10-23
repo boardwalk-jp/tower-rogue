@@ -382,6 +382,7 @@ var G = window.G = window.G || {};
   function choiceBlocked(run, choice) {
     if (choice.gold && choice.gold < 0 && run.gold + choice.gold < 0) return 'お金が足りません';
     if (choice.needLife && run.life < choice.needLife) return '砦の耐久値が足りません';
+    if (choice.effect === 'carpenter' && !run.deck.some(canUpgradeCard)) return '鍛えられるカードがありません';
     return null;
   }
   // ランダムなスキルのカードを n 枚（重ならない）。初期用・商人だけの物・未解放は出ない
@@ -407,6 +408,14 @@ var G = window.G = window.G || {};
       case 'risk':
         if (run.rand() < 0.5) { run.gold += choice.win; return { msg: 'うまく取れた！ +' + choice.win + 'G。' }; }
         run.life = Math.max(1, run.life - choice.lose); return { msg: 'やけどをした。砦の耐久値-' + choice.lose + '。' };
+      case 'carpenter':   // 横柄な大工：まだ鍛えていないカードから、ランダムに n 枚（足りなければある分だけ）を鍛える
+        var cand = [], got = [], ci;
+        run.deck.forEach(function (cid, i) { if (canUpgradeCard(cid)) cand.push(i); });
+        for (ci = 0; ci < (choice.n || 1) && cand.length; ci++) {
+          var di = cand.splice(Math.floor(run.rand() * cand.length), 1)[0], before = G.CARDS[run.deck[di]].name;
+          upgradeCard(run, di); got.push('「' + before + '」が「' + G.CARDS[run.deck[di]].name + '」になった。');
+        }
+        return { msg: got.join('\n') + '\n' + (choice.say || '') };
       case 'removeCard': return { msg: '手放すカードを選んでください。', next: 'pickRemove' };
       case 'drill': return { msg: choice.say, next: 'pickRemove' };   // 傭兵団の稽古：ライフを払ってから手放すカードを選ぶ
       case 'skillCard': return { msg: choice.say, next: 'pickCard', cards: skillCards(run, 3), noSuffix: true };
