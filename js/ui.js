@@ -10,7 +10,7 @@ var G = window.G = window.G || {};
   var s = null, onEnd = null, ended = false, info = {};
   // selIndex：選んでいるカード。selType：タワーカードならタワーの種類。selSkill：スキルカードならその定義
   // pending：1回目のタップで仮に置いた場所。pendingTower：タワー対象スキルで1回目にタップしたタワー
-  var ui = { selIndex: -1, selType: null, selSkill: null, selTower: null, preview: null, pending: null, pendingTower: null, time: 0 };
+  var ui = { selIndex: -1, selType: null, selSkill: null, selTower: null, preview: null, pending: null, pendingTower: null, pendingHand: null, time: 0 };
   var speed = 1;
   var cv = $('map'), ctx = cv.getContext('2d');
 
@@ -190,6 +190,7 @@ var G = window.G = window.G || {};
     s.hand.forEach(function (card, i) {
       var d = cardEl({ id: card.id, temp: card.temp, cost: B.cardCost(card, s) });
       if (i === ui.selIndex) d.classList.add('sel');
+      if (ui.pendingHand !== null && card.uid === ui.pendingHand) { d.classList.add('out-pick'); var om = document.createElement('span'); om.className = 'out-mark'; d.appendChild(om); }   // 作戦変更で外す候補
       d.dataset.index = i;
       bindCard(d, i);
       el.appendChild(d);
@@ -220,8 +221,14 @@ var G = window.G = window.G || {};
   function selectCard(i) {
     var card = s.hand[i], def = B.cardDef(card);
     if (G.Sound) G.Sound.play('card');
+    // 手札を対象にするスキル（作戦変更）を選んでいる時：ほかの手札をタップ → 外す候補（×印）。同じカードをもう一度タップで使う
+    if (ui.selSkill && ui.selSkill.target === 'hand' && ui.selIndex >= 0 && ui.selIndex !== i) {
+      if (ui.pendingHand === card.uid) { useSkill(ui.selIndex, null, { hand: card.uid }); return; }
+      ui.pendingHand = card.uid; toast('もう一度タップで外す'); renderHand(); return;
+    }
     if (ui.selIndex === i) {
-      if (def.kind === 'skill' && def.target === 'none') { useSkill(i, null); return; }
+      if (def.kind === 'skill' && (def.target === 'none' || (def.target === 'hand' && s.hand.length === 1))) { useSkill(i, null); return; }
+      if (def.target === 'hand' && ui.pendingHand !== null) { useSkill(i, null, { hand: ui.pendingHand }); return; }   // ×印をつけた後、作戦変更をもう一度タップでも使える
       deselect(); renderHand(); return;
     }
     closeTowerSheet();
@@ -231,11 +238,12 @@ var G = window.G = window.G || {};
     if (B.cardCost(card, s) > s.energy) toast('エネルギーが足りません');
     else if (def.kind === 'tower') toast('置く場所をタップ');
     else if (def.target === 'tower') toast(s.towers.length ? '使うタワーをタップ' : '先にタワーを建ててください');
+    else if (def.target === 'hand' && s.hand.length > 1) toast('外すカードをタップ');
     else toast('もう一度タップで使う');
     renderHand();
   }
   function deselect() {
-    ui.selIndex = -1; ui.selType = null; ui.selSkill = null; ui.preview = null; ui.pending = null; ui.pendingTower = null;
+    ui.selIndex = -1; ui.selType = null; ui.selSkill = null; ui.preview = null; ui.pending = null; ui.pendingTower = null; ui.pendingHand = null;
     document.querySelectorAll('#hand .card.sel').forEach(function (d) { d.classList.remove('sel'); });
   }
   // 1回目：仮置き（射程が見える）。同じマスをもう一度タップで建設
@@ -250,9 +258,10 @@ var G = window.G = window.G || {};
     deselect(); renderHand(); renderHud(true);
     return true;
   }
-  function useSkill(i, towerId) {
+  // target：作戦変更の時だけ { hand: 外すカードの uid }
+  function useSkill(i, towerId, target) {
     var def = B.cardDef(s.hand[i]);
-    var err = B.playCard(s, i, towerId ? { tower: towerId } : null);
+    var err = B.playCard(s, i, target || (towerId ? { tower: towerId } : null));
     if (err) { toast(err); return false; }
     toast(def.name + 'を使った');
     deselect(); renderHand(); renderHud(true);
@@ -273,7 +282,7 @@ var G = window.G = window.G || {};
       if (!st || st.long) return;
       var dx = e.clientX - st.x, dy = e.clientY - st.y, def = B.cardDef(s.hand[i]);
       if (!st.drag && Math.hypot(dx, dy) > 10) {
-        if (def.kind === 'skill' && def.target === 'none') return;   // 対象なしスキルはドラッグしない
+        if (def.kind === 'skill' && (def.target === 'none' || def.target === 'hand')) return;   // 対象なし・手札が対象のスキルはドラッグしない
         st.drag = true; clearTimeout(st.timer);
         closeTowerSheet(); deselect();
         ui.selIndex = i;
@@ -529,7 +538,7 @@ var G = window.G = window.G || {};
         (st.slow ? '<dt>遅くする</dt><dd>' + Math.round(st.slow.pct * 100) + '%×' + st.slow.dur + '秒</dd>' : '') +
         (UPS.length ? '<dt>強化</dt><dd>● ' + UPS.map(function (u) { return u.cost; }).join(' → ● ') + '</dd>' : '<dt>強化</dt><dd>最大</dd>');
     } else {
-      h += '<dt>使う相手</dt><dd>' + (def.target === 'tower' ? 'タワー1つ' : 'なし（すぐ効く）') + '</dd>';
+      h += '<dt>使う相手</dt><dd>' + (def.target === 'tower' ? 'タワー1つ' : def.target === 'hand' ? '手札のカード1枚' : 'なし（すぐ効く）') + '</dd>';
     }
     if (def.exhaust) h += '<dt>使い切り</dt><dd>この戦闘中は戻らない</dd>';
     return h;
@@ -651,6 +660,7 @@ var G = window.G = window.G || {};
         if (e.k === 'kill' && e.boss) freeze = Math.max(freeze, 0.45);
         else if (e.k === 'kill' && e.big) freeze = Math.max(freeze, 0.07);
       }
+      else if (e.k === 'exhaustOut') { if (G.Sound) G.Sound.play('cardout'); }   // 作戦変更でカードを外した
       else if (e.k === 'reshuffle') { toast('捨て札を混ぜて山札に戻しました'); if (G.Sound) G.Sound.play('shuffle'); }   // 2026-10-23 混ぜ直す音
       else if (e.k === 'relic') toast('レリック「' + G.RELICS[e.id].name + '」が働いた');
       else if (e.k === 'surprise') toast('びっくり箱から「' + G.CARDS[e.id].name + '」が出た！');

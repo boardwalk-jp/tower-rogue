@@ -314,7 +314,11 @@ var G = window.G = window.G || {};
     for (var i = 0; i < c.length; i++) { y -= ws[i]; if (y <= 0) return c[i]; }
     return c[c.length - 1];
   }
-  function addRelic(run, id) { if (id && run.relics.indexOf(id) < 0) run.relics.push(id); }
+  function addRelic(run, id) {
+    if (!id || run.relics.indexOf(id) >= 0) return;
+    run.relics.push(id);
+    if (id === 'dismiss') run.dismiss = (run.dismiss || 0) + 2;   // 王の解任状：あとで手放せる枚数（画面側で選ばせる）
+  }
   function price(run, base) { return Math.round(base * Math.pow(0.75, Math.min(2, count(run.relics, 'seal')))); }
   function addCard(run, id) { run.deck.push(id); run.stats.cardsTaken++; }
   function removeCard(run, index) { var id = run.deck[index]; run.deck.splice(index, 1); logAdd(run, 'rm', id); }
@@ -341,9 +345,21 @@ var G = window.G = window.G || {};
     var before = run.life; run.life = Math.min(run.maxLife, run.life + G.RULES.actHeal);
     return run.life - before;
   }
+  // 選択肢を選べない理由（選べるなら null）。お金が足りない・ライフが足りない（needLife 未満）
+  function choiceBlocked(run, choice) {
+    if (choice.gold && choice.gold < 0 && run.gold + choice.gold < 0) return 'お金が足りません';
+    if (choice.needLife && run.life < choice.needLife) return 'ライフが足りません';
+    return null;
+  }
+  // ランダムなスキルのカードを n 枚（重ならない）。初期用・商人だけの物・未解放は出ない
+  function skillCards(run, n) {
+    var pool = cardPool().filter(function (id) { return G.CARDS[id].kind === 'skill'; }), out = [];
+    while (out.length < n && pool.length) out.push(pool.splice(Math.floor(run.rand() * pool.length), 1)[0]);
+    return out;
+  }
   // 選択肢を実行する。返り値：{ msg, next }（next：'pickRemove'＝削除するカードを選ぶ／'pickCard'＝カードを選ぶ）
   function eventChoice(run, choice) {
-    if (choice.gold && run.gold + choice.gold < 0) return { msg: 'お金が足りません', fail: true };
+    var why = choiceBlocked(run, choice); if (why) return { msg: why, fail: true };
     if (choice.gold && choice.effect !== 'gamble') run.gold += choice.gold;
     if (choice.life) run.life = Math.max(1, run.life + choice.life);
     switch (choice.effect) {
@@ -359,6 +375,8 @@ var G = window.G = window.G || {};
         if (run.rand() < 0.5) { run.gold += choice.win; return { msg: 'うまく取れた！ +' + choice.win + 'G。' }; }
         run.life = Math.max(1, run.life - choice.lose); return { msg: 'やけどをした。ライフ-' + choice.lose + '。' };
       case 'removeCard': return { msg: '手放すカードを選んでください。', next: 'pickRemove' };
+      case 'drill': return { msg: choice.say, next: 'pickRemove' };   // 傭兵団の稽古：ライフを払ってから手放すカードを選ぶ
+      case 'skillCard': return { msg: choice.say, next: 'pickCard', cards: skillCards(run, 3), noSuffix: true };
       case 'upgradeCard': return { msg: '鍛えるカードを選んでください。', next: 'pickUpgrade' };
       case 'copyCard': return { msg: '複製するカードを選んでください。', next: 'pickCopy' };
       case 'relic': var rl = rollRelic(run, 'event'); addRelic(run, rl); return { msg: rl ? 'レリック「' + G.RELICS[rl].name + '」を手に入れた。' + G.RELICS[rl].text : 'お礼を言われた。', relic: rl };
@@ -366,14 +384,14 @@ var G = window.G = window.G || {};
         if (run.rand() < 0.5) { var rb = rollRelic(run, 'event'); addRelic(run, rb); return { msg: rb ? 'レリック「' + G.RELICS[rb].name + '」が入っていた！ ' + G.RELICS[rb].text : '空っぽだった。', relic: rb }; }
         run.life = Math.max(1, run.life - 6); return { msg: '罠だった！ ライフ-6。' };
       case 'rareCard': return { msg: '祭壇が光った。', next: 'pickCard', cards: rollCards(run, 3, 'rare') };
-      default: return { msg: 'その場を後にした。' };
+      default: return { msg: choice.say || 'その場を後にした。' };
     }
   }
 
   // ---- セーブ用：ランを文字にできる形にする／元に戻す ----
   function toSave(run) {
     return { world: run.world, at: run.at, visited: run.visited, deck: run.deck, life: run.life, maxLife: run.maxLife,
-             gold: run.gold, stats: run.stats, log: run.log, rng: run.rand.state(), relics: run.relics, act: run.act, cmd: run.cmd, asc: run.asc || 0, boss: run.boss, boss2: run.boss2 || 0, boss2Fight: !!run.boss2Fight, phoenixUsed: run.phoenixUsed || 0, actBattles: run.actBattles || 0, lastMap: run.lastMap || null, shop: run.shop || null };
+             gold: run.gold, stats: run.stats, log: run.log, rng: run.rand.state(), relics: run.relics, act: run.act, cmd: run.cmd, asc: run.asc || 0, boss: run.boss, boss2: run.boss2 || 0, boss2Fight: !!run.boss2Fight, phoenixUsed: run.phoenixUsed || 0, dismiss: run.dismiss || 0, actBattles: run.actBattles || 0, lastMap: run.lastMap || null, shop: run.shop || null };
   }
   function fromSave(d) {
     // 前の版のセーブ：指揮官のレリックがなければ足す
@@ -381,7 +399,7 @@ var G = window.G = window.G || {};
     if (C && C.relic && rel.indexOf(C.relic) < 0) rel.unshift(C.relic);
     d.relics = rel;
     return { rand: B.rng(d.rng), world: d.world, at: d.at, visited: d.visited, deck: d.deck, life: d.life, maxLife: d.maxLife,
-             gold: d.gold, stats: d.stats, log: d.log || newLog(true), relics: d.relics || [], act: d.act || 1, cmd: d.cmd || 'captain', asc: d.asc || 0, boss: d.boss || 0, boss2: d.boss2 || 0, boss2Fight: !!d.boss2Fight, phoenixUsed: d.phoenixUsed || 0, actBattles: d.actBattles || 0, lastMap: d.lastMap || null, shop: d.shop || null, over: false, won: false };
+             gold: d.gold, stats: d.stats, log: d.log || newLog(true), relics: d.relics || [], act: d.act || 1, cmd: d.cmd || 'captain', asc: d.asc || 0, boss: d.boss || 0, boss2: d.boss2 || 0, boss2Fight: !!d.boss2Fight, phoenixUsed: d.phoenixUsed || 0, dismiss: d.dismiss || 0, actBattles: d.actBattles || 0, lastMap: d.lastMap || null, shop: d.shop || null, over: false, won: false };
   }
 
   // ============================================================
@@ -426,7 +444,7 @@ var G = window.G = window.G || {};
 
   G.Run = {
     create: create, reachable: reachable, enter: enter, node: node, battleOpts: battleOpts, finishBattle: finishBattle,
-    rollCards: rollCards, addCard: addCard, removeCard: removeCard, shopStock: shopStock,
+    rollCards: rollCards, addCard: addCard, choiceBlocked: choiceBlocked, removeCard: removeCard, shopStock: shopStock,
     rollEvent: rollEvent, eventChoice: eventChoice, gainXp: gainXp, nextUnlock: nextUnlock, unlocked: unlocked, metaLoad: metaLoad, metaSave: metaSave, count: count, easyTemplates: easyTemplates, tplScore: tplScore, upgradeCard: upgradeCard, canUpgradeCard: canUpgradeCard, bossName: bossName, bossType: bossType, nextAct: nextAct, allRoutes: allRoutes, rest: rest, rollRelic: rollRelic, addRelic: addRelic, price: price, toSave: toSave, fromSave: fromSave, logPick: logPick, logSet: logSet, logAdd: logAdd, report: report
   };
 })();
