@@ -164,6 +164,7 @@ var G = window.G = window.G || {};
     for (var i = 0; i < max; i++) h += '<span class="gem' + (i < s.energy ? ' on' : '') + '"></span>';
     $('h-energy').innerHTML = h + '<b class="en-num">' + s.energy + '</b>';
     $('h-draw').textContent = s.draw.length; $('h-disc').textContent = s.discard.length;
+    $('h-deck').textContent = s.draw.length + s.hand.length + s.discard.length;   // デッキのアイコンの枚数：この戦闘で回っているカード全部（2026-10-23）
     $('draw-cost').textContent = G.RULES.extraDrawCost;
     $('btn-draw').disabled = s.gold < G.RULES.extraDrawCost || s.hand.length >= G.RULES.handMax || (s.phase !== 'prep' && s.phase !== 'attack');
     $('btn-go').disabled = s.phase !== 'prep';
