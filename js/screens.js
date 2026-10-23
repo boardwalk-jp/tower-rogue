@@ -686,7 +686,7 @@ var G = window.G = window.G || {};
           var wrap = el('div', 'shop-item'), c = UI.cardEl(it.id);
           if (it.sold) { c.classList.add('sold'); }
           c.addEventListener('click', function () {
-            if (it.sold) return;
+            if (it.sold || Date.now() < tapLockUntil) return;
             if (picked !== i) {
               picked = i;
               grid.querySelectorAll('.card').forEach(function (x) { x.classList.remove('sel'); });
@@ -736,6 +736,7 @@ var G = window.G = window.G || {};
         foot.appendChild(button('店を出る', 'go', function () { save({ type: 'map' }); showWorld(); }));
       });
     }
+    lockTaps(1000);   // 入って1秒は、誤タップ防止でどこも押せない（2026-10-24 オーナー指定。買い物の後の画面更新ではかけない）
     render();
   }
 
