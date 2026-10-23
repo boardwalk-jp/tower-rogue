@@ -51,6 +51,7 @@ h1 span{font-size:18px;color:var(--muted)}
 .title-opt:disabled{opacity:.35}
 .title-opt .warn{color:#7a1f14}
 .menu-btn{flex:0 0 auto}
+.menu-btn.ico-btn{min-width:44px;padding:0 8px;display:inline-flex;align-items:center;justify-content:center}
 .swipe{margin-top:10px;display:flex;flex-direction:column;align-items:center;gap:6px}
 .swipe p{margin:0;font-size:18px}
 .arrow{color:var(--accent);line-height:.9;font-size:20px;animation:up 1.2s ease-in-out infinite}
