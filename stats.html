@@ -42,6 +42,24 @@
   #msg { color: var(--bad); padding: 0 16px; }
   .exinfo { margin: 8px 16px 0; padding: 8px 12px; background: var(--panel); border-left: 3px solid var(--gold); border-radius: 4px; font-size: 13px; }
   .exinfo button { margin-left: 8px; }
+  /* 表／グラフの切りかえ（2026-10-23） */
+  .mode { display: inline-flex; border: 1px solid var(--gold); border-radius: 8px; overflow: hidden; margin: 10px 16px 0; }
+  .mode button { border: 0; border-radius: 0; background: transparent; color: var(--gold); padding: 6px 18px; }
+  .mode button.on { background: var(--gold); color: #1a1406; font-weight: 700; }
+  /* グラフ（js/statsgraph.js） */
+  .gcard { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 13px 10px; max-width: 790px; }
+  .gcard svg { display: block; overflow: visible; font-family: inherit; }
+  .gcard text { font-variant-numeric: tabular-nums; }
+  .glegend { display: flex; flex-wrap: wrap; gap: 6px 12px; margin: 6px 0 4px; font-size: 12px; color: var(--text); }
+  .gkey { display: inline-flex; align-items: center; gap: 5px; }
+  button.gkey { padding: 3px 8px; background: transparent; }
+  button.gkey.off { opacity: .35; text-decoration: line-through; }
+  .gtools { display: flex; gap: 6px; margin: 6px 0 2px; }
+  .gtools button { padding: 3px 12px; font-size: 12px; }
+  .gtools button.on { border-color: var(--gold); color: var(--gold); }
+  .gempty { color: var(--sub); font-size: 13px; padding: 18px 0; text-align: center; }
+  .gtip { position: fixed; z-index: 50; max-width: 260px; padding: 7px 10px; background: #0f1115; border: 1px solid #4a5160; border-radius: 6px; font-size: 12px; line-height: 1.55; pointer-events: none; box-shadow: 0 4px 14px rgba(0,0,0,.5); }
+  .gtip b { color: var(--gold); }
   input[type=checkbox] { width: 18px; height: 18px; vertical-align: middle; accent-color: #e2b84f; }
 </style>
 </head>
@@ -63,10 +81,12 @@
 </div>
 <p id="msg"></p>
 <p id="exinfo" class="exinfo" hidden></p>
+<div class="mode" id="mode"><button type="button" data-m="table">表</button><button type="button" data-m="graph">グラフ</button></div>
 <nav id="nav"></nav>
 <main id="main"><p class="note">読み込み中…</p></main>
 
 <script src="js/data.js"></script>
+<script src="js/statsgraph.js?v=20261023150745"></script>
 <script>
 (function () {
   'use strict';
@@ -79,6 +99,10 @@
   function cardName(id) { var c = G.CARDS[id]; return c ? c.name : id; }
   function enemyName(id) { var e = G.ENEMIES[id]; return e ? e.name : id; }
   function relicName(id) { var r = G.RELICS[id]; return r ? r.name : id; }
+  // レア度：並べかえはレア→アンコモン→コモン→スターター（2026-10-23 オーナー指定）。数字が大きいほど先（初めのタップは大きい順）
+  var RAR = { rare: 4, uncommon: 3, common: 2, starter: 1 }, RAR_NAME = { 4: 'レア', 3: 'アンコモン', 2: 'コモン', 1: 'スターター' };
+  function rarOf(o) { return o && RAR[o.rarity] || null; }
+  function rarName(v) { return v == null ? '' : RAR_NAME[v]; }
   function mapName(id) { var m = G.MAPS[id]; return m ? m.name : id; }
   function srcName(id) {
     if (G.TOWERS[id]) return G.TOWERS[id].name;
@@ -140,7 +164,7 @@
     }
     sec.querySelector('.tools button').addEventListener('click', function () {
       var lines = [cols.map(function (c) { return c[0]; }).join(',')];
-      rows.forEach(function (r) { lines.push(cols.map(function (c) { var v = c[1](r); return v == null ? '' : '"' + String(v).replace(/"/g, '""') + '"'; }).join(',')); });
+      rows.forEach(function (r) { lines.push(cols.map(function (c) { var v = c[1](r); if (c[4] === 'label' && c[3]) v = c[3](v, r); return v == null ? '' : '"' + String(v).replace(/"/g, '""') + '"'; }).join(',')); });
       var a = document.createElement('a');
       a.href = URL.createObjectURL(new Blob(['﻿' + lines.join('\n')], { type: 'text/csv' }));
       a.download = 'stats-' + id + '.csv'; a.click();
@@ -195,8 +219,56 @@
     return box;
   }
 
+  // カード：報酬・商人で出た／取った、デッキにあったラン、使った回数をカードごとにまとめる（表とグラフで使う）
+  function buildCards(d) {
+    var cards = {};
+    function C(id) { return cards[id] || (cards[id] = { card: id, runs: 0, wins: 0, copies: 0, off: 0, take: 0, offR: 0, takeR: 0, offS: 0, takeS: 0, played: 0, playFights: 0 }); }
+    d.deckCards.forEach(function (r) { var o = C(r.card); o.runs = r.runs; o.wins = r.wins; o.copies = r.copies; o.medCopies = r.med_copies; });
+    d.picks.forEach(function (r) {
+      var o = C(String(r.card).replace(/\+$/, ''));
+      o.off += r.offered; o.take += r.taken;
+      if (r.src === 'shop') { o.offS += r.offered; o.takeS += r.taken; } else { o.offR += r.offered; o.takeR += r.taken; }
+    });
+    d.played.forEach(function (r) { var o = C(String(r.card).replace(/\+$/, '')); o.played += r.n; o.playFights += r.fights; });
+    return Object.keys(cards).map(function (k) { return cards[k]; });
+  }
+  // レリック：出た・取った・持っていたランをまとめる（表とグラフで使う）
+  function buildRelics(d) {
+    var relics = {};
+    function RL(id) { return relics[id] || (relics[id] = { relic: id, runs: 0, wins: 0, own: 0, offS: 0, takeS: 0 }); }
+    d.relics.forEach(function (r) { var o = RL(r.relic); o.runs = r.runs; o.wins = r.wins; });
+    (d.relicOwn || []).forEach(function (r) { RL(r.relic).own = r.n; });
+    (d.relicShop || []).forEach(function (r) { RL(r.relic).offS = r.offered; });
+    d.choices.forEach(function (r) { if (r.kind === 'buy' && /^relic:/.test(r.item)) RL(r.item.slice(6)).takeS += r.n; });
+    Object.keys(relics).forEach(function (k) { var o = relics[k], R0 = G.RELICS[k]; o.drop = R0 && R0.rarity === 'starter' ? 0 : Math.max(0, o.own - o.takeS); });
+    return Object.keys(relics).map(function (k) { return relics[k]; });
+  }
+
   // ---- 画面を作る ----
+  // ---- 表／グラフ（2026-10-23）。アドレスの最後が #graph ならグラフ。しぼりこみ・外す設定は両方に効く ----
+  var mode = location.hash === '#graph' ? 'graph' : 'table', lastData = null;
+  function setMode(m) {
+    mode = m; try { history.replaceState(null, '', m === 'graph' ? '#graph' : location.pathname + location.search); } catch (e) {}
+    document.querySelectorAll('#mode button').forEach(function (b) { b.className = b.dataset.m === m ? 'on' : ''; });
+    if (lastData) { render(lastData); window.scrollTo(0, 0); }
+  }
+  document.querySelectorAll('#mode button').forEach(function (b) { b.addEventListener('click', function () { setMode(b.dataset.m); }); });
+  var resizeT = null, lastW = window.innerWidth;
+  window.addEventListener('resize', function () {
+    if (mode !== 'graph' || !lastData || Math.abs(window.innerWidth - lastW) < 40) return;   // 縦横の切りかえなど、幅が大きく変わった時だけ描き直す
+    lastW = window.innerWidth; clearTimeout(resizeT); resizeT = setTimeout(function () { render(lastData); }, 200);
+  });
+  function navTo(secs) {
+    var nav = $('nav');
+    secs.forEach(function (x) {
+      var b = document.createElement('button'); b.type = 'button'; b.textContent = x[1];
+      b.addEventListener('click', function () { var t = document.getElementById(x[0].id) || x[0]; t.scrollIntoView({ behavior: 'smooth', block: 'start' }); });   // グラフは描き直すと入れかわるので id で探す
+      nav.appendChild(b);
+    });
+  }
+
   function render(d) {
+    lastData = d;
     var main = $('main'), nav = $('nav'); main.innerHTML = ''; nav.innerHTML = '';
     var secs = [];
     function add(s, label) { secs.push([s, label]); main.appendChild(s); }
@@ -205,6 +277,19 @@
     var allW = 0, allN = 0;
     d.overview.forEach(function (r) { allW += r.wins; allN += r.wins + r.loses; });
     var base = pct(allW, allN);
+
+    if (mode === 'graph' && window.StatsGraph) {
+      var H = { d: d, G: G, base: base, CMD: CMD, AT: AT, ci: ci, cards: buildCards(d), relics: buildRelics(d),
+        cardName: cardName, relicName: relicName, enemyName: enemyName, mapName: mapName, srcName: srcName, actName: actName,
+        rar: function (id, t) { return rarOf(t === 'relic' ? G.RELICS[id] : G.CARDS[id]); },
+        diff: function (r) { return r.runs && base != null ? r.wins / r.runs - base : null; } };
+      var head = document.createElement('p'); head.className = 'note';
+      head.textContent = '全体：' + allN + 'ラン中 ' + allW + '勝（' + (P(base) || '—') + '）。点や棒にふれる（タップする）と、くわしい数字が出ます。数字の一覧は「表」で見られます。';
+      main.appendChild(head);
+      navTo(window.StatsGraph.render(H, main));
+      main.appendChild(Object.assign(document.createElement('p'), { className: 'note', textContent: '集計した時刻：' + new Date(d.at).toLocaleString('ja-JP') }));
+      return;
+    }
 
     // 1. 指揮官×アセンション
     add(table('overview', '指揮官 × アセンションのクリア率', '全体：' + allN + 'ラン中 ' + allW + '勝（' + (P(base) || '—') + '）。勝率は「やめた」ランをのぞいて計算。ドローはランの合計（毎ターンの分＋お金で引いた分）。', [
@@ -272,18 +357,10 @@
     ], Object.keys(en).map(function (k) { return en[k]; }), 3, function (r) { return r.fights < 10; }), '敵');
 
     // 5. カード
-    var cards = {};
-    function C(id) { return cards[id] || (cards[id] = { card: id, runs: 0, wins: 0, copies: 0, off: 0, take: 0, offR: 0, takeR: 0, offS: 0, takeS: 0, played: 0, playFights: 0 }); }
-    d.deckCards.forEach(function (r) { var o = C(r.card); o.runs = r.runs; o.wins = r.wins; o.copies = r.copies; o.medCopies = r.med_copies; });
-    d.picks.forEach(function (r) {
-      var o = C(String(r.card).replace(/\+$/, ''));
-      o.off += r.offered; o.take += r.taken;
-      if (r.src === 'shop') { o.offS += r.offered; o.takeS += r.taken; } else { o.offR += r.offered; o.takeR += r.taken; }
-    });
-    d.played.forEach(function (r) { var o = C(String(r.card).replace(/\+$/, '')); o.played += r.n; o.playFights += r.fights; });
+    var cards = buildCards(d);
     add(table('cards', 'カード', '「デッキにあったラン」は最後のデッキに1枚以上あったラン（＋もふくむ）。勝率は全体（' + (P(base) || '—') + '）との差も出す。勝ったランは長く続いてカードが多いので、どのカードも勝率が高めに出やすい。取られた率と並べて見る。', [
       ['カード', function (r) { return cardName(r.card); }, 't'],
-      ['レア度', function (r) { var c = G.CARDS[r.card]; return c ? c.rarity : ''; }, 't'],
+      ['レア度', function (r) { return rarOf(G.CARDS[r.card]); }, 'n', rarName, 'label'],
       ['報酬で出た', function (r) { return r.offR; }, 'n'],
       ['報酬で取った', function (r) { return r.takeR; }, 'n'],
       ['取られた率', function (r) { return pct(r.takeR, r.offR); }, 'n', P],
@@ -297,16 +374,25 @@
       ['全体との差', function (r) { var p = pct(r.wins, r.runs); return p == null || base == null ? null : p - base; }, 'n', colored],
       ['使った回数', function (r) { return r.played; }, 'n'],
       ['使った/戦', function (r) { return pct(r.played, r.playFights); }, 'n', f1]
-    ], Object.keys(cards).map(function (k) { return cards[k]; }), 7, function (r) { return r.runs < 10; }), 'カード');
+    ], cards, 7, function (r) { return r.runs < 10; }), 'カード');
 
-    // 6. レリック
-    add(table('relics', 'レリック', '最後に持っていたランの数と勝率。指揮官のレリック（はじめから持っている）もふくむ。', [
+    // 6. レリック（2026-10-23：レア度・出た回数・取った回数を足した）
+    // 出た回数＝商人に並んだ回数＋エリート・イベントで手に入れた数。エリートとイベントのレリックは選べず必ず手に入るので、「出た＝取った」として数える
+    var relicRows = buildRelics(d);
+    add(table('relics', 'レリック', '「出た回数」＝商人に並んだ回数＋エリート・イベントで手に入れた数、「取った回数」＝商人で買った数＋エリート・イベントで手に入れた数（エリートとイベントのレリックは選べないので、出たら必ず取ったことになる）。エリート・イベントの数は「持っていたラン − 商人で買った数」から出すので、途中からのランでは多めに出ることがある。指揮官のレリック（スターター）は、はじめから持っているので出た・取ったは0。勝率は最後に持っていたランで計算。', [
       ['レリック', function (r) { return relicName(r.relic); }, 't'],
+      ['レア度', function (r) { return rarOf(G.RELICS[r.relic]); }, 'n', rarName, 'label'],
+      ['出た回数', function (r) { return r.offS + r.drop; }, 'n'],
+      ['取った回数', function (r) { return r.takeS + r.drop; }, 'n'],
+      ['商人で並んだ', function (r) { return r.offS; }, 'n'],
+      ['商人で買った', function (r) { return r.takeS; }, 'n'],
+      ['買われた率', function (r) { return pct(r.takeS, r.offS); }, 'n', P],
+      ['エリート・イベントで入手', function (r) { return r.drop; }, 'n'],
       ['持っていたラン', function (r) { return r.runs; }, 'n'],
       ['勝率', function (r) { return pct(r.wins, r.runs); }, 'n', P],
       ['±', function (r) { return ci(pct(r.wins, r.runs), r.runs); }, 'n', function (v) { return v == null ? '' : '±' + (v * 100).toFixed(0); }],
       ['全体との差', function (r) { var p = pct(r.wins, r.runs); return p == null || base == null ? null : p - base; }, 'n', colored]
-    ], d.relics, 1, function (r) { return r.runs < 10; }), 'レリック');
+    ], relicRows, 1, function (r) { return r.runs < 10; }), 'レリック');
 
     // 7. タワー
     add(table('towers', 'タワー（ダメージの出どころ）', '敵に与えたダメージ（敵の残りの体力をこえた分は数えない）と、とどめを刺した数。毒・やけどは、かけたタワーの分。', [
@@ -400,11 +486,7 @@
       ['時間(分)', function (r) { return r.dur / 60; }, 'n', f1]
     ], d.recent, 0), '最近');
 
-    secs.forEach(function (x) {
-      var b = document.createElement('button'); b.type = 'button'; b.textContent = x[1];
-      b.addEventListener('click', function () { x[0].scrollIntoView({ behavior: 'smooth', block: 'start' }); });
-      nav.appendChild(b);
-    });
+    navTo(secs);
     main.appendChild(Object.assign(document.createElement('p'), { className: 'note', textContent: '集計した時刻：' + new Date(d.at).toLocaleString('ja-JP') }));
   }
 
@@ -459,6 +541,7 @@
       window.scrollTo(0, keepY);   // チェックを変えて集計し直した時に、見ていた場所から動かない
     }).catch(function (e) { $('msg').textContent = e.message; $('main').innerHTML = ''; });
   }
+  document.querySelectorAll('#mode button').forEach(function (b) { b.className = b.dataset.m === mode ? 'on' : ''; });
   $('f-go').addEventListener('click', load);
   load();
 })();

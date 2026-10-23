@@ -8,4 +8,8 @@ s = re.sub(r'((?:href|src)="(?:css|js)/[^"?]+\.(?:css|js))(\?v=[^"]*)?"', lambda
 # タイトル画面の右下に版（日時）を出す：古い版のまま遊んでいないか確かめられるように
 s = re.sub(r'id="ver">[^<]*<', 'id="ver">版 ' + v[4:6] + '/' + v[6:8] + ' ' + v[8:10] + ':' + v[10:12] + '<', s)
 p.write_text(s, encoding='utf-8')
+# 統計ページ（stats.html）のグラフ用ファイルにも同じ番号を付ける（2026-10-23）
+q = p.parent / 'stats.html'
+t = q.read_text(encoding='utf-8')
+q.write_text(re.sub(r'(src="js/statsgraph\.js)(\?v=[^"]*)?"', lambda m: m.group(1) + '?v=' + v + '"', t), encoding='utf-8')
 print('v=' + v)

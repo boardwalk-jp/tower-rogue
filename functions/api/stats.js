@@ -76,6 +76,12 @@ export async function onRequestGet({ request, env }) {
     played: `SELECT x.card, SUM(x.n) n, SUM(x.fights) fights FROM run_played x ${J} WHERE ${W.sql} GROUP BY x.card`,
     // レリック：持っていたランの数と勝ち
     relics: `SELECT x.relic, COUNT(*) runs, SUM(r.result='win') wins FROM run_relics x ${J} WHERE ${WL} GROUP BY x.relic`,
+    // レリック：商人に並んだ回数（2026-10-23）。表を足さず、送られてきた記録そのまま（runs.data）の floors[].shop.r から数えるので、前のランも入る
+    // 買った回数は choices（kind='buy'、item='relic:…'）、エリート・イベントで手に入れた数は「持っていたラン − 買った回数」で、どちらも画面側で出す
+    relicShop: `SELECT json_extract(f.value,'$.shop.r') relic, COUNT(*) offered FROM runs r, json_each(r.data,'$.floors') f
+                WHERE ${W.sql} AND json_extract(f.value,'$.shop.r') IS NOT NULL GROUP BY 1`,
+    // レリック：持っていたランの数（やめたランもふくむ。choices と同じしぼりこみにそろえて「手に入れた − 買った」を出すため）
+    relicOwn: `SELECT x.relic, COUNT(*) n FROM run_relics x ${J} WHERE ${W.sql} GROUP BY x.relic`,
     // ダメージの出どころ（タワーの種類など）
     towers: `SELECT x.src, SUM(x.fights) fights, SUM(x.dmg) dmg, SUM(x.kills) kills FROM run_src x ${J} WHERE ${W.sql} GROUP BY x.src`,
     // お金：クリアした時の所持金
