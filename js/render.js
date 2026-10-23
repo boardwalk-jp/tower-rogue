@@ -875,6 +875,8 @@ var G = window.G = window.G || {};
       b.globalAlpha = 1; b.globalCompositeOperation = 'source-over';
       if (Math.random() < 0.5) parts.push({ x: gx + (Math.random() - 0.5) * 14, y: gy - Math.random() * 20, vx: 0, vy: -24, g: 0, life: 0.5, ml: 0.5, col: Math.random() < 0.5 ? '#ffffff' : '#ffe14d' });
     });
+    // 射程の色：雪山は地面が白に近くて重なって見えないので、白に黄色を少し混ぜた色にする（2026-10-24 オーナー指定。地面5色との色の差 38以上）。ほかの地域は白
+    var rcol = M.theme === 'snow' ? '#fff2a8' : '#ffffff';
     // 選んだタワーの射程：今の射程＝白、強化後の射程＝アップの赤（強化ボタンと同じ色）
     var selTw = ui.selTower ? G.Battle.findTower(s, ui.selTower) : null;
     if (selTw) {
@@ -882,8 +884,8 @@ var G = window.G = window.G || {};
       // 強化後に射程が広がるならアップの赤、縮むならダウンの青
       var nc = nx && (nx.range >= cur ? G.UP_COLOR : G.DOWN_COLOR);
       if (nx) fillEllipse(selTw.x, selTw.y, nx.range, nc, 0.16);
-      fillEllipse(selTw.x, selTw.y, cur, '#ffffff', 0.16);
-      rangeEllipse(selTw.x, selTw.y, cur, '#ffffff', t);
+      fillEllipse(selTw.x, selTw.y, cur, rcol, 0.16);
+      rangeEllipse(selTw.x, selTw.y, cur, rcol, t);
       if (nx) rangeEllipse(selTw.x, selTw.y, nx.range, nc, t);
     }
 
@@ -895,8 +897,8 @@ var G = window.G = window.G || {};
       var pv = ui.preview, ok = G.Battle.canPlaceAt(s, pv.tx, pv.ty, ui.selType);
       var T = G.TOWERS[ui.selType], SZ = G.Battle.sizeOf(ui.selType), pcx = pv.tx + SZ / 2;   // 2マスのタワーは2マスのまん中
       // 射程の内側をうすく塗る
-      fillEllipse(pcx, pv.ty + 0.5, T.range, ok ? '#ffffff' : '#ff5a5a', 0.2);
-      rangeEllipse(pcx, pv.ty + 0.5, T.range, ok ? '#ffffff' : '#ff5a5a', t);
+      fillEllipse(pcx, pv.ty + 0.5, T.range, ok ? rcol : '#ff5a5a', 0.2);
+      rangeEllipse(pcx, pv.ty + 0.5, T.range, ok ? rcol : '#ff5a5a', t);
       var ps = G.towerImg(ui.selType, 0, false);
       b.globalAlpha = ui.pending ? 0.75 : 0.6; blitB(ps, sx(pcx), footY(ps, pv.ty + 0.5)); b.globalAlpha = 1;
       if (ui.pending && ok) { // 仮置き中：マスのかどを点滅させて「もう一度タップ」を示す
