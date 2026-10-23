@@ -471,8 +471,10 @@ dt{color:var(--muted);text-align:right} dd{margin:0;text-align:left}
 #panel.tap-lock .choice,#panel.tap-lock .panel-foot button{opacity:.55}
 
 /* タイトルの右上メニュー・記録の案内・データの引き継ぎ */
-.title-menu-btn{position:fixed;top:max(10px,env(safe-area-inset-top));right:12px;z-index:3;min-height:40px;padding:0 14px;font-size:14px;background:rgba(18,12,16,.78);border-color:rgba(246,217,138,.6);color:#f6d98a}
-#start[hidden] .title-menu-btn{display:none}
+.title-top-btns{position:fixed;top:max(10px,env(safe-area-inset-top));right:12px;z-index:3;display:flex;gap:8px}
+.title-menu-btn{min-height:40px;padding:0 14px;font-size:14px;background:rgba(18,12,16,.78);border-color:rgba(246,217,138,.6);color:#f6d98a}
+#start[hidden] .title-top-btns{display:none}
+.title-reload-btn{width:40px;padding:0;display:flex;align-items:center;justify-content:center}
 .title-save{min-height:34px;padding:0 14px;font-size:13px}
 .title-save b{font-weight:700}
 .help-link{width:100%;text-align:left;color:#f6d98a;border-color:rgba(246,217,138,.6)}

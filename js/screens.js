@@ -922,6 +922,10 @@ var G = window.G = window.G || {};
   $('wm-data').addEventListener('click', function () { closeMenu(); openData(); });
   // ---- タイトルのメニュー ----
   $('t-menu').addEventListener('click', function () { $('title-menu').hidden = false; });
+  // ページの更新：最後に番号を付けて読み直し、保存された古いページを使わずに最新版を読み込む
+  $('t-reload').addEventListener('click', function () { location.replace(location.pathname + '?r=' + Date.now()); });
+  // 更新で付けた番号は、読み込んだ後にアドレスから消す（ホーム画面に追加する時などに残らないように）
+  if (/[?&]r=\d+/.test(location.search)) { try { history.replaceState(null, '', location.pathname + location.hash); } catch (_) {} }
   $('tm-close').addEventListener('click', function () { $('title-menu').hidden = true; });
   $('tm-help').addEventListener('click', function () { $('title-menu').hidden = true; showHelp(); });
   $('tm-data').addEventListener('click', function () { $('title-menu').hidden = true; openData(); });
