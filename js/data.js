@@ -254,7 +254,8 @@ G.TOWERS = {
     up: [{ cost: 25, dmg: 3, poison: { dps: 9, dur: 3 } }, { cost: 50, dmg: 4, range: 2.6, poison: { dps: 14, dur: 3 } }]
   },
   mage: {
-    name: '魔導士の塔', cost: 2, range: 2.2, dmg: 15, rate: 1.6, dmgType: 'magic', shot: 'orb', speed: 5,
+    name: '魔導士の塔', cost: 1, range: 2.2,   // 2026-10-24 コスト2→1（オーナー指定）
+    dmg: 15, rate: 1.6, dmgType: 'magic', shot: 'orb', speed: 5,
     text: '魔法の玉。よろいを無視する。',
     up: [{ cost: 30, dmg: 26, range: 2.5, rate: 1.5 }, { cost: 60, dmg: 42, range: 2.8, rate: 1.4 }]
   },
@@ -271,7 +272,8 @@ G.TOWERS = {
     up: [{ cost: 30, dmg: 6, range: 2.4, rate: 1.1, slow: { pct: 0.5, dur: 1.5 } }, { cost: 60, dmg: 9, range: 2.6, rate: 1.0, slow: { pct: 0.6, dur: 2 } }]
   },
   fire: {
-    name: '炎の塔', muzzle: 1.6, cost: 2, range: 2.3, dmg: 7, rate: 1.3, dmgType: 'magic', shot: 'flame', speed: 6, splash: 0.65,
+    name: '炎の塔', muzzle: 1.6, cost: 1,   // 2026-10-24 コスト2→1（オーナー指定）
+    range: 2.3, dmg: 7, rate: 1.3, dmgType: 'magic', shot: 'flame', speed: 6, splash: 0.65,
     burn: { dps: 10, dur: 2 },
     text: '火の玉で周りの敵もまとめて燃やす（2秒間、毎秒ダメージ）。火に強い敵には効かない。',
     up: [{ cost: 30, dmg: 10, splash: 0.75, burn: { dps: 14, dur: 2 } }, { cost: 60, dmg: 15, range: 2.6, splash: 0.85, burn: { dps: 20, dur: 2.5 } }]
