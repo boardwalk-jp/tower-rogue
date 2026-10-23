@@ -623,6 +623,7 @@ var G = window.G = window.G || {};
           if (!res.fail && ch.se && G.Sound) G.Sound.play(ch.se);   // 選んだ時の効果音（傭兵団の野営地など）
           renderRunBar();
           if (res.fail) { msg.textContent = res.msg; return; }
+          if (ch.effect === 'gamble' && G.Sound) G.Sound.play(res.msg.indexOf('当たり') === 0 ? 'betwin' : 'betlose');   // 賭け：当たり＝お金の音、はずれ＝ハズレの音（2026-10-24）
           R.logSet(run, 'ev', { id: ev.id, c: ci, r: ch.effect === 'gamble' ? (res.msg.indexOf('当たり') === 0 ? 'win' : 'lose') : undefined });
           var key = String(ci) + (ch.effect === 'gamble' ? (res.msg.indexOf('当たり') === 0 ? 'win' : 'lose') : '');
           function afterEvent(text, rid) { afterEventK(text, rid, key); }
@@ -641,7 +642,7 @@ var G = window.G = window.G || {};
             });
           }
           afterEvent(res.msg, res.relic);
-        }, !!ch.se);   // 専用の効果音がある選択肢は、ボタンの「カチャッ」を鳴らさない
+        }, !!ch.se || ch.effect === 'gamble');   // 専用の効果音がある選択肢は、ボタンの「カチャッ」を鳴らさない
         b.appendChild(el('b', '', ch.label));
         if (ch.note) b.appendChild(el('small', '', ch.note));
         if (R.choiceBlocked(run, ch)) b.disabled = true;   // お金・ライフが足りない選択肢は押せない（2026-10-23）

@@ -217,6 +217,9 @@ var G = window.G = window.G || {};
     bigkill: function (t) { noise(t, { dur: 0.3, vol: 0.3, f: 700 }); notes(t, [392, 523, 659], { type: 'square', dur: 0.08, vol: 0.09, step: 0.05 }); },
     bossdown: function (t) { noise(t, { dur: 0.8, vol: 0.45, f: 600 }); tone(t, { f: 110, f2: 30, dur: 0.8, type: 'sawtooth', vol: 0.25 }); notes(t, [523, 659, 784, 1047], { type: 'square', dur: 0.14, vol: 0.1, step: 0.11, delay: 0.3 }); },
     coin:   function (t) { notes(t, [1319, 1760], { type: 'square', dur: 0.06, vol: 0.05, step: 0.05 }); notes(t, [2637, 3520], { type: 'sine', dur: 0.12, vol: 0.03, step: 0.05 }); },   // チャリン（高い響きを重ねる）
+    // 賭けイベント（2026-10-24）：当たり＝コインがじゃらじゃら落ちる音、はずれ＝「ブー…ブー…」と沈むブザー
+    betwin: function (t) { var fs = [1319, 1760, 1568, 2093, 1760, 2637, 2093, 3136]; fs.forEach(function (f, i) { var d = i * 0.065; tone(t, { f: f, dur: 0.06, type: 'square', vol: 0.05, delay: d }); tone(t, { f: f * 2, dur: 0.12, type: 'sine', vol: 0.03, delay: d }); noise(t, { dur: 0.03, vol: 0.05, f: 6000, hp: true, delay: d }); }); },
+    betlose: function (t) { tone(t, { f: 180, f2: 150, dur: 0.22, type: 'sawtooth', vol: 0.12 }); tone(t, { f: 140, f2: 90, dur: 0.4, type: 'sawtooth', vol: 0.12, delay: 0.26 }); noise(t, { dur: 0.1, vol: 0.06, f: 400, delay: 0.26 }); },
     leak:   function (t) { tone(t, { f: 240, f2: 90, dur: 0.28, type: 'sawtooth', vol: 0.16 }); },
     build:  function (t) { tone(t, { f: 120, f2: 60, dur: 0.12, type: 'sine', vol: 0.25 }); noise(t, { dur: 0.08, vol: 0.18, f: 700 }); noise(t, { dur: 0.04, vol: 0.12, f: 2500, bp: true, delay: 0.07 }); notes(t, [330, 440, 554], { type: 'triangle', dur: 0.09, vol: 0.1, step: 0.06, delay: 0.05 }); },   // ドスッ＋トン（木をたたく）＋上がる音
     // 強化：上がっていくきらきらの和音＋ふわっと広がる低い音
