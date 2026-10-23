@@ -170,7 +170,7 @@ var G = window.G = window.G || {};
       rand: r, world: makeWorld(r), at: null, visited: [], cmd: cmdId || 'captain', asc: asc || 0,
       act: 1, deck: C.deck.slice(), life: life, maxLife: life, gold: G.RULES.startGold,
       relics: C.relic ? [C.relic] : [], stats: { battles: 0, elites: 0, cardsTaken: 0 }, over: false, won: false,
-      log: newLog()
+      log: newLog(), events: []
     };
     run.boss = pickBoss(run);
     return run;
@@ -337,7 +337,15 @@ var G = window.G = window.G || {};
   }
 
   // ---- イベント ----
-  function rollEvent(run) { return pick(G.EVENTS.filter(function (e) { return !e.acts || e.acts.indexOf(run.act) >= 0; }), run.rand); }
+  // 同じイベントは1回の挑戦で1度だけ（run.events に出たイベントの id を覚える）。その層で出せるものを全部使い切った時だけ、もう一度すべてから選ぶ
+  function rollEvent(run) {
+    var seen = run.events || (run.events = []);
+    var pool = G.EVENTS.filter(function (e) { return !e.acts || e.acts.indexOf(run.act) >= 0; });
+    var fresh = pool.filter(function (e) { return seen.indexOf(e.id) < 0; });
+    var e = pick(fresh.length ? fresh : pool, run.rand);
+    if (seen.indexOf(e.id) < 0) seen.push(e.id);
+    return e;
+  }
   // 次の層へ：新しいワールドマップ、ライフ回復
   function nextAct(run) {
     run.act++; run.actClear = false; run.shop = null;
@@ -391,7 +399,7 @@ var G = window.G = window.G || {};
   // ---- セーブ用：ランを文字にできる形にする／元に戻す ----
   function toSave(run) {
     return { world: run.world, at: run.at, visited: run.visited, deck: run.deck, life: run.life, maxLife: run.maxLife,
-             gold: run.gold, stats: run.stats, log: run.log, rng: run.rand.state(), relics: run.relics, act: run.act, cmd: run.cmd, asc: run.asc || 0, boss: run.boss, boss2: run.boss2 || 0, boss2Fight: !!run.boss2Fight, phoenixUsed: run.phoenixUsed || 0, dismiss: run.dismiss || 0, actBattles: run.actBattles || 0, lastMap: run.lastMap || null, shop: run.shop || null };
+             gold: run.gold, stats: run.stats, log: run.log, rng: run.rand.state(), relics: run.relics, act: run.act, cmd: run.cmd, asc: run.asc || 0, boss: run.boss, boss2: run.boss2 || 0, boss2Fight: !!run.boss2Fight, phoenixUsed: run.phoenixUsed || 0, dismiss: run.dismiss || 0, actBattles: run.actBattles || 0, lastMap: run.lastMap || null, shop: run.shop || null, events: run.events || [] };
   }
   function fromSave(d) {
     // 前の版のセーブ：指揮官のレリックがなければ足す
@@ -399,7 +407,7 @@ var G = window.G = window.G || {};
     if (C && C.relic && rel.indexOf(C.relic) < 0) rel.unshift(C.relic);
     d.relics = rel;
     return { rand: B.rng(d.rng), world: d.world, at: d.at, visited: d.visited, deck: d.deck, life: d.life, maxLife: d.maxLife,
-             gold: d.gold, stats: d.stats, log: d.log || newLog(true), relics: d.relics || [], act: d.act || 1, cmd: d.cmd || 'captain', asc: d.asc || 0, boss: d.boss || 0, boss2: d.boss2 || 0, boss2Fight: !!d.boss2Fight, phoenixUsed: d.phoenixUsed || 0, dismiss: d.dismiss || 0, actBattles: d.actBattles || 0, lastMap: d.lastMap || null, shop: d.shop || null, over: false, won: false };
+             gold: d.gold, stats: d.stats, log: d.log || newLog(true), relics: d.relics || [], act: d.act || 1, cmd: d.cmd || 'captain', asc: d.asc || 0, boss: d.boss || 0, boss2: d.boss2 || 0, boss2Fight: !!d.boss2Fight, phoenixUsed: d.phoenixUsed || 0, dismiss: d.dismiss || 0, actBattles: d.actBattles || 0, lastMap: d.lastMap || null, shop: d.shop || null, events: (d.events || []).slice(), over: false, won: false };   // events：前の版のセーブにはないので、なければ空（引き継ぎ）
   }
 
   // ============================================================

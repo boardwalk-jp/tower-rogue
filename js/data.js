@@ -238,8 +238,8 @@ G.TOWERS = {
   },
   // ---- 道中で手に入る ----
   watch: {
-    name: '見張り小屋', muzzle: 1.1, cost: 0, range: 2.0, dmg: 6, rate: 0.8, drawOnBuild: 1, dmgType: 'physical', shot: 'arrow', speed: 9,
-    text: 'エネルギー0で建てられる小さな見張り。置いた時にカードを1枚引く。',   // 2026-10-22 ダメージ3→6・置くと1枚引く（オーナー指定。強化のダメージも同じ上げ幅で 5→8・8→11）
+    name: '見張り小屋', muzzle: 1.1, cost: 0, range: 2.0, dmg: 4, rate: 0.8, drawOnBuild: 1, dmgType: 'physical', shot: 'arrow', speed: 9,
+    text: 'エネルギー0で建てられる小さな見張り。置いた時にカードを1枚引く。',   // 2026-10-24 ダメージ6→4（オーナー指定。強化の8・11はそのまま）／2026-10-22 ダメージ3→6・置くと1枚引く（オーナー指定。強化のダメージも同じ上げ幅で 5→8・8→11）
     up: [{ cost: 15, dmg: 8, range: 2.2, rate: 0.75 }, { cost: 30, dmg: 11, range: 2.4, rate: 0.7 }]
   },
   archer: {
