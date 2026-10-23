@@ -131,7 +131,7 @@ var G = window.G = window.G || {};
     s.bpUsed = 0; s.freeTowers = 0;
     // 「このターンだけ」の強化を外す
     s.buff.speedMult = 1; s.buff.goldMult = 1;
-    s.towers.forEach(function (tw) { tw.turnDmgMult = 1; tw.turnRateMult = 1; });
+    s.towers.forEach(function (tw) { tw.turnDmgMult = 1; tw.turnRateMult = 1; tw.turnElemMult = 1; });
     // 兵士は準備ターンの始めに全員元気になって持ち場に戻る
     s.soldiers.forEach(function (u) { u.dead = 0; u.hp = u.max; u.eng = null; u.x = u.hx; u.y = u.hy; });
     // 前のターンの手札は捨て札へ（使い切りの一時カードは消える）
@@ -165,12 +165,15 @@ var G = window.G = window.G || {};
     return null;
   }
 
+  // 属性効果（毒・雷の連鎖・氷の減速・炎のやけど）を持つタワーか（魔術強化の対象）
+  function hasElement(tw) { var b = baseStats(tw.type, tw.lv || 0); return !!(b.poison || b.slow || b.burn || b.chain); }
   // スキルが今そのタワーに使えるか（使えない理由を返す。使えるなら null）
   function skillBlocked(s, def, tw) {
     if (def.target === 'tower') {
       if (!tw) return 'タワーを選んでください';
       var bid = def.base || def.id;
       if ((bid === 'forge' || bid === 'masterwork') && tw.lv >= G.TOWERS[tw.type].up.length) return 'これ以上強化できません';
+      if (bid === 'arcane' && !hasElement(tw)) return 'このタワーには属性効果がありません';
     }
     return null;
   }
@@ -235,6 +238,7 @@ var G = window.G = window.G || {};
   function applySkill(s, def, tw) {
     switch (def.base || def.id) {
       case 'aim': tw.turnDmgMult *= def.mult; break;
+      case 'arcane': tw.turnElemMult = (tw.turnElemMult || 1) * def.mult; break;   // 魔術強化（towerStats で毒・連鎖・減速・やけどに掛ける）
       case 'whet': tw.bonusDmg += def.amount; break;
       case 'forge': tw.lv++; ev(s, { k: 'upgrade', x: tw.x, y: tw.y, id: tw.id }); var fb = baseStats(tw.type, tw.lv); if (fb.blocker) { tw.hp += fb.blocker.hp - tw.maxHp; tw.maxHp = fb.blocker.hp; } if (fb.soldiers) makeSoldiers(s, tw); break;
       case 'supply': case 'replan': for (var d = 0; d < def.n; d++) drawOne(s); break;
@@ -297,6 +301,15 @@ var G = window.G = window.G || {};
       if (st.poison) st.poison = { dps: st.poison.dps, dur: st.poison.dur + plusDur };
       if (st.burn) st.burn = { dps: st.burn.dps, dur: st.burn.dur + plusDur };
     }
+    // 魔術強化：毒・やけどの毎秒ダメージ、雷の連鎖する体数、氷の遅くする強さを mult 倍（続く時間・攻撃力・射程は変えない）
+    //   遅くする強さは 90% まで（100% だと敵が止まってしまうため）
+    var em = tw.turnElemMult || 1;
+    if (em !== 1) {
+      if (st.poison) st.poison = { dps: st.poison.dps * em, dur: st.poison.dur };
+      if (st.burn) st.burn = { dps: st.burn.dps * em, dur: st.burn.dur };
+      if (st.slow) st.slow = { pct: Math.min(0.9, st.slow.pct * em), dur: st.slow.dur };
+      if (st.chain) st.chain = Math.round(st.chain * em);
+    }
     st.dmg = Math.round(st.dmg * 10) / 10;
     if (s && s.buff.speedMult !== 1) st.rate = st.rate / s.buff.speedMult;
     if (tw.turnRateMult && tw.turnRateMult !== 1) st.rate = st.rate / tw.turnRateMult;
@@ -304,7 +317,7 @@ var G = window.G = window.G || {};
   }
   function nextStats(tw, s) { // 次のレベルの強さ（最大なら null）
     if (tw.lv >= G.TOWERS[tw.type].up.length) return null;
-    return towerStats({ type: tw.type, lv: tw.lv + 1, bonusDmg: tw.bonusDmg, turnDmgMult: tw.turnDmgMult }, s);
+    return towerStats({ type: tw.type, lv: tw.lv + 1, bonusDmg: tw.bonusDmg, turnDmgMult: tw.turnDmgMult, turnElemMult: tw.turnElemMult }, s);
   }
   function upgradeCost(tw, s) {
     var T = G.TOWERS[tw.type];

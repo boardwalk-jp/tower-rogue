@@ -448,6 +448,7 @@ var G = window.G = window.G || {};
     var fx = [];
     if (tw.bonusDmg) fx.push('攻撃+' + tw.bonusDmg);
     if (tw.turnDmgMult > 1) fx.push('攻撃×' + (Math.round(tw.turnDmgMult * 100) / 100));
+    if (tw.turnElemMult > 1) fx.push('属性×' + (Math.round(tw.turnElemMult * 100) / 100));
     if (s.buff.speedMult > 1 && !T.noAttack) fx.push('速さ×' + (Math.round(s.buff.speedMult * 100) / 100));
     $('ts-lv').innerHTML = 'Lv' + (tw.lv + 1) + '/' + (T.up.length + 1) + (fx.length ? '　<b class="d-up">' + fx.join('・') + '</b>' : '');
     var n = B.nextStats(tw, s), RN = n ? G.Rank.ofStats(n) : null;
@@ -539,6 +540,7 @@ var G = window.G = window.G || {};
         (UPS.length ? '<dt>強化</dt><dd>● ' + UPS.map(function (u) { return u.cost; }).join(' → ● ') + '</dd>' : '<dt>強化</dt><dd>最大</dd>');
     } else {
       h += '<dt>使う相手</dt><dd>' + (def.target === 'tower' ? 'タワー1つ' : def.target === 'hand' ? '手札のカード1枚' : 'なし（すぐ効く）') + '</dd>';
+      if (def.detail) h += '<dt>詳細</dt><dd>' + def.detail + '</dd>';   // 効果の中身を1つずつ書いたカード（魔術強化）
     }
     if (def.exhaust) h += '<dt>使い切り</dt><dd>この戦闘中は戻らない</dd>';
     return h;

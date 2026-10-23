@@ -86,6 +86,14 @@ var G = window.G = window.G || {};
                      g.rect(7, 5, 4, 2, '#3a7bd9'); g.rect(7, 5, 4, 1, '#7ab0ff');                                     // 右へ
                      g.rect(11, 3, 1, 6, '#3a7bd9'); g.rect(12, 4, 1, 4, '#3a7bd9'); g.px(13, 5, '#3a7bd9'); g.px(13, 6, '#2a5aa8'); g.px(11, 3, '#7ab0ff'); g.px(12, 4, '#7ab0ff');   // 矢じり
                      g.px(7, 11, '#2a5aa8'); g.px(8, 11, '#2a5aa8'); break;
+      case 'arcane': // 魔術強化：中央の紫の水晶のまわりに、4つの属性（上＝毒のしずく／右＝雷／下＝氷／左＝炎）が浮かぶ
+                     g.rect(7, 4, 2, 1, '#c79bff'); g.rect(6, 5, 4, 1, '#9a6ad8'); g.rect(5, 6, 6, 1, '#9a6ad8'); g.rect(4, 7, 8, 2, '#9a6ad8');
+                     g.rect(5, 9, 6, 1, '#7a4ab8'); g.rect(6, 10, 4, 1, '#7a4ab8'); g.rect(7, 11, 2, 1, '#6a3aa8');
+                     g.rect(6, 6, 1, 2, '#e0c8ff'); g.px(7, 5, '#e0c8ff'); g.px(5, 7, '#e0c8ff');                                          // 水晶の光
+                     g.rect(7, 0, 2, 1, '#8ee83a'); g.rect(6, 1, 4, 2, '#6ac83a'); g.px(7, 1, '#d8ffb8'); g.px(9, 2, '#4a9a2a');            // 上：毒のしずく
+                     g.rect(14, 3, 2, 1, '#ffe14d'); g.rect(13, 4, 2, 1, '#ffe14d'); g.rect(12, 5, 4, 1, '#ffe14d'); g.rect(13, 6, 2, 1, '#ffe14d'); g.rect(12, 7, 2, 1, '#ffd02a'); g.rect(12, 8, 1, 2, '#ffd02a'); g.px(14, 5, '#fff6c0');   // 右：雷
+                     g.rect(7, 12, 2, 1, '#e0faff'); g.rect(5, 13, 6, 2, '#5fc8ff'); g.rect(7, 15, 2, 1, '#5fc8ff'); g.px(7, 13, '#ffffff'); g.px(8, 14, '#2a98c8');   // 下：氷
+                     g.px(2, 4, '#ff8a2a'); g.rect(1, 5, 2, 1, '#ff8a2a'); g.rect(0, 6, 3, 3, '#ff8a2a'); g.rect(1, 9, 2, 2, '#e0501a'); g.px(1, 7, '#ffd84a'); g.rect(1, 8, 1, 2, '#ffd84a'); g.px(2, 11, '#e0501a'); break;   // 左：炎
       case 'saw':    g.rect(2, 7, 12, 4, '#b4b8bc'); for (var x = 2; x < 14; x += 2) g.px(x, 11, '#8b8f94'); g.rect(11, 4, 4, 4, '#8a5a2b'); g.rect(3, 2, 6, 3, '#8a5a2b'); g.rect(4, 3, 4, 1, '#c08a4a'); break;
     }
     return g.outline(OUT).bake();
@@ -156,7 +164,7 @@ var G = window.G = window.G || {};
       icon: {}, node: {}, relic: {},
       heart: heart()
     };
-    ['eye', 'bag', 'stone', 'coin', 'hammer', 'horn', 'saw', 'gear', 'scroll', 'meteor', 'sword', 'hourglass', 'star', 'bandage', 'target', 'poster', 'energy', 'box', 'replan'].forEach(function (k) { S.icon[k] = icon(k); });
+    ['eye', 'bag', 'stone', 'coin', 'hammer', 'horn', 'saw', 'gear', 'scroll', 'meteor', 'sword', 'hourglass', 'star', 'bandage', 'target', 'poster', 'energy', 'box', 'replan', 'arcane'].forEach(function (k) { S.icon[k] = icon(k); });
     ['battle', 'elite', 'event', 'shop', 'rest', 'boss'].forEach(function (k) { S.node[k] = nodeIcon(k); });
     G.TowerArt.apply(S);
     G.EnemyArt.apply(S);   // 敵の絵は js/enemyart.js（24×18の疑似3D・段階③）で、できた種類から上書きする   // タワーの絵は js/towerart.js（24×18の疑似3D）で作る

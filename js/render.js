@@ -801,7 +801,7 @@ var G = window.G = window.G || {};
         if (o.maxHp && o.hp < o.maxHp) hpBar(sx(o.x), fy - spr.height - 3, 12, Math.max(0, o.hp / o.maxHp), '#c8a060');
         lvDots(spr, o.x, o.y, o.lv);
         // スキルで強くなっている間は、タワーの上に赤い↑（アップの色）
-        if (o.bonusDmg > 0 || o.turnDmgMult > 1 || s.buff.speedMult > 1) {
+        if (o.bonusDmg > 0 || o.turnDmgMult > 1 || o.turnElemMult > 1 || s.buff.speedMult > 1) {
           var ax = sx(o.x) + (spr.nu ? 9 : 6), ay = fy - spr.height - 2 + Math.round(Math.sin(t * 4 + o.id) * 1);
           b.fillStyle = '#16120f'; b.fillRect(ax - 3, ay - 1, 7, 6);
           b.fillStyle = G.UP_COLOR; b.fillRect(ax, ay, 1, 4); b.fillRect(ax - 1, ay + 1, 3, 1); b.fillRect(ax - 2, ay + 2, 1, 1); b.fillRect(ax + 2, ay + 2, 1, 1);

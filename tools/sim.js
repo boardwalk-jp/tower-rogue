@@ -40,9 +40,9 @@ function bestSpot(s, type) {
   }
   return best;
 }
-function strongest(s) {
+function strongest(s, only) {   // only：選べるタワーを絞る関数（魔術強化は属性効果のあるタワーだけ）
   var best = null;
-  s.towers.forEach(function (tw) { var d = B.towerStats(tw, s).dmg; if (!best || d > best.d) best = { tw: tw, d: d }; });
+  s.towers.forEach(function (tw) { if (only && !only(tw)) return; var d = B.towerStats(tw, s).dmg; if (!best || d > best.d) best = { tw: tw, d: d }; });
   return best && best.tw;
 }
 
@@ -68,7 +68,7 @@ function playTurn(s) {
       var target = null;
       if (def.kind === 'tower') { target = bestSpot(s, def.tower); if (!target) continue; }
       else if (def.target === 'tower') {
-        var tw = def.id === 'forge' ? s.towers.filter(function (t) { return t.lv < G.TOWERS[t.type].up.length; })[0] : strongest(s);
+        var tw = def.id === 'forge' ? s.towers.filter(function (t) { return t.lv < G.TOWERS[t.type].up.length; })[0] : (def.id === 'arcane' || def.id === 'arcane+') ? strongest(s, function (t) { var b = B.baseStats(t.type, t.lv); return b.poison || b.slow || b.burn || b.chain; }) : strongest(s);
         if (!tw) continue; target = { tower: tw.id };
       }
       else if (def.target === 'hand') {
@@ -109,7 +109,7 @@ function fight(opts) {
 }
 
 // たき火：ライフが6割以上なら1枚鍛える（強い順の表の最初の1枚）、それ以外は休む
-var UP_ORDER = ['archer', 'mage', 'thunder', 'fire', 'cannon', 'ballista', 'frost', 'barracks', 'poison', 'bowman', 'sling', 'aim'];
+var UP_ORDER = ['archer', 'mage', 'thunder', 'fire', 'cannon', 'ballista', 'frost', 'barracks', 'poison', 'bowman', 'sling', 'arcane', 'aim'];
 function upgradeBest(run) {
   for (var k = 0; k < UP_ORDER.length; k++) { var i = run.deck.indexOf(UP_ORDER[k]); if (i >= 0) return G.Run.upgradeCard(run, i); }
   for (i = 0; i < run.deck.length; i++) if (G.Run.canUpgradeCard(run.deck[i])) return G.Run.upgradeCard(run, i);
