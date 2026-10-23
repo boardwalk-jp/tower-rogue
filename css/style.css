@@ -592,7 +592,10 @@ button.go:disabled{filter:saturate(.5)}
 #game .hud .hud-cmd{color:#ffe07a}
 #game .hud-life{color:#ffd0d0}
 #game .hud-floor{color:#f0d0d0}
-#game .battle-relics{background:rgba(30,32,40,.5)}
+#game .battle-relics{background:rgba(30,32,40,.5);padding-top:6px}
+/* 赤い帯は画面のいちばん上から（2026-10-23 オーナー指定）。上の6のすき間をなくし、その分をレリックの上のすき間へ（金の線とレリックの枠がくっつかないように）。
+   地図の位置・大きさは変わらない。ホーム画面から開いた時は、時計・切り欠きの分だけよける */
+#game.screen{padding-top:env(safe-area-inset-top)}
 #game #map{border-radius:0;box-shadow:0 -2px 0 #30333c,0 -4px 0 #e8c040}
 /* 上の地図・デッキ・設定：枠も背景もなし。赤い帯から浮くように、下に暗い赤の影 */
 #game .hud .nav-btn{background:none;border:0;box-shadow:none;filter:drop-shadow(0 2px 0 rgba(40,6,8,.7))}
