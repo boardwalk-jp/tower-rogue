@@ -35,6 +35,7 @@ var G = window.G = window.G || {};
     noiseBuf = ac.createBuffer(1, ac.sampleRate * 0.6, ac.sampleRate);
     var d = noiseBuf.getChannelData(0); for (var i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
     boss = null; bossOut = null;      // ボスの曲は音の準備ごとに作り直す
+    holdUntil = 0;                    // 曲を待たせる時刻（hold）も消す。古い時計の時刻のままだと、新しい時計では何分も先になって曲が始まらない（2026-10-24）
     for (var k in lastAt) delete lastAt[k];   // 効果音の「最後に鳴らした時刻」も消す（新しい時計は0から）
     tried = false;
     watchState();
