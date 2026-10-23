@@ -113,6 +113,60 @@ var G = window.G = window.G || {};
     src.connect(f); f.connect(g); g.connect(o.bus || sfxBus);
     src.start(st, Math.random() * 0.3); src.stop(st + dur + 0.02);
   }
+  // ---- 実際の音に近い効果音の部品（2026-10-24 指揮官を選ぶ画面のマーク用） ----
+  function env(g, st, peak, att, dec) { g.gain.setValueAtTime(0.0001, st); g.gain.linearRampToValueAtTime(peak, st + att); g.gain.exponentialRampToValueAtTime(0.0001, st + att + dec); }
+  function nsrc(st, dur) { var s = ac.createBufferSource(); s.buffer = noiseBuf; s.start(st, Math.random() * Math.max(0, 0.6 - dur - 0.02)); s.stop(st + dur); return s; }
+  // 剣を振る「シュバッ」：雑音の通る高さを 低→高→低 と一瞬で動かす（空気を切る音）＋最後に短く重い「バッ」
+  function realSwish(t) {
+    var n = nsrc(t, 0.45), bp = ac.createBiquadFilter(), g = ac.createGain();
+    bp.type = 'bandpass'; bp.Q.value = 1.3;
+    bp.frequency.setValueAtTime(450, t); bp.frequency.exponentialRampToValueAtTime(7000, t + 0.085); bp.frequency.exponentialRampToValueAtTime(1100, t + 0.34);
+    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(1.1, t + 0.065); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.38);
+    n.connect(bp); bp.connect(g); g.connect(sfxBus);
+    var n2 = nsrc(t + 0.05, 0.2), hp = ac.createBiquadFilter(), g2 = ac.createGain();   // 刃先の「シャッ」
+    hp.type = 'highpass'; hp.frequency.value = 5000; env(g2, t + 0.05, 0.5, 0.01, 0.12);
+    n2.connect(hp); hp.connect(g2); g2.connect(sfxBus);
+    var n3 = nsrc(t + 0.07, 0.12), lp = ac.createBiquadFilter(), g3 = ac.createGain();  // 振り切った「バッ」
+    lp.type = 'lowpass'; lp.frequency.setValueAtTime(2200, t + 0.07); lp.frequency.exponentialRampToValueAtTime(400, t + 0.17); env(g3, t + 0.07, 0.55, 0.004, 0.09);
+    n3.connect(lp); lp.connect(g3); g3.connect(sfxBus);
+  }
+  // 金づちで鉄をたたく「カンッ」：高さのそろわない響き（金属らしさ）を重ね、打った瞬間の硬い「カチッ」を足す
+  function realHammer(t0, delay, v) {
+    var t = t0 + delay, k = 0.97 + Math.random() * 0.06;   // 1回ごとに少しだけ高さを変える（同じ音のくり返しに聞こえないように）
+    [[1180, 0.5, 0.55], [1192, 0.25, 0.5], [2830, 0.32, 0.32], [4310, 0.2, 0.2], [6050, 0.12, 0.12], [640, 0.12, 0.25]].forEach(function (p) {
+      var o = ac.createOscillator(), g = ac.createGain(); o.type = 'sine'; o.frequency.value = p[0] * k;
+      env(g, t, p[1] * v, 0.0015, p[2]); o.connect(g); g.connect(sfxBus); o.start(t); o.stop(t + p[2] + 0.05);
+    });
+    var c = nsrc(t, 0.03), hp = ac.createBiquadFilter(), cg = ac.createGain();
+    hp.type = 'highpass'; hp.frequency.value = 2500; env(cg, t, 0.9 * v, 0.0008, 0.018);
+    c.connect(hp); hp.connect(cg); cg.connect(sfxBus);
+    var b = nsrc(t, 0.06), lp = ac.createBiquadFilter(), bg = ac.createGain();   // 台にひびく低い音
+    lp.type = 'lowpass'; lp.frequency.value = 500; env(bg, t, 0.35 * v, 0.002, 0.05);
+    b.connect(lp); lp.connect(bg); bg.connect(sfxBus);
+  }
+  // 魔法：ガラスの鈴のような粒（倍音が整数倍でない＝鈴らしい）を上へ並べ、ふわっと上がる風とやまびこを重ねる
+  function realMagic(t) {
+    var dl = ac.createDelay(1), fb = ac.createGain(), wet = ac.createGain(), out = ac.createGain();
+    dl.delayTime.value = 0.11; fb.gain.value = 0.38; wet.gain.value = 0.5; out.gain.value = 1;
+    out.connect(sfxBus); out.connect(dl); dl.connect(fb); fb.connect(dl); dl.connect(wet); wet.connect(sfxBus);
+    setTimeout(function () { try { out.disconnect(); dl.disconnect(); fb.disconnect(); wet.disconnect(); } catch (e) {} }, 2500);
+    [1568, 1865, 2349, 2794, 3136, 3729].forEach(function (f, i) {
+      var st = t + 0.03 + i * 0.05 + Math.random() * 0.012, a = 0.16 - i * 0.015;
+      [[1, 1, 0.55], [2.76, 0.32, 0.25], [5.4, 0.12, 0.12]].forEach(function (p) {
+        var o = ac.createOscillator(), g = ac.createGain(); o.type = 'sine'; o.frequency.value = f * p[0];
+        env(g, st, a * p[1], 0.004, p[2]); o.connect(g); g.connect(out); o.start(st); o.stop(st + p[2] + 0.05);
+      });
+    });
+    var n = nsrc(t, 0.5), bp = ac.createBiquadFilter(), g = ac.createGain();   // ふわっと上がる風
+    bp.type = 'bandpass'; bp.Q.value = 5;
+    bp.frequency.setValueAtTime(700, t); bp.frequency.exponentialRampToValueAtTime(5200, t + 0.42);
+    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.35, t + 0.18); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.5);
+    n.connect(bp); bp.connect(g); g.connect(out);
+    var o = ac.createOscillator(), og = ac.createGain(); o.type = 'sine';   // 下で鳴るやわらかい響き
+    o.frequency.setValueAtTime(262, t); o.frequency.exponentialRampToValueAtTime(392, t + 0.5);
+    og.gain.setValueAtTime(0.0001, t); og.gain.linearRampToValueAtTime(0.12, t + 0.1); og.gain.exponentialRampToValueAtTime(0.0001, t + 0.75);
+    o.connect(og); og.connect(out); o.start(t); o.stop(t + 0.8);
+  }
   // 楽器らしい音（BGM用）：2つの音を少しずらして重ね（ふくらみ）、高い音をけずり（やわらかく）、
   // 出だしは速く・そのあと少し小さくなって続き・最後はすっと消える（ADSR）
   function voice(t, o) {
@@ -203,29 +257,10 @@ var G = window.G = window.G || {};
       tone(t, { f: 150, f2: 60, dur: 0.18, type: 'sine', vol: 0.38, delay: 0.1 }); noise(t, { dur: 0.1, vol: 0.22, f: 450, delay: 0.1 });
       tone(t, { f: 900, f2: 700, dur: 0.04, type: 'triangle', vol: 0.04, delay: 0.1 });
     },
-    // 指揮官を選ぶ画面で象徴マークをタップした時の音（2026-10-23 オーナー指定：タップのたびに鳴らす）
-    // 騎士隊長（剣）：シュッと空気を切る音 → 刃のシャキーン
-    cmd_captain: function (t) {
-      noise(t, { dur: 0.05, vol: 0.18, f: 1400, bp: true }); noise(t, { dur: 0.06, vol: 0.2, f: 3200, hp: true, delay: 0.025 }); noise(t, { dur: 0.08, vol: 0.14, f: 6500, hp: true, delay: 0.05 });
-      tone(t, { f: 2700, f2: 2450, dur: 0.42, type: 'triangle', vol: 0.09, delay: 0.07 }); tone(t, { f: 4100, f2: 3900, dur: 0.3, type: 'sine', vol: 0.05, delay: 0.07 });
-      tone(t, { f: 1800, f2: 1700, dur: 0.2, type: 'sine', vol: 0.04, delay: 0.08 });
-    },
-    // 宮廷魔導師（水晶の杖）：キラキラと上がる音＋やわらかい響き
-    cmd_witch: function (t) {
-      tone(t, { f: 440, f2: 660, dur: 0.6, type: 'sine', vol: 0.1 });
-      [880, 1175, 1480, 1760, 2350].forEach(function (f, i) { tone(t, { f: f, dur: 0.28, type: 'sine', vol: 0.075, delay: 0.04 + i * 0.055 }); tone(t, { f: f * 2.01, dur: 0.18, type: 'sine', vol: 0.025, delay: 0.04 + i * 0.055 }); });
-      noise(t, { dur: 0.35, vol: 0.05, f: 7000, hp: true, delay: 0.05 });
-    },
-    // 工兵将校（スパナ）：金づちで金属を打つ「カーン、カン」
-    cmd_engineer: function (t) {
-      [0, 0.2].forEach(function (d, i) { var v = i ? 0.7 : 1;
-        noise(t, { dur: 0.03, vol: 0.32 * v, f: 3000, hp: true, delay: d });
-        tone(t, { f: 540, f2: 500, dur: 0.07, type: 'square', vol: 0.12 * v, delay: d });
-        tone(t, { f: 1320, f2: 1300, dur: 0.32, type: 'triangle', vol: 0.09 * v, delay: d });
-        tone(t, { f: 2210, dur: 0.18, type: 'sine', vol: 0.04 * v, delay: d });
-        tone(t, { f: 130, f2: 70, dur: 0.1, type: 'sine', vol: 0.2 * v, delay: d });
-      });
-    },
+    // 指揮官を選ぶ画面で象徴マークをタップした時の音（2026-10-24 オーナー指定：電子音でなく、実際の音に近づける。タップのたびに鳴らす）
+    cmd_captain: function (t) { realSwish(t); },
+    cmd_witch: function (t) { realMagic(t); },
+    cmd_engineer: function (t) { realHammer(t, 0, 1); realHammer(t, 0.42, 0.8); },   // 「カンッ、（一拍）カンッ」
     // 作戦変更で手札を外す：カードがシュッと下に消える
     cardout: function (t) {
       noise(t, { dur: 0.12, vol: 0.12, f: 3500, hp: true }); noise(t, { dur: 0.1, vol: 0.08, f: 1600, bp: true, delay: 0.05 });
